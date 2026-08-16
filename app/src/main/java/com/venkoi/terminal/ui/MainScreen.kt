@@ -99,7 +99,7 @@ fun MainScreen() {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Placeholder",
+                            text = stringResource(R.string.common_placeholder),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }

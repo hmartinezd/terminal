@@ -37,7 +37,7 @@ fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, viewModel: HistoryViewMode
         AlertDialog(
             onDismissRequest = { showVoidDialog = false },
             title = { Text(stringResource(R.string.history_void_sale) + "?") },
-            text = { Text("The original sale will remain in History as VOIDED. This action cannot be undone.") }, // TODO: Localize
+            text = { Text(stringResource(R.string.history_void_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.voidSale(sale.saleId)
@@ -64,11 +64,6 @@ fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, viewModel: HistoryViewMode
                 Text(
                     text = sale.tableLabel?.ifBlank { null } ?: sale.saleId.value.takeLast(8).uppercase(),
                     style = MaterialTheme.typography.headlineMedium
-                )
-                Text(
-                    text = "ID: ${sale.saleId.value}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             

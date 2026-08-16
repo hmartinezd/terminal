@@ -58,6 +58,7 @@
     <string name="history_select_sale">Seleccione una venta para ver los detalles</string>
     <string name="history_business_date">Fecha de negocio</string>
     <string name="history_timestamp">Registro de tiempo</string>
+    <string name="history_void_message">La venta original permanecerá en el historial como ANULADA. Esta acción no se puede deshacer.</string>
 
     <!-- Settings Screen -->
     <string name="settings_title">Configuración</string>
@@ -102,4 +103,7 @@
     <string name="cd_remove">Eliminar</string>
     <string name="cd_increase">Aumentar</string>
     <string name="cd_decrease">Disminuir</string>
+
+    <string name="common_not_available">No disponible</string>
+    <string name="common_placeholder">Espacio reservado</string>
 </resources>

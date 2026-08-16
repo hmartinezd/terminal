@@ -26,6 +26,7 @@ fun SettingsScreen(
     val publishedMenu by viewModel.publishedMenu.collectAsState()
     val currentLanguageCode by viewModel.currentLanguageCode.collectAsState()
     
+    val na = stringResource(R.string.common_not_available)
     val snackbarHostState = remember { SnackbarHostState() }
     val importSuccessMsg = stringResource(R.string.settings_import_success)
 
@@ -69,25 +70,25 @@ fun SettingsScreen(
 
             // Terminal Info
             SettingsSection(title = stringResource(R.string.settings_section_terminal)) {
-                InfoRow(stringResource(R.string.settings_terminal_name), terminalConfig?.terminalName ?: "N/A")
-                InfoRow(stringResource(R.string.settings_terminal_id), terminalConfig?.terminalId?.value ?: "N/A")
+                InfoRow(stringResource(R.string.settings_terminal_name), terminalConfig?.terminalName ?: na)
+                InfoRow(stringResource(R.string.settings_terminal_id), terminalConfig?.terminalId?.value ?: na)
             }
 
             // Restaurant Info
             SettingsSection(title = stringResource(R.string.settings_section_restaurant)) {
-                InfoRow(stringResource(R.string.settings_restaurant_name), restaurantConfig?.restaurantName ?: "N/A")
-                InfoRow(stringResource(R.string.settings_restaurant_id), restaurantConfig?.restaurantId ?: "N/A")
-                InfoRow(stringResource(R.string.settings_currency), restaurantConfig?.currency?.currencyCode ?: "N/A")
-                InfoRow(stringResource(R.string.settings_timezone), restaurantConfig?.timezone?.id ?: "N/A")
-                InfoRow(stringResource(R.string.settings_business_cutoff), restaurantConfig?.businessDayCutoff?.toString() ?: "N/A")
+                InfoRow(stringResource(R.string.settings_restaurant_name), restaurantConfig?.restaurantName ?: na)
+                InfoRow(stringResource(R.string.settings_restaurant_id), restaurantConfig?.restaurantId ?: na)
+                InfoRow(stringResource(R.string.settings_currency), restaurantConfig?.currency?.currencyCode ?: na)
+                InfoRow(stringResource(R.string.settings_timezone), restaurantConfig?.timezone?.id ?: na)
+                InfoRow(stringResource(R.string.settings_business_cutoff), restaurantConfig?.businessDayCutoff?.toString() ?: na)
             }
 
             // Menu Info
             SettingsSection(title = stringResource(R.string.settings_section_menu)) {
-                InfoRow(stringResource(R.string.settings_menu_id), publishedMenu?.menuId ?: "N/A")
-                InfoRow(stringResource(R.string.settings_publication_revision), publishedMenu?.publicationRevision?.toString() ?: "N/A")
-                InfoRow(stringResource(R.string.settings_published_at), publishedMenu?.publishedAtUtc?.toString() ?: "N/A")
-                InfoRow(stringResource(R.string.settings_imported_at), publishedMenu?.importTimestamp?.toString() ?: "N/A")
+                InfoRow(stringResource(R.string.settings_menu_id), publishedMenu?.menuId ?: na)
+                InfoRow(stringResource(R.string.settings_publication_revision), publishedMenu?.publicationRevision?.toString() ?: na)
+                InfoRow(stringResource(R.string.settings_published_at), publishedMenu?.publishedAtUtc?.toString() ?: na)
+                InfoRow(stringResource(R.string.settings_imported_at), publishedMenu?.importTimestamp?.toString() ?: na)
                 
                 Spacer(Modifier.height(8.dp))
                 

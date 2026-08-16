@@ -58,6 +58,7 @@
     <string name="history_select_sale">Select a sale to view details</string>
     <string name="history_business_date">Business Date</string>
     <string name="history_timestamp">Timestamp</string>
+    <string name="history_void_message">The original sale will remain in History as VOIDED. This action cannot be undone.</string>
 
     <!-- Settings Screen -->
     <string name="settings_title">Settings</string>
@@ -102,4 +103,7 @@
     <string name="cd_remove">Remove</string>
     <string name="cd_increase">Increase</string>
     <string name="cd_decrease">Decrease</string>
+
+    <string name="common_not_available">N/A</string>
+    <string name="common_placeholder">Placeholder</string>
 </resources>
