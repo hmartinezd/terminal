@@ -40,6 +40,15 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val isCompleting by viewModel.isCompleting.collectAsState()
     val completionSuccess by viewModel.completionSuccess.collectAsState()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(completionSuccess) {
+        if (completionSuccess) {
+            snackbarHostState.showSnackbar("Sale completed")
+            viewModel.clearCompletionFeedback()
+        }
+    }
+
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showCompleteDialog by remember { mutableStateOf(false) }
 
@@ -105,9 +114,6 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     LaunchedEffect(completionSuccess) {
         if (completionSuccess) {
             showCompleteDialog = false
-            // The success feedback can be shown via a Snackbar if we had one,
-            // but for now, the sale will just disappear from the list.
-            viewModel.clearCompletionFeedback()
         }
     }
 
@@ -124,157 +130,162 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
         )
     }
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Left Panel: Open Orders
-        Column(
-            modifier = Modifier
-                .width(250.dp)
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(8.dp)
-        ) {
-            Text("OPEN ORDERS", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(openOrders) { order ->
-                    ListItem(
-                        headlineContent = { Text(order.tableLabel?.ifBlank { null } ?: order.saleId.value.takeLast(8)) },
-                        supportingContent = { if (!order.tableLabel.isNullOrBlank()) Text(order.saleId.value.takeLast(8)) },
-                        modifier = Modifier.clickable { viewModel.selectOrder(order.saleId) },
-                        colors = if (selectedOrderId == order.saleId) ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ListItemDefaults.colors()
-                    )
-                }
-            }
-            Button(
-                onClick = { viewModel.createOrder() },
-                modifier = Modifier.fillMaxWidth().padding(8.dp)
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Row(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Left Panel: Open Orders
+            Column(
+                modifier = Modifier
+                    .width(250.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(8.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("New Order")
-            }
-        }
-
-        VerticalDivider()
-
-        // Center Panel: Menu
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .padding(8.dp)
-        ) {
-            Text("MENU", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
-            
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    FilterChip(
-                        selected = selectedCategoryId == null,
-                        onClick = { viewModel.selectCategory(null) },
-                        label = { Text("All") }
-                    )
-                }
-                items(categories) { category ->
-                    FilterChip(
-                        selected = selectedCategoryId == category.id,
-                        onClick = { viewModel.selectCategory(category.id) },
-                        label = { Text(category.name) }
-                    )
-                }
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 150.dp),
-                contentPadding = PaddingValues(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(menuItems) { item ->
-                    Card(
-                        onClick = { viewModel.addItemToCurrentOrder(item.id) },
-                        modifier = Modifier.height(100.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize().padding(8.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(item.name, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
-                            Text("${item.regularPrice}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                        }
+                Text("OPEN ORDERS", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(openOrders) { order ->
+                        ListItem(
+                            headlineContent = { Text(order.tableLabel?.ifBlank { null } ?: order.saleId.value.takeLast(8)) },
+                            supportingContent = { if (!order.tableLabel.isNullOrBlank()) Text(order.saleId.value.takeLast(8)) },
+                            modifier = Modifier.clickable { viewModel.selectOrder(order.saleId) },
+                            colors = if (selectedOrderId == order.saleId) ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ListItemDefaults.colors()
+                        )
                     }
                 }
-            }
-        }
-
-        VerticalDivider()
-
-        // Right Panel: Current Order
-        Column(
-            modifier = Modifier
-                .width(350.dp)
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(8.dp)
-        ) {
-            selectedOrder?.let { order ->
-                var tableLabel by remember(order.saleId) { mutableStateOf(order.tableLabel ?: "") }
-                
-                TextField(
-                    value = tableLabel,
-                    onValueChange = { 
-                        tableLabel = it
-                        viewModel.updateTableLabel(it)
-                    },
-                    label = { Text("Table/Order Label") },
+                Button(
+                    onClick = { viewModel.createOrder() },
                     modifier = Modifier.fillMaxWidth().padding(8.dp)
-                )
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("New Order")
+                }
+            }
 
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(currentLines) { line ->
-                        OrderLineItem(
-                            line = line,
-                            onUpdateQuantity = { viewModel.updateQuantity(line.lineId, it) },
-                            onChangePricingMode = { viewModel.changePricingMode(line.lineId, it) },
-                            onRemove = { viewModel.removeLine(line.lineId) }
+            VerticalDivider()
+
+            // Center Panel: Menu
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(8.dp)
+            ) {
+                Text("MENU", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+                
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedCategoryId == null,
+                            onClick = { viewModel.selectCategory(null) },
+                            label = { Text("All") }
+                        )
+                    }
+                    items(categories) { category ->
+                        FilterChip(
+                            selected = selectedCategoryId == category.id,
+                            onClick = { viewModel.selectCategory(category.id) },
+                            label = { Text(category.name) }
                         )
                     }
                 }
 
-                totals?.let { t ->
-                    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                        HorizontalDivider()
-                        Spacer(Modifier.height(8.dp))
-                        TotalRow("Regular Subtotal", t.regularSubtotal.toString())
-                        if (t.cashDiscounts.amount > BigDecimal.ZERO) {
-                            TotalRow("Cash Discounts", "-${t.cashDiscounts}", color = Color.Red)
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(menuItems) { item ->
+                        Card(
+                            onClick = { viewModel.addItemToCurrentOrder(item.id) },
+                            modifier = Modifier.height(100.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(8.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(item.name, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
+                                Text("${item.regularPrice}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                            }
                         }
-                        TotalRow("CASH Total", t.cashTotal.toString())
-                        TotalRow("TRANSFER Total", t.transferTotal.toString())
-                        Spacer(Modifier.height(8.dp))
-                        TotalRow("GRAND TOTAL", t.grandTotal.toString(), style = MaterialTheme.typography.titleLarge)
                     }
                 }
-                
-                Button(
-                    onClick = { showCompleteDialog = true },
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    enabled = currentLines.isNotEmpty()
-                ) {
-                    Text("Complete Sale")
-                }
+            }
 
-                Button(
-                    onClick = { showDiscardDialog = true },
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Discard Order")
+            VerticalDivider()
+
+            // Right Panel: Current Order
+            Column(
+                modifier = Modifier
+                    .width(350.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(8.dp)
+            ) {
+                selectedOrder?.let { order ->
+                    var tableLabel by remember(order.saleId) { mutableStateOf(order.tableLabel ?: "") }
+                    
+                    TextField(
+                        value = tableLabel,
+                        onValueChange = { 
+                            tableLabel = it
+                            viewModel.updateTableLabel(it)
+                        },
+                        label = { Text("Table/Order Label") },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    )
+
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(currentLines) { line ->
+                            OrderLineItem(
+                                line = line,
+                                onUpdateQuantity = { viewModel.updateQuantity(line.lineId, it) },
+                                onChangePricingMode = { viewModel.changePricingMode(line.lineId, it) },
+                                onRemove = { viewModel.removeLine(line.lineId) }
+                            )
+                        }
+                    }
+
+                    totals?.let { t ->
+                        Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                            HorizontalDivider()
+                            Spacer(Modifier.height(8.dp))
+                            TotalRow("Regular Subtotal", t.regularSubtotal.toString())
+                            if (t.cashDiscounts.amount > BigDecimal.ZERO) {
+                                TotalRow("Cash Discounts", "-${t.cashDiscounts}", color = Color.Red)
+                            }
+                            TotalRow("CASH Total", t.cashTotal.toString())
+                            TotalRow("TRANSFER Total", t.transferTotal.toString())
+                            Spacer(Modifier.height(8.dp))
+                            TotalRow("GRAND TOTAL", t.grandTotal.toString(), style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                    
+                    Button(
+                        onClick = { showCompleteDialog = true },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        enabled = currentLines.isNotEmpty() && !isCompleting
+                    ) {
+                        Text("Complete Sale")
+                    }
+
+                    Button(
+                        onClick = { showDiscardDialog = true },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        enabled = !isCompleting
+                    ) {
+                        Text("Discard Order")
+                    }
+                } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Select or create an order", style = MaterialTheme.typography.bodyLarge)
                 }
-            } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Select or create an order", style = MaterialTheme.typography.bodyLarge)
             }
         }
     }

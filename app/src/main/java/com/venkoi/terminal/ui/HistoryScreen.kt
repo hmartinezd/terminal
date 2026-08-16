@@ -53,7 +53,13 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         // Right Panel: Detail
         Box(modifier = Modifier.weight(1f)) {
             selectedSale?.let { sale ->
-                HistoryDetailScreen(sale = sale, timezone = timezone, viewModel = viewModel)
+                if (timezone != null) {
+                    HistoryDetailScreen(sale = sale, timezone = timezone!!, viewModel = viewModel)
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
             } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Select a sale to view details", style = MaterialTheme.typography.bodyLarge)
             }
@@ -62,15 +68,17 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
 }
 
 @Composable
-fun SaleHistoryItem(item: SaleWithTotal, isSelected: Boolean, timezone: ZoneId, onClick: () -> Unit) {
+fun SaleHistoryItem(item: SaleWithTotal, isSelected: Boolean, timezone: ZoneId?, onClick: () -> Unit) {
     val sale = item.sale
-    val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(timezone)
+    val formatter = remember(timezone) {
+        timezone?.let { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(it) }
+    }
     
     ListItem(
         headlineContent = { Text(sale.tableLabel?.ifBlank { null } ?: sale.saleId.value.takeLast(8)) },
         supportingContent = {
             Column {
-                sale.completedAtUtc?.let { Text(formatter.format(it)) }
+                sale.completedAtUtc?.let { Text(formatter?.format(it) ?: "...") }
                 Text(
                     text = if (sale.status == SaleStatus.VOIDED) "VOIDED" else "COMPLETED", 
                     color = if (sale.status == SaleStatus.VOIDED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
@@ -79,7 +87,14 @@ fun SaleHistoryItem(item: SaleWithTotal, isSelected: Boolean, timezone: ZoneId, 
             }
         },
         trailingContent = {
-            Text(item.grandTotal.toString(), fontWeight = FontWeight.Bold)
+            Text(
+                com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(
+                    item.grandTotal,
+                    sale.currencyCodeSnapshot,
+                    sale.currencyScaleSnapshot
+                ),
+                fontWeight = FontWeight.Bold
+            )
         },
         modifier = Modifier.clickable { onClick() },
         colors = if (isSelected) ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ListItemDefaults.colors()

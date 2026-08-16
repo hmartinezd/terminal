@@ -114,7 +114,7 @@ fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, viewModel: HistoryViewMode
 
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(lines) { line ->
-                HistoryLineItem(line)
+                HistoryLineItem(line, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
             }
         }
         
@@ -122,36 +122,56 @@ fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, viewModel: HistoryViewMode
             Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 HorizontalDivider()
                 Spacer(Modifier.height(8.dp))
-                TotalRow("Regular Subtotal", t.regularSubtotal.toString())
+                TotalRow(
+                    "Regular Subtotal", 
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.regularSubtotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
+                )
                 if (t.cashDiscounts.amount > java.math.BigDecimal.ZERO) {
-                    TotalRow("Cash Discounts", "-${t.cashDiscounts}", color = Color.Red)
+                    TotalRow(
+                        "Cash Discounts", 
+                        "-${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.cashDiscounts, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)}", 
+                        color = Color.Red
+                    )
                 }
-                TotalRow("CASH Total", t.cashTotal.toString())
-                TotalRow("TRANSFER Total", t.transferTotal.toString())
+                TotalRow(
+                    "CASH Total", 
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.cashTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
+                )
+                TotalRow(
+                    "TRANSFER Total", 
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.transferTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
+                )
                 Spacer(Modifier.height(8.dp))
-                TotalRow("GRAND TOTAL", t.grandTotal.toString(), style = MaterialTheme.typography.titleLarge)
+                TotalRow(
+                    "GRAND TOTAL", 
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.grandTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot), 
+                    style = MaterialTheme.typography.titleLarge
+                )
             }
         }
     }
 }
 
 @Composable
-fun HistoryLineItem(line: SaleLine) {
+fun HistoryLineItem(line: SaleLine, currencyCode: String, scale: Int) {
     Column(modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(line.itemNameSnapshot, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Text("${line.quantity.stripTrailingZeros().toPlainString()} x ${line.regularUnitPriceSnapshot} (${line.pricingMode})", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "${line.quantity.stripTrailingZeros().toPlainString()} x ${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(line.regularUnitPriceSnapshot, currencyCode, scale)} (${line.pricingMode})", 
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
             Text(
-                "${line.lineTotal}",
+                com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(line.lineTotal, currencyCode, scale),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
         }
         if (line.cashDiscountApplied) {
             Text(
-                "Discount: ${line.cashDiscountPercent.stripTrailingZeros().toPlainString()}% (-${line.cashDiscountAmount})",
+                "Discount: ${line.cashDiscountPercent.stripTrailingZeros().toPlainString()}% (-${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(line.cashDiscountAmount, currencyCode, scale)})",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Red
             )

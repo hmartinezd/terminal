@@ -107,4 +107,22 @@ interface SaleDao {
 
     @Query("DELETE FROM sales")
     suspend fun clearSales()
+
+    @Transaction
+    suspend fun completeSaleValidated(
+        saleId: SaleId,
+        completedAt: Instant,
+        businessDate: LocalDate,
+        updatedAt: Instant
+    ): Int {
+        val sale = getSaleSync(saleId) ?: return 1 // NotFound
+        if (sale.status != com.venkoi.terminal.domain.model.SaleStatus.OPEN) return 2 // NotOpen
+        
+        val lines = getSaleLinesSync(saleId)
+        if (lines.isEmpty()) return 3 // EmptySale
+        if (lines.any { it.quantity <= java.math.BigDecimal.ZERO }) return 4 // InvalidQuantity
+        
+        val affected = completeSaleGuarded(saleId, completedAt, businessDate, updatedAt)
+        return if (affected > 0) 0 else 2 // Success or NotOpen (race)
+    }
 }

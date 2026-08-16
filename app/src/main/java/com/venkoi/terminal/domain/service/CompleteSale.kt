@@ -20,16 +20,6 @@ class CompleteSale @Inject constructor(
     suspend fun execute(saleId: SaleId): SaleCompletionResult {
         val now = clock.now()
         
-        val saleEntity = saleDao.getSaleSync(saleId) ?: return SaleCompletionResult.NotFound
-        if (saleEntity.status != SaleStatus.OPEN) return SaleCompletionResult.NotOpen
-
-        val lines = saleDao.getSaleLinesSync(saleId)
-        if (lines.isEmpty()) return SaleCompletionResult.EmptySale
-
-        if (lines.any { it.quantity <= BigDecimal.ZERO }) {
-            return SaleCompletionResult.InvalidQuantity
-        }
-
         val restaurant = menuRepository.getRestaurantConfiguration()
             ?: return SaleCompletionResult.Failure("Restaurant configuration missing")
 
@@ -39,17 +29,20 @@ class CompleteSale @Inject constructor(
             cutoff = restaurant.businessDayCutoff
         )
 
-        val affected = saleDao.completeSaleGuarded(
+        val resultCode = saleDao.completeSaleValidated(
             saleId = saleId,
             completedAt = now,
             businessDate = businessDate,
             updatedAt = now
         )
 
-        return if (affected > 0) {
-            SaleCompletionResult.Success
-        } else {
-            SaleCompletionResult.NotOpen
+        return when (resultCode) {
+            0 -> SaleCompletionResult.Success
+            1 -> SaleCompletionResult.NotFound
+            2 -> SaleCompletionResult.NotOpen
+            3 -> SaleCompletionResult.EmptySale
+            4 -> SaleCompletionResult.InvalidQuantity
+            else -> SaleCompletionResult.Failure("Unknown error")
         }
     }
 }

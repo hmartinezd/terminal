@@ -30,9 +30,9 @@ class HistoryViewModel @Inject constructor(
     private val menuRepository: MenuRepository
 ) : ViewModel() {
 
-    val restaurantTimezone: StateFlow<ZoneId> = menuRepository.observeRestaurantConfiguration()
-        .map { it?.timezone ?: ZoneId.systemDefault() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ZoneId.systemDefault())
+    val restaurantTimezone: StateFlow<ZoneId?> = menuRepository.observeRestaurantConfiguration()
+        .map { it?.timezone }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val historySales: StateFlow<List<SaleWithTotal>> = saleRepository.observeHistorySales()
         .flatMapLatest { sales ->
