@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.venkoi.terminal.domain.model.OpenOrderLine
+import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import java.math.BigDecimal
 
@@ -36,8 +36,10 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val menuItems by viewModel.menuItems.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
+    val completionError by viewModel.completionError.collectAsState()
 
     var showDiscardDialog by remember { mutableStateOf(false) }
+    var showCompleteDialog by remember { mutableStateOf(false) }
 
     if (showDiscardDialog) {
         AlertDialog(
@@ -55,6 +57,50 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showCompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showCompleteDialog = false },
+            title = { Text("Complete Sale?") },
+            text = {
+                Column {
+                    Text("Confirm that the sale is complete. This order cannot be edited after completion.")
+                    Spacer(Modifier.height(8.dp))
+                    totals?.let { t ->
+                        TotalRow("CASH Total", t.cashTotal.toString())
+                        TotalRow("TRANSFER Total", t.transferTotal.toString())
+                        TotalRow("GRAND TOTAL", t.grandTotal.toString(), style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.completeSale()
+                    showCompleteDialog = false
+                }) {
+                    Text("Complete Sale")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCompleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (completionError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearCompletionError() },
+            title = { Text("Completion Error") },
+            text = { Text(completionError!!) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearCompletionError() }) {
+                    Text("OK")
                 }
             }
         )
@@ -195,6 +241,14 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 }
                 
                 Button(
+                    onClick = { showCompleteDialog = true },
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    enabled = currentLines.isNotEmpty()
+                ) {
+                    Text("Complete Sale")
+                }
+
+                Button(
                     onClick = { showDiscardDialog = true },
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -210,7 +264,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
 
 @Composable
 fun OrderLineItem(
-    line: OpenOrderLine,
+    line: SaleLine,
     onUpdateQuantity: (BigDecimal) -> Unit,
     onChangePricingMode: (PricingMode) -> Unit,
     onRemove: () -> Unit

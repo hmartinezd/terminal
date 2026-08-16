@@ -1,7 +1,7 @@
 package com.venkoi.terminal.domain.service
 
 import com.venkoi.terminal.core.Money
-import com.venkoi.terminal.domain.model.OpenOrderLine
+import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import java.math.BigDecimal
 
@@ -14,7 +14,7 @@ data class OrderTotals(
 )
 
 object CalculateOrderTotals {
-    fun calculate(lines: List<OpenOrderLine>): OrderTotals {
+    fun calculate(lines: List<SaleLine>): OrderTotals {
         var regularSubtotal = BigDecimal.ZERO
         var cashDiscounts = BigDecimal.ZERO
         var cashTotal = BigDecimal.ZERO

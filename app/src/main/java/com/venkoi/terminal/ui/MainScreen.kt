@@ -69,6 +69,7 @@ fun MainScreen() {
         ) {
             when (currentScreen) {
                 Screen.Orders -> OrdersScreen()
+                Screen.History -> HistoryScreen()
                 Screen.Settings -> SettingsScreen()
                 else -> {
                     Column(

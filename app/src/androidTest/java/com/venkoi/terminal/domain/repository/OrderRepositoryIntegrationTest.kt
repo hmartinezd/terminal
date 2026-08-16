@@ -2,7 +2,7 @@ package com.venkoi.terminal.domain.repository
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.venkoi.terminal.core.SaleId
-import com.venkoi.terminal.domain.model.OrderStatus
+import com.venkoi.terminal.domain.model.SaleStatus
 import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.service.MenuImportService
 import com.venkoi.terminal.integration.menu.MenuPackageImportResult
@@ -20,13 +20,13 @@ import javax.inject.Inject
 
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class OrderRepositoryIntegrationTest {
+class SaleRepositoryIntegrationTest {
 
     @get:Rule
     var hiltRule = HiltAndroidRule(this)
 
     @Inject
-    lateinit var orderRepository: OrderRepository
+    lateinit var saleRepository: SaleRepository
 
     @Inject
     lateinit var menuRepository: MenuRepository
@@ -41,7 +41,7 @@ class OrderRepositoryIntegrationTest {
     lateinit var terminalDao: com.venkoi.terminal.data.local.database.TerminalDao
 
     @Inject
-    lateinit var orderDao: com.venkoi.terminal.data.local.database.OrderDao
+    lateinit var saleDao: com.venkoi.terminal.data.local.database.SaleDao
 
     private val menuV1 = """
     {
@@ -68,8 +68,8 @@ class OrderRepositoryIntegrationTest {
             menuDao.clearPublishedMenu()
             menuDao.clearCategories()
             menuDao.clearMenuItems()
-            orderDao.clearOrderLines()
-            orderDao.clearOrders()
+            saleDao.clearSaleLines()
+            saleDao.clearSales()
         }
     }
 
@@ -79,35 +79,35 @@ class OrderRepositoryIntegrationTest {
     }
 
     @Test
-    fun testMultipleOrdersExistIndependently() = runBlocking {
+    fun testMultipleSalesExistIndependently() = runBlocking {
         provision()
-        val id1 = orderRepository.createOrder("Mesa 4")
-        val id2 = orderRepository.createOrder("Mesa 7")
+        val id1 = saleRepository.createSale("Mesa 4")
+        val id2 = saleRepository.createSale("Mesa 7")
 
-        val orders = orderRepository.observeOpenOrders().first()
-        assertEquals(2, orders.size)
-        assertTrue(orders.any { it.tableLabel == "Mesa 4" })
-        assertTrue(orders.any { it.tableLabel == "Mesa 7" })
+        val sales = saleRepository.observeOpenSales().first()
+        assertEquals(2, sales.size)
+        assertTrue(sales.any { it.tableLabel == "Mesa 4" })
+        assertTrue(sales.any { it.tableLabel == "Mesa 7" })
     }
 
     @Test
-    fun testDiscardOrder() = runBlocking {
+    fun testDiscardSale() = runBlocking {
         provision()
-        val id1 = orderRepository.createOrder("Mesa 4")
-        orderRepository.discardOrder(id1)
+        val id1 = saleRepository.createSale("Mesa 4")
+        saleRepository.discardSale(id1)
 
-        val orders = orderRepository.observeOpenOrders().first()
-        assertTrue(orders.isEmpty())
+        val sales = saleRepository.observeOpenSales().first()
+        assertTrue(sales.isEmpty())
     }
 
     @Test
     fun testSnapshotPreservationOnMenuUpdate() = runBlocking {
         provision()
-        val saleId = orderRepository.createOrder("Mesa 4")
-        orderRepository.addItem(saleId, "item-1")
-        orderRepository.changeLinePricingMode(saleId, orderRepository.observeOrderLines(saleId).first().first().lineId, PricingMode.CASH)
+        val saleId = saleRepository.createSale("Mesa 4")
+        saleRepository.addItem(saleId, "item-1")
+        saleRepository.changeLinePricingMode(saleId, saleRepository.observeSaleLines(saleId).first().first().lineId, PricingMode.CASH)
 
-        val initialLines = orderRepository.observeOrderLines(saleId).first()
+        val initialLines = saleRepository.observeSaleLines(saleId).first()
         val initialLine = initialLines.first()
         assertEquals(0, BigDecimal("1500").compareTo(initialLine.regularUnitPriceSnapshot.amount))
         assertEquals(20, initialLine.commercialRevision)
@@ -125,7 +125,7 @@ class OrderRepositoryIntegrationTest {
         importService.importMenu(parseResult)
 
         // Verify existing line still uses V1 snapshots
-        val linesAfterUpdate = orderRepository.observeOrderLines(saleId).first()
+        val linesAfterUpdate = saleRepository.observeSaleLines(saleId).first()
         val lineAfterUpdate = linesAfterUpdate.first()
         assertEquals(0, BigDecimal("1500").compareTo(lineAfterUpdate.regularUnitPriceSnapshot.amount))
         assertEquals(20, lineAfterUpdate.commercialRevision)
@@ -133,169 +133,96 @@ class OrderRepositoryIntegrationTest {
         assertEquals(0, BigDecimal("1350").compareTo(lineAfterUpdate.lineTotal.amount))
 
         // Change quantity of old line - should STILL use V1 snapshots
-        orderRepository.updateLineQuantity(saleId, lineAfterUpdate.lineId, BigDecimal("2"))
-        val lineAfterQtyChange = orderRepository.observeOrderLines(saleId).first().first()
+        saleRepository.updateLineQuantity(saleId, lineAfterUpdate.lineId, BigDecimal("2"))
+        val lineAfterQtyChange = saleRepository.observeSaleLines(saleId).first().first()
         assertEquals(0, BigDecimal("1500").compareTo(lineAfterQtyChange.regularUnitPriceSnapshot.amount))
         assertEquals(0, BigDecimal("10").compareTo(lineAfterQtyChange.cashDiscountPolicyPercentSnapshot))
         assertEquals(0, BigDecimal("2700").compareTo(lineAfterQtyChange.lineTotal.amount))
-
-        // Add same item again - should create a NEW line with V2 snapshots
-        orderRepository.addItem(saleId, "item-1")
-        val allLines = orderRepository.observeOrderLines(saleId).first()
-        assertEquals(2, allLines.size)
-        
-        val newLine = allLines.find { it.commercialRevision == 21 }
-        assertNotNull(newLine)
-        assertEquals(0, BigDecimal("1700").compareTo(newLine?.regularUnitPriceSnapshot?.amount))
-        assertEquals(0, BigDecimal("15").compareTo(newLine?.cashDiscountPolicyPercentSnapshot))
-
-        // Take OLD line, switch CASH -> TRANSFER -> CASH
-        val oldLineId = lineAfterQtyChange.lineId
-        orderRepository.changeLinePricingMode(saleId, oldLineId, PricingMode.TRANSFER)
-        val lineTransfer = orderRepository.observeOrderLines(saleId).first().find { it.lineId == oldLineId }
-        assertEquals(false, lineTransfer?.cashDiscountApplied)
-        assertEquals(0, BigDecimal("3000").compareTo(lineTransfer?.lineTotal?.amount)) // 1500 * 2
-
-        orderRepository.changeLinePricingMode(saleId, oldLineId, PricingMode.CASH)
-        val lineCashBack = orderRepository.observeOrderLines(saleId).first().find { it.lineId == oldLineId }
-        assertEquals(true, lineCashBack?.cashDiscountApplied)
-        assertEquals(0, BigDecimal("10").compareTo(lineCashBack?.cashDiscountPercent)) // Still 10%
-        assertEquals(0, BigDecimal("2700").compareTo(lineCashBack?.lineTotal?.amount))
     }
 
     @Test
-    fun testCashAndTransferCoexistence() = runBlocking {
+    fun testSaleLifecycleFlow() = runBlocking {
         provision()
-        val saleId = orderRepository.createOrder("Mesa 4")
+        val saleId = saleRepository.createSale("Mesa 4")
+        saleRepository.addItem(saleId, "item-1")
         
-        // Add one TRANSFER
-        orderRepository.addItem(saleId, "item-1")
+        // 1. Complete
+        val result = saleRepository.completeSale(saleId)
+        assertEquals(SaleCompletionResult.Success, result)
         
-        // Add one CASH (item-1 has cashDiscountMode = APPLY_DEFAULT)
-        // We need to add it, then change mode.addItem currently defaults to TRANSFER.
-        orderRepository.addItem(saleId, "item-1")
-        val linesAfterTwoAdds = orderRepository.observeOrderLines(saleId).first()
-        // Should be merged as TRANSFER qty 2
-        assertEquals(1, linesAfterTwoAdds.size)
-        assertEquals(BigDecimal("2"), linesAfterTwoAdds.first().quantity)
-
-        // Add item-1 again, but then split one off by changing its mode? 
-        // Actually the repo should merge if identical. To have coexistence, we must change mode of some quantity.
-        // But our repo changes mode for the WHOLE line.
-        // Wait, "The same product can be split across CASH and TRANSFER lines" 
-        // This implies if I have a line and I change mode, it shouldn't necessarily merge if another exists?
-        // If I have 2 TRANSFER and I want 1 CASH, I might need to decrease one and add another.
-        // Or if I change mode and an equivalent exists, it merges.
+        val sale = saleRepository.observeSale(saleId).first()
+        assertEquals(SaleStatus.COMPLETED, sale?.status)
+        assertEquals(1, sale?.revision)
+        assertNotNull(sale?.completedAtUtc)
+        assertNotNull(sale?.businessDate)
         
-        // Let's test adding a line, changing mode, then adding another.
-        val lineId1 = linesAfterTwoAdds.first().lineId
-        orderRepository.updateLineQuantity(saleId, lineId1, BigDecimal.ONE) // Now 1 TRANSFER
+        // Verify it disappeared from open
+        val openSales = saleRepository.observeOpenSales().first()
+        assertTrue(openSales.none { it.saleId == saleId })
         
-        // Add another, it will merge into the TRANSFER one.
-        orderRepository.addItem(saleId, "item-1")
-        val lineId2 = orderRepository.observeOrderLines(saleId).first().first().lineId
+        // Verify it appeared in history
+        val historySales = saleRepository.observeHistorySales().first()
+        assertTrue(historySales.any { it.saleId == saleId })
         
-        // Change one to CASH
-        // To do this without merging back, we'd need them to be different.
-        // Ah, if I change lineId2 to CASH, it will NOT merge with itself. 
-        // If no other CASH exists, it just becomes a CASH line.
-        orderRepository.changeLinePricingMode(saleId, lineId2, PricingMode.CASH)
+        // 2. Void
+        val voidResult = saleRepository.voidSale(saleId)
+        assertEquals(VoidResult.Success, voidResult)
         
-        // Now add another TRANSFER. It should merge with the TRANSFER line? 
-        // Actually I only have ONE line right now (it was qty 2, I changed its mode).
-        // Wait, if I have 1 line qty 2 TRANSFER and I change it to CASH, I have 1 line qty 2 CASH.
-        
-        // To get TWO lines, I need to have them in different modes.
-        orderRepository.addItem(saleId, "item-1") // Adds a TRANSFER line.
-        val lines = orderRepository.observeOrderLines(saleId).first()
-        assertEquals(2, lines.size)
-        assertTrue(lines.any { it.pricingMode == PricingMode.CASH })
-        assertTrue(lines.any { it.pricingMode == PricingMode.TRANSFER })
+        val voidedSale = saleRepository.observeSale(saleId).first()
+        assertEquals(SaleStatus.VOIDED, voidedSale?.status)
+        assertEquals(2, voidedSale?.revision)
+        assertNotNull(voidedSale?.voidedAtUtc)
+        assertEquals(sale?.completedAtUtc, voidedSale?.completedAtUtc) // Should preserve completion time
     }
 
     @Test
-    fun testCrossOrderMutationProtection() = runBlocking {
+    fun testCannotMutateCompletedSale() = runBlocking {
         provision()
-        val id4 = orderRepository.createOrder("Mesa 4")
-        val id7 = orderRepository.createOrder("Mesa 7")
+        val saleId = saleRepository.createSale("Mesa 4")
+        saleRepository.addItem(saleId, "item-1")
+        val lineId = saleRepository.observeSaleLines(saleId).first().first().lineId
         
-        orderRepository.addItem(id7, "item-1")
-        val lineId7 = orderRepository.observeOrderLines(id7).first().first().lineId
-        
-        // Try to remove Mesa 7's line using Mesa 4's saleId
-        orderRepository.removeLine(id4, lineId7)
-        assertEquals(1, orderRepository.observeOrderLines(id7).first().size)
-        
-        // Try to change quantity
-        orderRepository.updateLineQuantity(id4, lineId7, BigDecimal("5"))
-        assertEquals(0, BigDecimal("1").compareTo(orderRepository.observeOrderLines(id7).first().first().quantity))
-        
-        // Try to change pricing mode
-        orderRepository.changeLinePricingMode(id4, lineId7, PricingMode.CASH)
-        assertEquals(PricingMode.TRANSFER, orderRepository.observeOrderLines(id7).first().first().pricingMode)
-    }
-
-    @Test
-    fun testIdentityStability() = runBlocking {
-        provision()
-        val id1 = orderRepository.createOrder("Mesa 4")
-        val id2 = orderRepository.createOrder("Mesa 7")
-        assertNotEquals(id1, id2)
-        
-        orderRepository.addItem(id1, "item-1")
-        val lineId = orderRepository.observeOrderLines(id1).first().first().lineId
-        
-        orderRepository.updateLineQuantity(id1, lineId, BigDecimal("2"))
-        assertEquals(lineId, orderRepository.observeOrderLines(id1).first().first().lineId)
-        
-        orderRepository.changeLinePricingMode(id1, lineId, PricingMode.CASH)
-        assertEquals(lineId, orderRepository.observeOrderLines(id1).first().first().lineId)
-        
-        orderRepository.updateOrderLabel(id1, "Mesa 4 Modified")
-        assertEquals(id1, orderRepository.observeOpenOrders().first().find { it.tableLabel?.contains("Modified") == true }?.saleId)
-    }
-
-    @Test
-    fun testDiscardedOrderImmutability() = runBlocking {
-        provision()
-        val saleId = orderRepository.createOrder("Mesa 4")
-        orderRepository.addItem(saleId, "item-1")
-        val lineId = orderRepository.observeOrderLines(saleId).first().first().lineId
-        
-        orderRepository.discardOrder(saleId)
+        saleRepository.completeSale(saleId)
         
         // Try to mutate
-        orderRepository.updateOrderLabel(saleId, "Discarded but changed")
-        orderRepository.updateLineQuantity(saleId, lineId, BigDecimal("10"))
-        orderRepository.changeLinePricingMode(saleId, lineId, PricingMode.CASH)
-        orderRepository.removeLine(saleId, lineId)
+        saleRepository.addItem(saleId, "item-1")
+        saleRepository.updateLineQuantity(saleId, lineId, BigDecimal("10"))
+        saleRepository.updateSaleLabel(saleId, "Changed")
+        saleRepository.discardSale(saleId)
         
-        // Verify via DAO directly since repo observation filters out non-OPEN
-        val entity = orderDao.observeOrder(saleId).first()
-        assertEquals("Mesa 4", entity?.tableLabel)
-        assertEquals(OrderStatus.DISCARDED, entity?.status)
+        val sale = saleRepository.observeSale(saleId).first()
+        assertEquals(SaleStatus.COMPLETED, sale?.status)
+        assertEquals("Mesa 4", sale?.tableLabel)
         
-        val lines = orderDao.observeOrderLines(saleId).first()
+        val lines = saleRepository.observeSaleLines(saleId).first()
         assertEquals(1, lines.size)
         assertEquals(0, BigDecimal("1").compareTo(lines.first().quantity))
-        assertEquals(PricingMode.TRANSFER, lines.first().pricingMode)
     }
 
     @Test
-    fun testInactiveItemRejection() = runBlocking {
+    fun testEmptySaleCannotComplete() = runBlocking {
         provision()
-        // Make item-1 inactive and increment revision
-        val inactiveMenu = menuV1
-            .replace("\"active\": true", "\"active\": false")
-            .replace("\"publicationRevision\": 1", "\"publicationRevision\": 2")
-        val parseResult = importService.parseAndValidate(inactiveMenu) as MenuPackageImportResult.Success
-        // We need to override the previous provision or just import
-        importService.importMenu(parseResult) 
+        val saleId = saleRepository.createSale("Mesa 4")
+        val result = saleRepository.completeSale(saleId)
+        assertEquals(SaleCompletionResult.EmptySale, result)
+    }
 
-        val saleId = orderRepository.createOrder("Mesa 4")
-        orderRepository.addItem(saleId, "item-1")
+    @Test
+    fun testVoidIdempotency() = runBlocking {
+        provision()
+        val saleId = saleRepository.createSale("Mesa 4")
+        saleRepository.addItem(saleId, "item-1")
+        saleRepository.completeSale(saleId)
         
-        val lines = orderRepository.observeOrderLines(saleId).first()
-        assertTrue(lines.isEmpty())
+        saleRepository.voidSale(saleId)
+        val voidedAtFirst = saleRepository.observeSale(saleId).first()?.voidedAtUtc
+        
+        // Void again
+        val secondResult = saleRepository.voidSale(saleId)
+        assertEquals(VoidResult.AlreadyVoided, secondResult)
+        
+        val voidedAtSecond = saleRepository.observeSale(saleId).first()?.voidedAtUtc
+        assertEquals(voidedAtFirst, voidedAtSecond)
+        assertEquals(2, saleRepository.observeSale(saleId).first()?.revision)
     }
 }

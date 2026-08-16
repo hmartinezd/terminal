@@ -41,7 +41,7 @@ object DataModule {
     }
 
     @Provides
-    fun provideOrderDao(database: AppDatabase): com.venkoi.terminal.data.local.database.OrderDao {
-        return database.orderDao()
+    fun provideSaleDao(database: AppDatabase): com.venkoi.terminal.data.local.database.SaleDao {
+        return database.saleDao()
     }
 }

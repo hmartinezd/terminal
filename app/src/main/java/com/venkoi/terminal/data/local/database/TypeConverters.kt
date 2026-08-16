@@ -85,8 +85,14 @@ class TerminalTypeConverters {
     fun toCashDiscountMode(value: String?): com.venkoi.terminal.domain.model.CashDiscountMode? = value?.let { com.venkoi.terminal.domain.model.CashDiscountMode.valueOf(it) }
 
     @TypeConverter
-    fun fromOrderStatus(value: com.venkoi.terminal.domain.model.OrderStatus?): String? = value?.name
+    fun fromLocalDate(value: java.time.LocalDate?): String? = value?.toString()
 
     @TypeConverter
-    fun toOrderStatus(value: String?): com.venkoi.terminal.domain.model.OrderStatus? = value?.let { com.venkoi.terminal.domain.model.OrderStatus.valueOf(it) }
+    fun toLocalDate(value: String?): java.time.LocalDate? = value?.let { java.time.LocalDate.parse(it) }
+
+    @TypeConverter
+    fun fromSaleStatus(value: com.venkoi.terminal.domain.model.SaleStatus?): String? = value?.name
+
+    @TypeConverter
+    fun toSaleStatus(value: String?): com.venkoi.terminal.domain.model.SaleStatus? = value?.let { com.venkoi.terminal.domain.model.SaleStatus.valueOf(it) }
 }

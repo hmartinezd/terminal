@@ -4,7 +4,7 @@ import com.venkoi.terminal.core.LineId
 import com.venkoi.terminal.core.Money
 import com.venkoi.terminal.core.SaleId
 import com.venkoi.terminal.domain.model.CashDiscountMode
-import com.venkoi.terminal.domain.model.OpenOrderLine
+import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -16,7 +16,7 @@ class OrderTotalsTest {
     fun `totals equal sum of persisted line totals`() {
         val saleId = SaleId("sale-123")
         val lines = listOf(
-            OpenOrderLine(
+            SaleLine(
                 lineId = LineId("line-1"),
                 saleId = saleId,
                 menuItemId = "item-1",
@@ -34,7 +34,7 @@ class OrderTotalsTest {
                 finalUnitPrice = Money("90"),
                 lineTotal = Money("90")
             ),
-            OpenOrderLine(
+            SaleLine(
                 lineId = LineId("line-2"),
                 saleId = saleId,
                 menuItemId = "item-2",
@@ -66,7 +66,7 @@ class OrderTotalsTest {
     fun `mixed order total with three lines is correct`() {
         val saleId = SaleId("sale-123")
         val lines = listOf(
-            OpenOrderLine(
+            SaleLine(
                 lineId = LineId("l1"), saleId = saleId, menuItemId = "i1",
                 commercialRevision = 1, consumptionRevision = 1, itemNameSnapshot = "Burger",
                 quantity = BigDecimal("2"), regularUnitPriceSnapshot = Money("1500"),
@@ -76,7 +76,7 @@ class OrderTotalsTest {
                 cashDiscountPercent = BigDecimal("10"), cashDiscountAmount = Money("300"),
                 finalUnitPrice = Money("1350"), lineTotal = Money("2700")
             ),
-            OpenOrderLine(
+            SaleLine(
                 lineId = LineId("l2"), saleId = saleId, menuItemId = "i2",
                 commercialRevision = 1, consumptionRevision = 1, itemNameSnapshot = "Drink",
                 quantity = BigDecimal("1"), regularUnitPriceSnapshot = Money("500"),
@@ -86,7 +86,7 @@ class OrderTotalsTest {
                 cashDiscountPercent = BigDecimal.ZERO, cashDiscountAmount = Money.ZERO,
                 finalUnitPrice = Money("500"), lineTotal = Money("500")
             ),
-            OpenOrderLine(
+            SaleLine(
                 lineId = LineId("l3"), saleId = saleId, menuItemId = "i3",
                 commercialRevision = 1, consumptionRevision = 1, itemNameSnapshot = "Dessert",
                 quantity = BigDecimal("1"), regularUnitPriceSnapshot = Money("1000"),

@@ -20,9 +20,9 @@ import java.time.Instant
 class DurableOrderReadbackTest {
 
     @Test
-    fun testOrderDurability() {
+    fun testSaleDurability() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val dbFile = File(context.cacheDir, "order_durable_test.db")
+        val dbFile = File(context.cacheDir, "sale_durable_test.db")
         if (dbFile.exists()) dbFile.delete()
 
         val saleId = SaleId("sale-123")
@@ -34,16 +34,22 @@ class DurableOrderReadbackTest {
         runBlocking {
             val db1 = Room.databaseBuilder(context, AppDatabase::class.java, dbFile.absolutePath).build()
             
-            val order = OpenOrderEntity(
+            val sale = SaleEntity(
                 saleId = saleId,
                 terminalId = terminalId,
                 openedAtUtc = now,
                 updatedAtUtc = now,
                 tableLabel = "Mesa 4",
-                status = OrderStatus.OPEN
+                status = SaleStatus.OPEN,
+                revision = null,
+                completedAtUtc = null,
+                voidedAtUtc = null,
+                businessDate = null,
+                currencyCodeSnapshot = "CUP",
+                currencyScaleSnapshot = 0
             )
             
-            val line = OpenOrderLineEntity(
+            val line = SaleLineEntity(
                 lineId = lineId,
                 saleId = saleId,
                 menuItemId = "item-1",
@@ -62,8 +68,8 @@ class DurableOrderReadbackTest {
                 lineTotal = Money("2700")
             )
 
-            db1.orderDao().insertOrder(order)
-            db1.orderDao().insertOrderLines(listOf(line))
+            db1.saleDao().insertSale(sale)
+            db1.saleDao().insertSaleLines(listOf(line))
             db1.close()
         }
 
@@ -71,12 +77,14 @@ class DurableOrderReadbackTest {
         runBlocking {
             val db2 = Room.databaseBuilder(context, AppDatabase::class.java, dbFile.absolutePath).build()
             
-            val order = db2.orderDao().observeOrder(saleId).first()
-            assertNotNull(order)
-            assertEquals("Mesa 4", order?.tableLabel)
-            assertEquals(OrderStatus.OPEN, order?.status)
+            val sale = db2.saleDao().observeSale(saleId).first()
+            assertNotNull(sale)
+            assertEquals("Mesa 4", sale?.tableLabel)
+            assertEquals(SaleStatus.OPEN, sale?.status)
+            assertEquals("CUP", sale?.currencyCodeSnapshot)
+            assertEquals(0, sale?.currencyScaleSnapshot)
             
-            val lines = db2.orderDao().observeOrderLines(saleId).first()
+            val lines = db2.saleDao().observeSaleLines(saleId).first()
             assertEquals(1, lines.size)
             val line = lines.first()
             assertEquals(lineId, line.lineId)
