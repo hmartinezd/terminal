@@ -10,3 +10,15 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+# V1 file contracts are serialized by generated kotlinx serializers. Keep their
+# names and serializer companions stable for offline issuer interoperability.
+-keep class com.venkoi.terminal.licensing.ActivationRequestV1 { *; }
+-keep class com.venkoi.terminal.licensing.LicensePayloadV1 { *; }
+-keep class com.venkoi.terminal.licensing.SignedLicenseV1 { *; }
+-keepclassmembers class com.venkoi.terminal.licensing.**$Companion { *; }
+
+# Room and Hilt generate direct references; their libraries supply additional
+# consumer rules. Preserve Room database/DAO metadata used during initialization.
+-keep @androidx.room.Database class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Dao interface *

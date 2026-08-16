@@ -24,7 +24,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.venkoi.terminal.core.Clock
 import com.venkoi.terminal.core.IdGenerator
@@ -42,6 +41,10 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import com.venkoi.terminal.licensing.LicenseImportResult
+import com.venkoi.terminal.licensing.LicenseManager
+import com.venkoi.terminal.licensing.LicenseSnapshot
+import kotlinx.serialization.encodeToString
 
 @HiltViewModel
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -57,8 +60,21 @@ class SettingsViewModel @Inject constructor(
     private val resolveCurrentReportBusinessDate: ResolveCurrentReportBusinessDate,
     private val clock: Clock,
     private val idGenerator: IdGenerator,
-    private val json: Json
+    private val json: Json,
+    private val licenseManager: LicenseManager
 ) : ViewModel() {
+
+    val licenseSnapshot = licenseManager.snapshot
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LicenseSnapshot(com.venkoi.terminal.licensing.LicenseState.NOT_ACTIVATED))
+    val deviceCode: String get() = licenseManager.deviceIdentity.deviceCode
+    var pendingActivationJson by mutableStateOf<String?>(null)
+        private set
+    var pendingActivationFileName by mutableStateOf<String?>(null)
+        private set
+    var licenseImportResult by mutableStateOf<LicenseImportResult?>(null)
+        private set
+    var isImportingLicense by mutableStateOf(false)
+        private set
 
     val terminalConfig = terminalRepository.observeConfiguration()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -217,6 +233,37 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun consumeExportMessage() { exportMessage = null }
+
+    fun prepareActivationRequest() {
+        if (pendingActivationJson != null) return
+        viewModelScope.launch {
+            runCatching { licenseManager.activationRequest() }.onSuccess {
+                pendingActivationJson = json.encodeToString(it)
+                pendingActivationFileName = "sales_terminal_activation_${deviceCode}.json"
+            }
+        }
+    }
+
+    fun onActivationDocumentResult(uri: Uri?) {
+        val content = pendingActivationJson
+        pendingActivationJson = null
+        pendingActivationFileName = null
+        if (uri != null && content != null) viewModelScope.launch(Dispatchers.IO) { documentWriter.write(uri, content) }
+    }
+
+    fun onImportLicense(uri: Uri) {
+        if (isImportingLicense) return
+        isImportingLicense = true
+        viewModelScope.launch {
+            licenseImportResult = when (val read = documentReader.readUri(uri)) {
+                is ReadResult.Success -> licenseManager.import(read.content)
+                is ReadResult.Failure -> LicenseImportResult.Malformed
+            }
+            isImportingLicense = false
+        }
+    }
+
+    fun consumeLicenseImportResult() { licenseImportResult = null }
 }
 
 sealed interface ExportMessage {

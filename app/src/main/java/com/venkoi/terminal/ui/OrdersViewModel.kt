@@ -25,13 +25,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
+import com.venkoi.terminal.licensing.LicenseManager
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class OrdersViewModel @Inject constructor(
     private val saleRepository: SaleRepository,
-    private val menuRepository: MenuRepository
+    private val menuRepository: MenuRepository,
+    licenseManager: LicenseManager
 ) : ViewModel() {
+
+    val sellingAllowed = licenseManager.sellingAllowed
 
     companion object {
         const val MAX_ORDER_LABEL_LENGTH = 100

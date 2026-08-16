@@ -18,6 +18,23 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "com.venkoi.terminal.HiltTestRunner"
+        buildConfigField("String", "LICENSE_AUTHORITY_PUBLIC_KEY", "\"\"")
+        buildConfigField("String", "EXPECTED_RELEASE_CERT_SHA256", "\"\"")
+    }
+
+    buildTypes {
+        debug {
+            // Debug authorization is supplied only by src/debug; it cannot be toggled at runtime.
+        }
+        release {
+            val authorityKey = providers.gradleProperty("LICENSE_AUTHORITY_PUBLIC_KEY").orElse("").get()
+            val certificate = providers.gradleProperty("EXPECTED_RELEASE_CERT_SHA256").orElse("").get()
+            buildConfigField("String", "LICENSE_AUTHORITY_PUBLIC_KEY", "\"${authorityKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+            buildConfigField("String", "EXPECTED_RELEASE_CERT_SHA256", "\"${certificate.replace("\"", "\\\"")}\"")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "src/main/keepRules/rules.keep")
+        }
     }
 
     compileOptions {

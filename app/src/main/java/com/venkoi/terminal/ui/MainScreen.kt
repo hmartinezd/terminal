@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.venkoi.terminal.R
+import com.venkoi.terminal.licensing.LicenseState
 
 sealed class Screen(@StringRes val titleRes: Int, val icon: ImageVector) {
     object Orders : Screen(R.string.nav_orders, Icons.Default.ListAlt)
@@ -28,6 +29,9 @@ sealed class Screen(@StringRes val titleRes: Int, val icon: ImageVector) {
 
 @Composable
 fun MainScreen() {
+    val licenseViewModel: LicenseStatusViewModel = hiltViewModel()
+    val license by licenseViewModel.snapshot.collectAsState()
+    val sellingAllowed by licenseViewModel.sellingAllowed.collectAsState()
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Orders) }
     val screens = listOf(Screen.Orders, Screen.History, Screen.Reports, Screen.Settings)
 
@@ -78,10 +82,20 @@ fun MainScreen() {
         }
 
         // Main Content Area
+        Column(modifier = Modifier.fillMaxSize()) {
+            val banner = when (license.state) {
+                LicenseState.EXPIRING_SOON -> stringResource(R.string.expires_soon)
+                LicenseState.GRACE_PERIOD -> stringResource(R.string.subscription_renewal_required)
+                LicenseState.CLOCK_ROLLBACK_DETECTED -> stringResource(R.string.device_time_changed)
+                else -> if (!sellingAllowed) stringResource(R.string.selling_disabled) else null
+            }
+            banner?.let {
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
+                    Text(it, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.TopStart
         ) {
             when (currentScreen) {
@@ -107,6 +121,7 @@ fun MainScreen() {
                     }
                 }
             }
+        }
         }
     }
 }

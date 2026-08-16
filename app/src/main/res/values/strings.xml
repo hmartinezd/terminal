@@ -160,4 +160,28 @@
 
     <string name="common_not_available">N/A</string>
     <string name="common_placeholder">Placeholder</string>
+    <string name="subscription">SUBSCRIPTION</string>
+    <string name="status">Status</string>
+    <string name="plan">Plan</string>
+    <string name="device_code">Device Code</string>
+    <string name="activation_required">Activation required</string>
+    <string name="subscription_active">Active</string>
+    <string name="expires_soon">Expires soon</string>
+    <string name="grace_period">Grace period</string>
+    <string name="subscription_expired">Expired</string>
+    <string name="license_problem">License problem</string>
+    <string name="valid_until">Valid until</string>
+    <string name="grace_until">Grace until</string>
+    <string name="generate_activation_request">Generate Activation Request</string>
+    <string name="import_renew_license">Import / Renew License</string>
+    <string name="subscription_expires_days">Subscription expires in %1$d days</string>
+    <string name="subscription_renewal_required">Subscription renewal required</string>
+    <string name="selling_disabled">Selling is disabled until the subscription is renewed</string>
+    <string name="device_time_changed">Device date/time appears to have been changed</string>
+    <string name="unable_to_verify_license">Unable to verify license</string>
+    <string name="license_imported_successfully">License imported successfully</string>
+    <string name="license_wrong_terminal">This license belongs to another terminal</string>
+    <string name="license_wrong_restaurant">This license belongs to another restaurant</string>
+    <string name="license_older">License is older than the installed license</string>
+    <string name="license_invalid_signature">Invalid license signature</string>
 </resources>

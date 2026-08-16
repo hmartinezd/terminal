@@ -50,6 +50,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val completionSuccess by viewModel.completionSuccess.collectAsState()
     val isCreating by viewModel.isCreating.collectAsState()
     val discardingOrderIds by viewModel.discardingOrderIds.collectAsState()
+    val sellingAllowed by viewModel.sellingAllowed.collectAsState()
     val locale = LocalConfiguration.current.locales[0]
     val categoryStyles = remember(categories) {
         CategoryPalette.resolve(categories.sortedWith(compareBy({ it.displayOrder }, { it.id })).map { it.id })
@@ -159,7 +160,13 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Row(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        if (!sellingAllowed) {
+            Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.selling_disabled), modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
             // Left Panel: Open Orders
             Column(
                 modifier = Modifier
@@ -219,7 +226,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 
                 Button(
                     onClick = { viewModel.createOrder() },
-                    enabled = !isCreating && !isCompleting,
+                    enabled = sellingAllowed && !isCreating && !isCompleting,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     contentPadding = PaddingValues(16.dp)
@@ -300,7 +307,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                                 name = item.name,
                                 price = selectedOrder?.let { HistoryMoneyFormatter.format(item.regularPrice, it.currencyCodeSnapshot, it.currencyScaleSnapshot, locale) } ?: item.regularPrice.toString(),
                                 categoryStyle = categoryStyles[item.categoryId] ?: CategoryPalette.fallback,
-                                enabled = !isCompleting,
+                                enabled = sellingAllowed && !isCompleting,
                                 onClick = { 
                                     viewModel.addItemToCurrentOrder(item.id)
                                 },
@@ -338,7 +345,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
                         singleLine = true,
-                        enabled = !isCompleting
+                        enabled = sellingAllowed && !isCompleting
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -356,7 +363,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                                 onUpdateQuantity = { viewModel.updateQuantity(line.lineId, it) },
                                 onChangePricingMode = { viewModel.changePricingMode(line.lineId, it) },
                                 onRemove = { viewModel.removeLine(line.lineId) },
-                                enabled = !isCompleting
+                                enabled = sellingAllowed && !isCompleting
                             )
                         }
                     }
@@ -395,7 +402,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                     Button(
                         onClick = { showCompleteDialog = true },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = currentLines.isNotEmpty() && !isCompleting,
+                        enabled = sellingAllowed && currentLines.isNotEmpty() && !isCompleting,
                         shape = MaterialTheme.shapes.medium,
                         contentPadding = PaddingValues(16.dp)
                     ) {
@@ -422,6 +429,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                     )
                 }
             }
+        }
         }
     }
 }

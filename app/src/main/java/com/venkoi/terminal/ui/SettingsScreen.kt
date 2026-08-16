@@ -22,6 +22,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import com.venkoi.terminal.licensing.LicenseImportResult
+import com.venkoi.terminal.licensing.LicenseState
 
 @Composable
 fun SettingsScreen(
@@ -33,6 +35,7 @@ fun SettingsScreen(
     val currentLanguageCode by viewModel.currentLanguageCode.collectAsState()
     val resources = LocalContext.current.resources
     val exportSummary by viewModel.exportSummary.collectAsState()
+    val license by viewModel.licenseSnapshot.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     
     val na = stringResource(R.string.common_not_available)
@@ -52,10 +55,31 @@ fun SettingsScreen(
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri -> viewModel.onExportDocumentResult(uri) }
+    val activationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> viewModel.onActivationDocumentResult(uri) }
+    val licensePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let(viewModel::onImportLicense) }
 
     LaunchedEffect(Unit) { viewModel.ensureDefaultBusinessDate() }
     LaunchedEffect(viewModel.pendingDocument) {
         viewModel.pendingDocument?.let { exportLauncher.launch(it.suggestedFileName) }
+    }
+    LaunchedEffect(viewModel.pendingActivationJson) {
+        if (viewModel.pendingActivationJson != null) activationLauncher.launch(viewModel.pendingActivationFileName ?: "sales_terminal_activation.json")
+    }
+    val licenseImported = stringResource(R.string.license_imported_successfully)
+    val licenseInvalid = stringResource(R.string.unable_to_verify_license)
+    val licenseStale = stringResource(R.string.license_older)
+    LaunchedEffect(viewModel.licenseImportResult) {
+        val message = when (viewModel.licenseImportResult) {
+            LicenseImportResult.Accepted, LicenseImportResult.Duplicate -> licenseImported
+            LicenseImportResult.Stale -> licenseStale
+            null -> null
+            else -> licenseInvalid
+        }
+        if (message != null) { snackbarHostState.showSnackbar(message); viewModel.consumeLicenseImportResult() }
     }
     LaunchedEffect(viewModel.exportMessage) {
         val message = when (val result = viewModel.exportMessage) {
@@ -106,6 +130,24 @@ fun SettingsScreen(
 
             SettingsSection(title = stringResource(R.string.settings_section_app)) {
                 InfoRow(stringResource(R.string.settings_app_version), BuildConfig.VERSION_NAME)
+            }
+
+            SettingsSection(title = stringResource(R.string.subscription)) {
+                InfoRow(stringResource(R.string.status), licenseStatusText(license.state))
+                InfoRow(stringResource(R.string.plan), license.payload?.planCode ?: na)
+                InfoRow(stringResource(R.string.device_code), viewModel.deviceCode)
+                license.payload?.let {
+                    InfoRow(stringResource(R.string.valid_until), it.expiresAtUtc)
+                    InfoRow(stringResource(R.string.grace_until), it.graceUntilUtc)
+                }
+                Button(onClick = viewModel::prepareActivationRequest, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.generate_activation_request))
+                }
+                OutlinedButton(
+                    onClick = { licensePickerLauncher.launch("application/json") },
+                    enabled = !viewModel.isImportingLicense,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.import_renew_license)) }
             }
 
             // Terminal Info
@@ -205,6 +247,17 @@ fun SettingsScreen(
         ) { DatePicker(state = pickerState) }
     }
 }
+
+@Composable
+private fun licenseStatusText(state: LicenseState): String = stringResource(when (state) {
+    LicenseState.NOT_ACTIVATED -> R.string.activation_required
+    LicenseState.VALID -> R.string.subscription_active
+    LicenseState.EXPIRING_SOON -> R.string.expires_soon
+    LicenseState.GRACE_PERIOD -> R.string.grace_period
+    LicenseState.EXPIRED -> R.string.subscription_expired
+    LicenseState.CLOCK_ROLLBACK_DETECTED -> R.string.device_time_changed
+    else -> R.string.license_problem
+})
 
 @Composable
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {

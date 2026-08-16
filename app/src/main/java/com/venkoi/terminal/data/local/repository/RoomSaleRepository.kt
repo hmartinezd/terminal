@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import javax.inject.Inject
+import com.venkoi.terminal.licensing.LicenseManager
 
 class RoomSaleRepository @Inject constructor(
     private val saleDao: SaleDao,
@@ -34,7 +35,8 @@ class RoomSaleRepository @Inject constructor(
     private val clock: Clock,
     private val idGenerator: IdGenerator,
     private val completeSaleService: CompleteSale,
-    private val voidSaleService: VoidSale
+    private val voidSaleService: VoidSale,
+    private val licenseManager: LicenseManager
 ) : SaleRepository {
 
     override fun observeOpenSales(): Flow<List<Sale>> =
@@ -50,6 +52,7 @@ class RoomSaleRepository @Inject constructor(
         saleDao.observeSaleLines(saleId).map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun createSale(tableLabel: String?): SaleId {
+        licenseManager.requireSelling()
         val config = terminalConfigRepository.getConfiguration()
             ?: throw IllegalStateException("Terminal not configured")
         
@@ -73,10 +76,12 @@ class RoomSaleRepository @Inject constructor(
     }
 
     override suspend fun updateSaleLabel(saleId: SaleId, label: String?) {
+        licenseManager.requireSelling()
         saleDao.updateSaleLabelGuarded(saleId, label, clock.now())
     }
 
     override suspend fun addItem(saleId: SaleId, menuItemId: String) {
+        licenseManager.requireSelling()
         val saleEntity = saleDao.getSaleSync(saleId) ?: return
         if (saleEntity.status != SaleStatus.OPEN) return
 
@@ -141,6 +146,7 @@ class RoomSaleRepository @Inject constructor(
     }
 
     override suspend fun updateLineQuantity(saleId: SaleId, lineId: LineId, newQuantity: BigDecimal) {
+        licenseManager.requireSelling()
         val saleEntity = saleDao.getSaleSync(saleId) ?: return
         if (saleEntity.status != SaleStatus.OPEN) return
 
@@ -181,6 +187,7 @@ class RoomSaleRepository @Inject constructor(
     }
 
     override suspend fun changeLinePricingMode(saleId: SaleId, lineId: LineId, pricingMode: PricingMode) {
+        licenseManager.requireSelling()
         val saleEntity = saleDao.getSaleSync(saleId) ?: return
         if (saleEntity.status != SaleStatus.OPEN) return
 
@@ -255,6 +262,7 @@ class RoomSaleRepository @Inject constructor(
     }
 
     override suspend fun removeLine(saleId: SaleId, lineId: LineId) {
+        licenseManager.requireSelling()
         saleDao.removeLineAndUpdateSale(saleId, lineId, clock.now())
     }
 
@@ -263,6 +271,7 @@ class RoomSaleRepository @Inject constructor(
     }
 
     override suspend fun completeSale(saleId: SaleId): SaleCompletionResult {
+        licenseManager.requireSelling()
         return completeSaleService.execute(saleId)
     }
 
