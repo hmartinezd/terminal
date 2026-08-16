@@ -99,6 +99,38 @@
     <string name="provisioning_confirm">Confirmar configuración</string>
     <string name="provisioning_problem">Problema de configuración: %1$s</string>
 
+    <!-- Reports Screen -->
+    <string name="reports_title">Reportes</string>
+    <string name="reports_money">Ventas</string>
+    <string name="reports_products">Productos</string>
+    <string name="reports_business_date">Fecha de negocio</string>
+    <string name="reports_today">Hoy</string>
+    <string name="reports_previous_day">Día anterior</string>
+    <string name="reports_next_day">Día siguiente</string>
+    <string name="reports_valid_sales">Ventas válidas</string>
+    <string name="reports_voided_sales">Ventas anuladas</string>
+    <string name="reports_cash">Efectivo</string>
+    <string name="reports_transfer">Transferencia</string>
+    <string name="reports_net_sales">Ventas netas</string>
+    <string name="reports_cash_discounts">Descuentos en efectivo</string>
+    <string name="reports_voided_amount">Importe anulado</string>
+    <string name="reports_quantity">Cantidad</string>
+    <string name="reports_amount">Importe</string>
+    <string name="reports_no_sales">No hay ventas para esta fecha de negocio.</string>
+    <string name="reports_no_products">No hay productos vendidos para esta fecha de negocio.</string>
+    <string name="reports_print">Imprimir</string>
+    <string name="reports_print_pdf">Imprimir / Guardar PDF</string>
+    <string name="reports_generated_at">Generado el</string>
+    <string name="reports_terminal">Terminal</string>
+    <string name="reports_product">Producto</string>
+    <string name="print_status">Estado</string>
+    <string name="print_completed_at">Completada el</string>
+    <string name="print_voided_at">Anulada el</string>
+    <string name="print_table">Mesa / Pedido</string>
+    <string name="print_pricing_mode">Modalidad de precio</string>
+    <string name="print_unit_price">Precio unitario regular</string>
+    <string name="print_line_total">Total de línea</string>
+
     <!-- Accessibility -->
     <string name="cd_remove">Eliminar</string>
     <string name="cd_increase">Aumentar</string>

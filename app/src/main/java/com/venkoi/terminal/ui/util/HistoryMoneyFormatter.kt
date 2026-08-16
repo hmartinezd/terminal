@@ -9,12 +9,13 @@ object HistoryMoneyFormatter {
     fun format(
         money: Money,
         currencyCode: String,
-        scale: Int
+        scale: Int,
+        locale: Locale = Locale.getDefault()
     ): String {
         val amount = money.amount.setScale(scale, RoundingMode.HALF_UP)
         
         // Use default locale for formatting separators (dots/commas)
-        val nf = NumberFormat.getNumberInstance().apply {
+        val nf = NumberFormat.getNumberInstance(locale).apply {
             minimumFractionDigits = scale
             maximumFractionDigits = scale
         }

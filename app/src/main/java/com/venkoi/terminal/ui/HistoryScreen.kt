@@ -13,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.venkoi.terminal.R
 import com.venkoi.terminal.domain.model.SaleStatus
@@ -23,6 +25,9 @@ import com.venkoi.terminal.ui.theme.TerminalStatusVoided
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import com.venkoi.terminal.ui.print.SalePrintContentBuilder
+import com.venkoi.terminal.ui.print.TerminalPrintManager
+import com.venkoi.terminal.ui.print.terminalPrintLabels
 
 @Composable
 fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
@@ -30,6 +35,10 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
     val selectedSaleId by viewModel.selectedSaleId.collectAsState()
     val selectedSale by viewModel.selectedSale.collectAsState()
     val timezone by viewModel.restaurantTimezone.collectAsState()
+    val restaurant by viewModel.restaurantConfiguration.collectAsState()
+    val terminal by viewModel.terminalConfiguration.collectAsState()
+    val context = LocalContext.current
+    val locale = LocalConfiguration.current.locales[0]
 
     Row(modifier = Modifier.fillMaxSize()) {
         // Left Panel: Sale List
@@ -80,7 +89,24 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         Box(modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.background)) {
             selectedSale?.let { sale ->
                 if (timezone != null) {
-                    HistoryDetailScreen(sale = sale, timezone = timezone!!, viewModel = viewModel)
+                    HistoryDetailScreen(
+                        sale = sale,
+                        timezone = timezone!!,
+                        viewModel = viewModel,
+                        onPrint = { lines, totals ->
+                            val restaurantConfig = restaurant ?: return@HistoryDetailScreen
+                            val terminalName = terminal?.terminalName?.takeIf(String::isNotBlank)
+                                ?: terminal?.terminalId?.value.orEmpty()
+                            TerminalPrintManager.print(
+                                context,
+                                SalePrintContentBuilder.build(
+                                    sale, lines, totals, restaurantConfig.restaurantName, terminalName,
+                                    restaurantConfig.timezone, locale,
+                                    context.terminalPrintLabels()
+                                )
+                            )
+                        }
+                    )
                 } else {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()

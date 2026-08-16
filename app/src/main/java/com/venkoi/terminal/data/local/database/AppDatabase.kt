@@ -22,4 +22,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun terminalDao(): TerminalDao
     abstract fun menuDao(): MenuDao
     abstract fun saleDao(): SaleDao
+    abstract fun reportDao(): ReportDao
 }

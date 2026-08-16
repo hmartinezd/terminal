@@ -99,6 +99,38 @@
     <string name="provisioning_confirm">Confirm Setup</string>
     <string name="provisioning_problem">Configuration Problem: %1$s</string>
 
+    <!-- Reports Screen -->
+    <string name="reports_title">Reports</string>
+    <string name="reports_money">Money</string>
+    <string name="reports_products">Products</string>
+    <string name="reports_business_date">Business Date</string>
+    <string name="reports_today">Today</string>
+    <string name="reports_previous_day">Previous Day</string>
+    <string name="reports_next_day">Next Day</string>
+    <string name="reports_valid_sales">Valid Sales</string>
+    <string name="reports_voided_sales">Voided Sales</string>
+    <string name="reports_cash">Cash</string>
+    <string name="reports_transfer">Transfer</string>
+    <string name="reports_net_sales">Net Sales</string>
+    <string name="reports_cash_discounts">Cash Discounts</string>
+    <string name="reports_voided_amount">Voided Amount</string>
+    <string name="reports_quantity">Quantity</string>
+    <string name="reports_amount">Amount</string>
+    <string name="reports_no_sales">No sales for this business date.</string>
+    <string name="reports_no_products">No products sold for this business date.</string>
+    <string name="reports_print">Print</string>
+    <string name="reports_print_pdf">Print / Save PDF</string>
+    <string name="reports_generated_at">Generated At</string>
+    <string name="reports_terminal">Terminal</string>
+    <string name="reports_product">Product</string>
+    <string name="print_status">Status</string>
+    <string name="print_completed_at">Completed At</string>
+    <string name="print_voided_at">Voided At</string>
+    <string name="print_table">Table / Order</string>
+    <string name="print_pricing_mode">Pricing Mode</string>
+    <string name="print_unit_price">Regular Unit Price</string>
+    <string name="print_line_total">Line Total</string>
+
     <!-- Accessibility -->
     <string name="cd_remove">Remove</string>
     <string name="cd_increase">Increase</string>

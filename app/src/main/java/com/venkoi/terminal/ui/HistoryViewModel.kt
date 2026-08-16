@@ -8,6 +8,8 @@ import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.repository.MenuRepository
 import com.venkoi.terminal.domain.repository.SaleRepository
+import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
+import com.venkoi.terminal.core.Clock
 import com.venkoi.terminal.domain.repository.VoidResult
 import com.venkoi.terminal.domain.service.CalculateOrderTotals
 import com.venkoi.terminal.domain.service.OrderTotals
@@ -27,12 +29,22 @@ data class SaleWithTotal(
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val saleRepository: SaleRepository,
-    private val menuRepository: MenuRepository
+    private val menuRepository: MenuRepository,
+    terminalConfigurationRepository: TerminalConfigurationRepository,
+    private val clock: Clock
 ) : ViewModel() {
 
     val restaurantTimezone: StateFlow<ZoneId?> = menuRepository.observeRestaurantConfiguration()
         .map { it?.timezone }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val restaurantConfiguration = menuRepository.observeRestaurantConfiguration()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val terminalConfiguration = terminalConfigurationRepository.observeConfiguration()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun now() = clock.now()
 
     val historySales: StateFlow<List<SaleWithTotal>> = saleRepository.observeHistorySales()
         .flatMapLatest { sales ->

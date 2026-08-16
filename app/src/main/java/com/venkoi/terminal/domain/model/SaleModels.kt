@@ -48,3 +48,8 @@ data class SaleLine(
     val finalUnitPrice: Money,
     val lineTotal: Money
 )
+
+data class SaleWithLines(
+    val sale: Sale,
+    val lines: List<SaleLine>
+)

@@ -1,9 +1,11 @@
 package com.venkoi.terminal.data.di
 
 import com.venkoi.terminal.data.local.repository.RoomMenuRepository
+import com.venkoi.terminal.data.local.repository.RoomReportRepository
 import com.venkoi.terminal.data.local.repository.RoomTerminalConfigurationRepository
 import com.venkoi.terminal.data.local.repository.RoomSaleRepository
 import com.venkoi.terminal.domain.repository.MenuRepository
+import com.venkoi.terminal.domain.repository.ReportRepository
 import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
 import com.venkoi.terminal.domain.repository.SaleRepository
 import dagger.Binds
@@ -33,4 +35,10 @@ abstract class RepositoryModule {
     abstract fun bindSaleRepository(
         impl: RoomSaleRepository
     ): SaleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReportRepository(
+        impl: RoomReportRepository
+    ): ReportRepository
 }

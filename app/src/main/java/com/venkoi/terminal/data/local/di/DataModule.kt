@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.venkoi.terminal.data.local.database.AppDatabase
 import com.venkoi.terminal.data.local.database.MenuDao
+import com.venkoi.terminal.data.local.database.ReportDao
 import com.venkoi.terminal.data.local.database.TerminalDao
 import dagger.Module
 import dagger.Provides
@@ -43,5 +44,10 @@ object DataModule {
     @Provides
     fun provideSaleDao(database: AppDatabase): com.venkoi.terminal.data.local.database.SaleDao {
         return database.saleDao()
+    }
+
+    @Provides
+    fun provideReportDao(database: AppDatabase): ReportDao {
+        return database.reportDao()
     }
 }

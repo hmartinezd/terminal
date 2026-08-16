@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.venkoi.terminal.R
 
 sealed class Screen(@StringRes val titleRes: Int, val icon: ImageVector) {
@@ -87,6 +88,7 @@ fun MainScreen() {
                 Screen.Orders -> OrdersScreen()
                 Screen.History -> HistoryScreen()
                 Screen.Settings -> SettingsScreen()
+                Screen.Reports -> ReportsScreen(viewModel = hiltViewModel())
                 else -> {
                     Column(
                         modifier = Modifier.fillMaxSize().padding(16.dp),

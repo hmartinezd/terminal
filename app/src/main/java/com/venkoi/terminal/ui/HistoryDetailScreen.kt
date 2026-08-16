@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +18,7 @@ import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.SaleStatus
 import com.venkoi.terminal.domain.repository.VoidResult
+import com.venkoi.terminal.domain.service.OrderTotals
 import com.venkoi.terminal.ui.components.StatusBadge
 import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.theme.TerminalStatusCompleted
@@ -25,7 +28,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @Composable
-fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, viewModel: HistoryViewModel) {
+fun HistoryDetailScreen(
+    sale: Sale,
+    timezone: ZoneId,
+    viewModel: HistoryViewModel,
+    onPrint: (List<SaleLine>, OrderTotals) -> Unit
+) {
     val lines by viewModel.selectedSaleLines.collectAsState()
     val totals by viewModel.selectedSaleTotals.collectAsState()
     val isVoiding by viewModel.isVoiding.collectAsState()
@@ -99,6 +107,14 @@ fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, viewModel: HistoryViewMode
                         } else {
                             Text(stringResource(R.string.history_void_sale))
                         }
+                    }
+                }
+                totals?.let { currentTotals ->
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = { onPrint(lines, currentTotals) }) {
+                        Icon(Icons.Default.Print, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.reports_print_pdf))
                     }
                 }
             }
