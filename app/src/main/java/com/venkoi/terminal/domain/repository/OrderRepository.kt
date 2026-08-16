@@ -2,7 +2,6 @@ package com.venkoi.terminal.domain.repository
 
 import com.venkoi.terminal.core.LineId
 import com.venkoi.terminal.core.SaleId
-import com.venkoi.terminal.core.SaleId
 import com.venkoi.terminal.domain.model.OpenOrder
 import com.venkoi.terminal.domain.model.OpenOrderLine
 import com.venkoi.terminal.domain.model.PricingMode

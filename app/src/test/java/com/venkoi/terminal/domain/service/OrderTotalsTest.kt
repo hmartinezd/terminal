@@ -61,4 +61,51 @@ class OrderTotalsTest {
         assertEquals(Money("200"), totals.transferTotal)
         assertEquals(Money("290"), totals.grandTotal)
     }
+
+    @Test
+    fun `mixed order total with three lines is correct`() {
+        val saleId = SaleId("sale-123")
+        val lines = listOf(
+            OpenOrderLine(
+                lineId = LineId("l1"), saleId = saleId, menuItemId = "i1",
+                commercialRevision = 1, consumptionRevision = 1, itemNameSnapshot = "Burger",
+                quantity = BigDecimal("2"), regularUnitPriceSnapshot = Money("1500"),
+                cashDiscountModeSnapshot = CashDiscountMode.APPLY_DEFAULT,
+                cashDiscountPolicyPercentSnapshot = BigDecimal("10"),
+                pricingMode = PricingMode.CASH, cashDiscountApplied = true,
+                cashDiscountPercent = BigDecimal("10"), cashDiscountAmount = Money("300"),
+                finalUnitPrice = Money("1350"), lineTotal = Money("2700")
+            ),
+            OpenOrderLine(
+                lineId = LineId("l2"), saleId = saleId, menuItemId = "i2",
+                commercialRevision = 1, consumptionRevision = 1, itemNameSnapshot = "Drink",
+                quantity = BigDecimal("1"), regularUnitPriceSnapshot = Money("500"),
+                cashDiscountModeSnapshot = CashDiscountMode.NONE,
+                cashDiscountPolicyPercentSnapshot = BigDecimal.ZERO,
+                pricingMode = PricingMode.TRANSFER, cashDiscountApplied = false,
+                cashDiscountPercent = BigDecimal.ZERO, cashDiscountAmount = Money.ZERO,
+                finalUnitPrice = Money("500"), lineTotal = Money("500")
+            ),
+            OpenOrderLine(
+                lineId = LineId("l3"), saleId = saleId, menuItemId = "i3",
+                commercialRevision = 1, consumptionRevision = 1, itemNameSnapshot = "Dessert",
+                quantity = BigDecimal("1"), regularUnitPriceSnapshot = Money("1000"),
+                cashDiscountModeSnapshot = CashDiscountMode.APPLY_DEFAULT,
+                cashDiscountPolicyPercentSnapshot = BigDecimal("10"),
+                pricingMode = PricingMode.CASH, cashDiscountApplied = true,
+                cashDiscountPercent = BigDecimal("10"), cashDiscountAmount = Money("100"),
+                finalUnitPrice = Money("900"), lineTotal = Money("900")
+            )
+        )
+
+        val totals = CalculateOrderTotals.calculate(lines)
+        assertEquals(Money("4500"), totals.regularSubtotal) // (1500*2) + 500 + 1000
+        assertEquals(Money("400"), totals.cashDiscounts) // 300 + 100
+        assertEquals(Money("3600"), totals.cashTotal) // 2700 + 900
+        assertEquals(Money("500"), totals.transferTotal)
+        assertEquals(Money("4100"), totals.grandTotal) // 3600 + 500
+        
+        val sumLineTotals = lines.map { it.lineTotal.amount }.reduce { a, b -> a.add(b) }
+        assertEquals(0, sumLineTotals.compareTo(totals.grandTotal.amount))
+    }
 }

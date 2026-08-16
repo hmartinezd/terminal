@@ -216,28 +216,54 @@ fun OrderLineItem(
     onRemove: () -> Unit
 ) {
     Column(modifier = Modifier.padding(8.dp).fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(line.itemNameSnapshot, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Row(verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(line.itemNameSnapshot, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text("Regular: ${line.regularUnitPriceSnapshot}", style = MaterialTheme.typography.bodySmall)
+            }
             IconButton(onClick = onRemove) {
                 Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             }
         }
+        
+        Spacer(Modifier.height(4.dp))
+        
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onUpdateQuantity(line.quantity.subtract(BigDecimal.ONE)) }) {
                 Icon(Icons.Default.Remove, contentDescription = null)
             }
-            Text(line.quantity.stripTrailingZeros().toPlainString(), modifier = Modifier.padding(horizontal = 8.dp))
+            Text(
+                line.quantity.stripTrailingZeros().toPlainString(),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
             IconButton(onClick = { onUpdateQuantity(line.quantity.add(BigDecimal.ONE)) }) {
                 Icon(Icons.Default.Add, contentDescription = null)
             }
+            
             Spacer(Modifier.weight(1f))
-            Text("${line.lineTotal}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            
+            Text(
+                "${line.lineTotal}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             PricingModeToggle(
                 selectedMode = line.pricingMode,
                 onModeSelected = onChangePricingMode
             )
+            
+            if (line.pricingMode == PricingMode.CASH && line.cashDiscountApplied) {
+                Text(
+                    "${line.cashDiscountPercent.stripTrailingZeros().toPlainString()}% disc",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Red
+                )
+            }
         }
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
     }

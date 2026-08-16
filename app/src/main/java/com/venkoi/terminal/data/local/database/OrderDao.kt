@@ -27,8 +27,8 @@ interface OrderDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrderLines(lines: List<OpenOrderLineEntity>)
 
-    @Query("DELETE FROM open_order_lines WHERE lineId = :lineId")
-    suspend fun deleteOrderLine(lineId: LineId)
+    @Query("DELETE FROM open_order_lines WHERE lineId = :lineId AND saleId = :saleId")
+    suspend fun deleteOrderLineScoped(lineId: LineId, saleId: SaleId)
 
     @Query("UPDATE open_orders SET status = 'DISCARDED', updatedAtUtc = :updatedAt WHERE saleId = :saleId")
     suspend fun discardOrder(saleId: SaleId, updatedAt: Instant)
@@ -44,7 +44,7 @@ interface OrderDao {
 
     @Transaction
     suspend fun removeLineAndUpdateOrder(saleId: SaleId, lineId: LineId, order: OpenOrderEntity) {
-        deleteOrderLine(lineId)
+        deleteOrderLineScoped(lineId, saleId)
         insertOrder(order)
     }
 
@@ -61,7 +61,7 @@ interface OrderDao {
         lineEntityToUpdate: OpenOrderLineEntity,
         orderEntity: OpenOrderEntity
     ) {
-        deleteOrderLine(lineIdToRemove)
+        deleteOrderLineScoped(lineIdToRemove, saleId)
         insertOrderLines(listOf(lineEntityToUpdate))
         insertOrder(orderEntity)
     }

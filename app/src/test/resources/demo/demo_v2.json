@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "restaurant": {
+    "restaurantId": "venkoi-demo",
+    "restaurantName": "Venkoi Demo Restaurant",
+    "timezone": "America/Havana",
+    "currency": "CUP",
+    "businessDayCutoff": "04:00"
+  },
+  "menu": {
+    "menuId": "menu-demo",
+    "publicationRevision": 2,
+    "publishedAtUtc": "2026-08-16T10:00:00Z",
+    "defaultCashDiscountPercent": "15.00"
+  },
+  "categories": [
+    { "id": "cat-food", "name": "Food", "displayOrder": 1 },
+    { "id": "cat-drinks", "name": "Drinks", "displayOrder": 2 },
+    { "id": "cat-desserts", "name": "Desserts", "displayOrder": 3 },
+    { "id": "cat-extras", "name": "Extras", "displayOrder": 4 }
+  ],
+  "menuItems": [
+    { "id": "item-burger", "categoryId": "cat-food", "name": "Classic Burger", "active": true, "displayOrder": 1, "regularPrice": "1700.00", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 2, "consumptionRevision": 1 },
+    { "id": "item-chicken", "categoryId": "cat-food", "name": "Grilled Chicken", "active": true, "displayOrder": 2, "regularPrice": "1200.00", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 1, "consumptionRevision": 2 },
+    { "id": "item-pasta", "categoryId": "cat-food", "name": "Pasta Alfredo", "active": false, "displayOrder": 3, "regularPrice": "1000.00", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-soda", "categoryId": "cat-drinks", "name": "Soft Drink", "active": true, "displayOrder": 1, "regularPrice": "200.00", "cashDiscountMode": "NONE", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-water", "categoryId": "cat-drinks", "name": "Bottled Water", "active": true, "displayOrder": 2, "regularPrice": "150.00", "cashDiscountMode": "NONE", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-espresso", "categoryId": "cat-drinks", "name": "Espresso", "active": true, "displayOrder": 3, "regularPrice": "100.00", "cashDiscountMode": "NONE", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-flan", "categoryId": "cat-desserts", "name": "Flan", "active": true, "displayOrder": 1, "regularPrice": "400.00", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-cake", "categoryId": "cat-desserts", "name": "Chocolate Cake", "active": true, "displayOrder": 2, "regularPrice": "500.00", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-cheese", "categoryId": "cat-extras", "name": "Extra Cheese", "active": true, "displayOrder": 1, "regularPrice": "100.00", "cashDiscountMode": "NONE", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-fries", "categoryId": "cat-extras", "name": "Side of Fries", "active": true, "displayOrder": 2, "regularPrice": "300.00", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 1, "consumptionRevision": 1 },
+    { "id": "item-new-shake", "categoryId": "cat-drinks", "name": "Milkshake", "active": true, "displayOrder": 4, "regularPrice": "600.00", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 1, "consumptionRevision": 1 }
+  ]
+}
