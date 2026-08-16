@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
 import com.venkoi.terminal.licensing.LicenseManager
+import com.venkoi.terminal.licensing.SellingNotAuthorizedException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -182,6 +183,8 @@ class OrdersViewModel @Inject constructor(
             try {
                 val result = try {
                     saleRepository.completeSale(saleId)
+                } catch (_: SellingNotAuthorizedException) {
+                    SaleCompletionResult.Failure("SELLING_NOT_AUTHORIZED")
                 } catch (_: Exception) {
                     SaleCompletionResult.Failure("Unable to complete sale")
                 }

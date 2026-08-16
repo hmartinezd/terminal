@@ -75,6 +75,41 @@ class OfflineLicensingTest {
         assertEquals(SellingAuthorizationResult.AUTHORIZED_GRACE, LicensePolicy.sellingAuthorization(LicenseState.GRACE_PERIOD))
     }
 
+    @Test fun `same payload and sequence is duplicate across independent valid ECDSA signatures`() {
+        val pair = KeyPairGenerator.getInstance("EC").apply { initialize(256) }.generateKeyPair()
+        val first = sign(payload(), pair.private)
+        var second = sign(payload(), pair.private)
+        repeat(5) {
+            if (second.signatureBase64Url == first.signatureBase64Url) second = sign(payload(), pair.private)
+        }
+        val verifier = LicenseSignatureVerifier { pair.public }
+        assertTrue(verifier.verify(first)); assertTrue(verifier.verify(second))
+        assertEquals(LicenseImportDecision.DUPLICATE, LicenseImportRules.compare(second, first, 5))
+    }
+
+    @Test fun `sequence rules use authenticated floor and verified payload`() {
+        val pair = KeyPairGenerator.getInstance("EC").apply { initialize(256) }.generateKeyPair()
+        val current = sign(payload(5), pair.private)
+        assertEquals(LicenseImportDecision.ACCEPT, LicenseImportRules.compare(sign(payload(1), pair.private), null, 0))
+        assertEquals(LicenseImportDecision.STALE, LicenseImportRules.compare(sign(payload(4), pair.private), current, 5))
+        assertEquals(LicenseImportDecision.SEQUENCE_CONFLICT,
+            LicenseImportRules.compare(sign(payload(5).copy(planCode = "OTHER"), pair.private), current, 5))
+        assertEquals(LicenseImportDecision.ACCEPT, LicenseImportRules.compare(sign(payload(6), pair.private), current, 5))
+        assertEquals(LicenseImportDecision.LOCAL_STATE_INVALID, LicenseImportRules.compare(sign(payload(5), pair.private), null, 5))
+    }
+
+    @Test fun `forged stored sequence cannot block valid newer recovery`() {
+        val pair = KeyPairGenerator.getInstance("EC").apply { initialize(256) }.generateKeyPair()
+        val verifier = LicenseSignatureVerifier { pair.public }
+        val forged = sign(payload(5), pair.private).copy(payload = payload(999))
+        assertFalse(verifier.verify(forged))
+        val verifiedCurrent = forged.takeIf(verifier::verify)
+        assertEquals(LicenseImportDecision.ACCEPT,
+            LicenseImportRules.compare(sign(payload(6), pair.private), verifiedCurrent, 5))
+        assertEquals(LicenseImportDecision.STALE,
+            LicenseImportRules.compare(sign(payload(4), pair.private), verifiedCurrent, 5))
+    }
+
     private fun sign(payload: LicensePayloadV1, key: java.security.PrivateKey): SignedLicenseV1 {
         val bytes = Signature.getInstance("SHA256withECDSA").run {
             initSign(key); update(CanonicalLicenseEncoder.encode(payload)); sign()

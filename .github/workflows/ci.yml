@@ -34,3 +34,9 @@ jobs:
 
     - name: Compile instrumentation tests
       run: ./gradlew compileDebugAndroidTestKotlin
+
+    - name: Verify minified release build with non-production public configuration
+      env:
+        CI_TEST_LICENSE_PUBLIC_KEY: MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEiDKg/uve//7qF6eWYI6xOWaeClbgGRyXU+nPIGlhDG5bhTCcCBwwocu1DXlhE4u3pGDYC7m/Mv03YZoWhLxdUw==
+        CI_TEST_CERT_SHA256: 0000000000000000000000000000000000000000000000000000000000000000
+      run: ./gradlew assembleRelease -PLICENSE_AUTHORITY_PUBLIC_KEY="$CI_TEST_LICENSE_PUBLIC_KEY" -PEXPECTED_RELEASE_CERT_SHA256="$CI_TEST_CERT_SHA256"

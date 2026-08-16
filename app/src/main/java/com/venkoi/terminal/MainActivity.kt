@@ -25,9 +25,20 @@ import com.venkoi.terminal.ui.TerminalViewModel
 import com.venkoi.terminal.ui.theme.TerminalTheme
 
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.lifecycleScope
+import com.venkoi.terminal.licensing.LicenseManager
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @Inject lateinit var licenseManager: LicenseManager
+
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch { licenseManager.refresh() }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

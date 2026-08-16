@@ -120,7 +120,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
             confirmButton = {
                 Button(
                     onClick = { viewModel.completeSale() },
-                    enabled = !isCompleting
+                    enabled = sellingAllowed && !isCompleting
                 ) {
                     Text(stringResource(R.string.dialog_complete_confirm))
                 }
@@ -585,7 +585,11 @@ fun TotalRow(
 fun SaleCompletionResult.toLocalizedMessage(): String {
     return when (this) {
         is SaleCompletionResult.Success -> stringResource(R.string.orders_sale_completed)
-        is SaleCompletionResult.Failure -> stringResource(R.string.error_complete_failed)
+        is SaleCompletionResult.Failure -> if (message == "SELLING_NOT_AUTHORIZED") {
+            stringResource(R.string.selling_disabled)
+        } else {
+            stringResource(R.string.error_complete_failed)
+        }
         SaleCompletionResult.EmptySale -> stringResource(R.string.error_empty_sale)
         SaleCompletionResult.InvalidQuantity -> stringResource(R.string.error_invalid_quantity)
         SaleCompletionResult.NotFound -> stringResource(R.string.error_order_not_found)

@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -51,6 +54,7 @@ class LicenseManager @Inject constructor(
     private val preferences = context.getSharedPreferences("installed_license_v1", Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _snapshot = MutableStateFlow(LicenseSnapshot(LicenseState.NOT_ACTIVATED))
+    private val evaluationMutex = Mutex()
     val snapshot: StateFlow<LicenseSnapshot> = _snapshot
     val sellingAllowed: StateFlow<Boolean> = _snapshot.map {
         runtimePolicy.developerAuthorization || LicensePolicy.sellingAuthorization(it.state) in
@@ -63,30 +67,34 @@ class LicenseManager @Inject constructor(
             combine(terminalRepository.observeConfiguration(), menuRepository.observeRestaurantConfiguration()) { _, _ -> Unit }
                 .collect { refresh() }
         }
-    }
-
-    fun requireSelling() {
-        if (runtimePolicy.developerAuthorization) return
-        val result = LicensePolicy.sellingAuthorization(_snapshot.value.state)
-        if (result != SellingAuthorizationResult.AUTHORIZED && result != SellingAuthorizationResult.AUTHORIZED_GRACE) {
-            throw SellingNotAuthorizedException(result)
+        scope.launch {
+            while (true) {
+                delay(60_000)
+                refresh()
+            }
         }
     }
 
-    suspend fun refresh() {
+    suspend fun requireSelling() {
+        if (runtimePolicy.developerAuthorization) return
+        CurrentLicenseAuthorizer.requireAuthorized { evaluateCurrentLicense() }
+    }
+
+    suspend fun refresh() { evaluateCurrentLicense() }
+
+    suspend fun evaluateCurrentLicense(): LicenseSnapshot = evaluationMutex.withLock {
         val terminal = terminalRepository.getConfiguration()
         val restaurant = menuRepository.getRestaurantConfiguration()
         if (terminal == null || restaurant == null) {
-            _snapshot.value = LicenseSnapshot(LicenseState.NOT_ACTIVATED)
-            return
+            return@withLock LicenseSnapshot(LicenseState.NOT_ACTIVATED).also { _snapshot.value = it }
         }
         val license = storedLicense()
         val time = trustedTime.observe(clock.now())
-        _snapshot.value = EvaluateLicense.evaluate(
+        EvaluateLicense.evaluate(
             license, license?.let(verifier::verify) ?: false,
             restaurant.restaurantId, terminal.terminalId.value, deviceIdentity.deviceKeyId,
-            time.now, time.error, runtimePolicy.appIntegrityValid()
-        )
+            time.now, time.error, runCatching { runtimePolicy.appIntegrityValid() }.getOrDefault(false)
+        ).also { _snapshot.value = it }
     }
 
     suspend fun activationRequest(): ActivationRequestV1 {
@@ -114,24 +122,56 @@ class LicenseManager @Inject constructor(
         if (evaluation.state !in setOf(LicenseState.VALID, LicenseState.EXPIRING_SOON, LicenseState.GRACE_PERIOD, LicenseState.EXPIRED)) {
             return LicenseImportResult.Rejected(evaluation.state)
         }
-        val current = storedLicense()
-        if (current != null) {
-            if (candidate.payload.licenseSequence < current.payload.licenseSequence) return LicenseImportResult.Stale
-            if (candidate.payload.licenseSequence == current.payload.licenseSequence) {
-                return if (CanonicalLicenseEncoder.encode(candidate.payload).contentEquals(CanonicalLicenseEncoder.encode(current.payload)) &&
-                    candidate.signatureBase64Url == current.signatureBase64Url) LicenseImportResult.Duplicate
-                else LicenseImportResult.SequenceConflict
-            }
+        if (trustedTime.securityStateError() != null) {
+            return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
         }
-        preferences.edit().putString("envelope", json.encodeToString(candidate))
+        val current = storedLicense()?.takeIf(verifier::verify)
+        val authenticatedHighest = trustedTime.securityState()?.highestAcceptedLicenseSequence ?: 0
+        val highest = maxOf(authenticatedHighest, current?.payload?.licenseSequence ?: 0)
+        when (LicenseImportRules.compare(candidate, current, highest)) {
+            LicenseImportDecision.STALE -> return LicenseImportResult.Stale
+            LicenseImportDecision.DUPLICATE -> return LicenseImportResult.Duplicate
+            LicenseImportDecision.SEQUENCE_CONFLICT -> return LicenseImportResult.SequenceConflict
+            LicenseImportDecision.LOCAL_STATE_INVALID ->
+                return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
+            LicenseImportDecision.ACCEPT -> Unit
+        }
+        val stored = preferences.edit().putString("envelope", json.encodeToString(candidate))
             .putLong("imported_at", clock.now().toEpochMilli()).commit()
-        trustedTime.advanceFloor(candidate.payload.issuedAt())
+        if (!stored) return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
+        trustedTime.acceptLicense(candidate.payload.issuedAt(), candidate.payload.licenseSequence)
         refresh()
         return LicenseImportResult.Accepted
     }
 
     private fun storedLicense(): SignedLicenseV1? = preferences.getString("envelope", null)?.let {
         runCatching { json.decodeFromString<SignedLicenseV1>(it) }.getOrNull()
+    }
+}
+
+internal enum class LicenseImportDecision { ACCEPT, STALE, DUPLICATE, SEQUENCE_CONFLICT, LOCAL_STATE_INVALID }
+
+internal object LicenseImportRules {
+    fun compare(candidate: SignedLicenseV1, verifiedCurrent: SignedLicenseV1?, highestAccepted: Long): LicenseImportDecision {
+        val sequence = candidate.payload.licenseSequence
+        if (sequence < highestAccepted) return LicenseImportDecision.STALE
+        if (sequence > highestAccepted) return LicenseImportDecision.ACCEPT
+        if (verifiedCurrent == null) return LicenseImportDecision.LOCAL_STATE_INVALID
+        return if (CanonicalLicenseEncoder.encode(candidate.payload)
+                .contentEquals(CanonicalLicenseEncoder.encode(verifiedCurrent.payload))) {
+            LicenseImportDecision.DUPLICATE
+        } else {
+            LicenseImportDecision.SEQUENCE_CONFLICT
+        }
+    }
+}
+
+internal object CurrentLicenseAuthorizer {
+    suspend fun requireAuthorized(evaluateNow: suspend () -> LicenseSnapshot) {
+        val result = LicensePolicy.sellingAuthorization(evaluateNow().state)
+        if (result != SellingAuthorizationResult.AUTHORIZED && result != SellingAuthorizationResult.AUTHORIZED_GRACE) {
+            throw SellingNotAuthorizedException(result)
+        }
     }
 }
 

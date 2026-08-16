@@ -24,7 +24,10 @@ android {
 
     buildTypes {
         debug {
-            // Debug authorization is supplied only by src/debug; it cannot be toggled at runtime.
+            val enforce = providers.gradleProperty("ENFORCE_LICENSE_IN_DEBUG").orElse("false").get().toBoolean()
+            val developmentKey = providers.gradleProperty("DEV_LICENSE_AUTHORITY_PUBLIC_KEY").orElse("").get()
+            buildConfigField("boolean", "ENFORCE_LICENSE_IN_DEBUG", enforce.toString())
+            buildConfigField("String", "LICENSE_AUTHORITY_PUBLIC_KEY", "\"${developmentKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         }
         release {
             val authorityKey = providers.gradleProperty("LICENSE_AUTHORITY_PUBLIC_KEY").orElse("").get()
