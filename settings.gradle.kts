@@ -27,4 +27,3 @@ dependencyResolutionManagement {
 rootProject.name = "Terminal"
 include(":app")
 include(":license-contract")
-include(":license-issuer")

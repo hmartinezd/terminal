@@ -6,6 +6,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.security.KeyPairGenerator
 import java.security.Signature
+import java.security.MessageDigest
 import java.time.Instant
 import java.util.Base64
 
@@ -28,6 +29,16 @@ class OfflineLicensingTest {
         assertFalse(original.contentEquals(CanonicalLicenseEncoder.encode(payload().copy(expiresAtUtc = "2026-10-01T00:00:00Z"))))
     }
 
+    @Test fun `canonical V1 golden vector matches License Admin`() {
+        val vector = LicensePayloadV1(productCode = "SALES_TERMINAL", licenseId = "compat-license-001",
+            licenseSequence = 7, restaurantId = "restaurant-fixture", terminalId = "terminal-fixture",
+            deviceKeyId = "device-fixture", planCode = "PILOT", issuedAtUtc = "2026-08-01T00:00:00Z",
+            expiresAtUtc = "2026-09-01T00:00:00Z", graceUntilUtc = "2026-09-08T00:00:00Z")
+        val hash = MessageDigest.getInstance("SHA-256").digest(CanonicalLicenseEncoder.encode(vector))
+            .joinToString("") { "%02x".format(it) }
+        assertEquals("5df7ad4f74bc09f282f2fc8dd7927a975c65c7abdbf8420047f3080496413e31", hash)
+    }
+
     @Test fun `ECDSA verifies canonical payload and rejects tampering and wrong authority`() {
         val generator = KeyPairGenerator.getInstance("EC").apply { initialize(256) }
         val authority = generator.generateKeyPair()
@@ -37,6 +48,16 @@ class OfflineLicensingTest {
         assertTrue(verifier.verify(signed))
         assertFalse(verifier.verify(signed.copy(payload = signed.payload.copy(expiresAtUtc = "2027-01-01T00:00:00Z"))))
         assertFalse(LicenseSignatureVerifier { other.public }.verify(signed))
+    }
+
+    @Test fun `License Admin fixed development fixture verifies in Sales Terminal`() {
+        val licenseText = requireNotNull(javaClass.getResource(
+            "/compatibility/license_admin_signed_license_v1.json")).readText()
+        val publicPem = requireNotNull(javaClass.getResource(
+            "/compatibility/development_authority_public.pem")).readText()
+        val license = json.decodeFromString<SignedLicenseV1>(licenseText)
+        assertTrue(LicenseSignatureVerifier(EncodedLicenseAuthorityPublicKeyProvider(publicPem)).verify(license))
+        assertEquals("android-device-fixture-key-id", license.payload.deviceKeyId)
     }
 
     @Test fun `JSON whitespace and property formatting do not affect verification`() {

@@ -8,7 +8,7 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
-/build
+**/build/
 /captures
 .externalNativeBuild
 .cxx
@@ -17,3 +17,5 @@ local.properties
 license-authority-private.pem
 secrets/
 license-audit.jsonl
+*.private.key
+authority-private.pem
