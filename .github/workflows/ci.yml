@@ -31,3 +31,6 @@ jobs:
 
     - name: Run lint
       run: ./gradlew lint
+
+    - name: Compile instrumentation tests
+      run: ./gradlew compileDebugAndroidTestKotlin

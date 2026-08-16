@@ -31,6 +31,7 @@ import java.time.format.FormatStyle
 fun HistoryDetailScreen(
     sale: Sale,
     timezone: ZoneId,
+    locale: java.util.Locale,
     viewModel: HistoryViewModel,
     onPrint: (List<SaleLine>, OrderTotals) -> Unit
 ) {
@@ -122,7 +123,7 @@ fun HistoryDetailScreen(
         
         Spacer(Modifier.height(24.dp))
         
-        val dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withZone(timezone)
+        val dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(timezone)
         
         TerminalCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -151,7 +152,7 @@ fun HistoryDetailScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(lines) { line ->
-                HistoryLineItemCard(line, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
+                HistoryLineItemCard(line, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale)
             }
         }
         
@@ -168,27 +169,27 @@ fun HistoryDetailScreen(
             ) {
                 TotalRow(
                     stringResource(R.string.totals_regular_subtotal), 
-                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.regularSubtotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.regularSubtotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale)
                 )
                 if (t.cashDiscounts.amount > java.math.BigDecimal.ZERO) {
                     TotalRow(
                         stringResource(R.string.totals_cash_discounts), 
-                        "-${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.cashDiscounts, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)}", 
+                        "-${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.cashDiscounts, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale)}",
                         color = MaterialTheme.colorScheme.error
                     )
                 }
                 TotalRow(
                     stringResource(R.string.totals_cash_total), 
-                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.cashTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.cashTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale)
                 )
                 TotalRow(
                     stringResource(R.string.totals_transfer_total), 
-                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.transferTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot)
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.transferTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale)
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 TotalRow(
                     stringResource(R.string.totals_grand_total), 
-                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.grandTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot), 
+                    com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.grandTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -206,19 +207,19 @@ fun InfoLabelValue(label: String, value: String) {
 }
 
 @Composable
-fun HistoryLineItemCard(line: SaleLine, currencyCode: String, scale: Int) {
+fun HistoryLineItemCard(line: SaleLine, currencyCode: String, scale: Int, locale: java.util.Locale) {
     TerminalCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(line.itemNameSnapshot, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                 Text(
-                    "${line.quantity.stripTrailingZeros().toPlainString()} x ${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(line.regularUnitPriceSnapshot, currencyCode, scale)}", 
+                    "${line.quantity.stripTrailingZeros().toPlainString()} x ${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(line.regularUnitPriceSnapshot, currencyCode, scale, locale)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
-                com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(line.lineTotal, currencyCode, scale),
+                com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(line.lineTotal, currencyCode, scale, locale),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary

@@ -6,6 +6,7 @@ import com.venkoi.terminal.core.SaleId
 import com.venkoi.terminal.core.TerminalId
 import com.venkoi.terminal.domain.model.CashDiscountMode
 import com.venkoi.terminal.domain.model.PricingMode
+import com.venkoi.terminal.domain.model.ProductReportRow
 import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.SaleStatus
@@ -25,7 +26,8 @@ class ReportBuildersTest {
             sale("b", SaleStatus.COMPLETED, "USD", line("b", "juice", "Juice", "1", PricingMode.TRANSFER, "5.00")),
             sale("c", SaleStatus.VOIDED, "USD", line("c", "cake", "Cake", "1", PricingMode.TRANSFER, "15.00")),
             sale("d", SaleStatus.COMPLETED, "CUP", line("d", "coffee", "Coffee", "1", PricingMode.CASH, "50.00")),
-            sale("e", SaleStatus.OPEN, "USD", line("e", "x", "Ignored", "1", PricingMode.CASH, "99.00"))
+            sale("e", SaleStatus.OPEN, "USD", line("e", "x", "Ignored Open", "1", PricingMode.CASH, "99.00")),
+            sale("f", SaleStatus.DISCARDED, "USD", line("f", "x", "Ignored Discarded", "1", PricingMode.TRANSFER, "98.00", "7.00"))
         )
 
         val report = BuildDailyMoneyReport().build(date, sales)
@@ -38,6 +40,7 @@ class ReportBuildersTest {
         assertMoney("23.00", usd.grandTotal)
         assertMoney("2.00", usd.cashDiscounts)
         assertMoney("15.00", usd.voidedAmount)
+        assertEquals(emptyList<ProductReportRow>(), BuildProductReport().build(date, sales.filter { it.sale.status == SaleStatus.OPEN || it.sale.status == SaleStatus.DISCARDED }).currencySections.flatMap { it.rows })
     }
 
     @Test fun `product report groups revisions by id and snapshot name but excludes voids`() {
@@ -45,14 +48,16 @@ class ReportBuildersTest {
         val repriced = line("b", "burger", "Burger", "2", PricingMode.CASH, "24.00", revision = 2)
         val renamed = line("c", "burger", "Classic Burger", "1", PricingMode.CASH, "14.00", revision = 3)
         val voided = line("d", "burger", "Burger", "9", PricingMode.CASH, "90.00")
+        val alphabeticTie = line("e", "juice", "Juice", "1", PricingMode.CASH, "3.00")
         val report = BuildProductReport().build(date, listOf(
             sale("a", SaleStatus.COMPLETED, "USD", first),
             sale("b", SaleStatus.COMPLETED, "USD", repriced),
             sale("c", SaleStatus.COMPLETED, "USD", renamed),
+            sale("e", SaleStatus.COMPLETED, "USD", alphabeticTie),
             sale("d", SaleStatus.VOIDED, "USD", voided)
         ))
         val rows = report.currencySections.single().rows
-        assertEquals(listOf("Burger", "Classic Burger"), rows.map { it.itemNameSnapshot })
+        assertEquals(listOf("Burger", "Classic Burger", "Juice"), rows.map { it.itemNameSnapshot })
         assertEquals(BigDecimal("3"), rows[0].quantity)
         assertMoney("34.00", rows[0].amount)
     }

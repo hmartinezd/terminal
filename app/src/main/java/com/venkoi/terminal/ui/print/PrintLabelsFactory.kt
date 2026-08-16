@@ -27,5 +27,8 @@ fun Context.terminalPrintLabels() = PrintLabels(
     lineTotal = getString(R.string.print_line_total),
     grandTotal = getString(R.string.totals_grand_total),
     completed = getString(R.string.history_status_completed),
-    voided = getString(R.string.history_status_voided)
+    voided = getString(R.string.history_status_voided),
+    dailySalesReport = getString(R.string.print_job_daily_sales),
+    productReport = getString(R.string.print_job_product_report),
+    sale = getString(R.string.print_job_sale)
 )

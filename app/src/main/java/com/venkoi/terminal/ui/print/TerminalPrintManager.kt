@@ -27,13 +27,8 @@ class TerminalPrintAdapter(
     private val model: PrintDocumentModel
 ) : PrintDocumentAdapter() {
     private var attributes: PrintAttributes? = null
-    private val linesPerPage = 42
-    private val printableLines by lazy {
-        model.lines.flatMap { line ->
-            if (line.text.isEmpty()) listOf(line)
-            else line.text.chunked(100).map { line.copy(text = it) }
-        }
-    }
+    private var layoutPlan: PrintLayoutPlan? = null
+    private val padding = 16f
 
     override fun onLayout(
         oldAttributes: PrintAttributes?, newAttributes: PrintAttributes,
@@ -41,7 +36,11 @@ class TerminalPrintAdapter(
     ) {
         if (cancellationSignal.isCanceled) return callback.onLayoutCancelled()
         attributes = newAttributes
-        val pages = maxOf(1, (printableLines.size + linesPerPage - 1) / linesPerPage)
+        val pdf = PrintedPdfDocument(context, newAttributes)
+        val content = pdf.pageContentRect
+        layoutPlan = createLayoutPlan(content.width() - padding * 2, content.height() - padding * 2)
+        pdf.close()
+        val pages = layoutPlan?.pages?.size ?: 1
         callback.onLayoutFinished(
             PrintDocumentInfo.Builder(model.jobName).setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT).setPageCount(pages).build(),
             oldAttributes != newAttributes
@@ -55,21 +54,22 @@ class TerminalPrintAdapter(
         val attrs = attributes ?: return callback.onWriteFailed("Missing print attributes")
         val pdf = PrintedPdfDocument(context, attrs)
         try {
-            val pageCount = maxOf(1, (printableLines.size + linesPerPage - 1) / linesPerPage)
+            val plan = layoutPlan ?: createLayoutPlan(
+                pdf.pageContentRect.width() - padding * 2,
+                pdf.pageContentRect.height() - padding * 2
+            )
+            val pageCount = plan.pages.size
             for (pageIndex in 0 until pageCount) {
                 if (cancellationSignal.isCanceled) return callback.onWriteCancelled()
                 if (!pages.containsPage(pageIndex)) continue
                 val page = pdf.startPage(pageIndex)
                 val canvas = page.canvas
-                var y = 48f
-                printableLines.drop(pageIndex * linesPerPage).take(linesPerPage).forEach { line ->
-                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = if (line.emphasis == PrintEmphasis.VOIDED) Color.rgb(150, 0, 0) else Color.BLACK
-                        textSize = when (line.emphasis) { PrintEmphasis.HEADING -> 18f; PrintEmphasis.STRONG, PrintEmphasis.VOIDED -> 14f; else -> 11f }
-                        typeface = if (line.emphasis == PrintEmphasis.NORMAL) Typeface.MONOSPACE else Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-                    }
-                    canvas.drawText(line.text, 42f, y, paint)
-                    y += 18f
+                var y = pdf.pageContentRect.top + padding
+                plan.pages[pageIndex].lines.forEach { line ->
+                    val paint = paintFor(line.emphasis)
+                    y += -paint.fontMetrics.ascent
+                    canvas.drawText(line.text, pdf.pageContentRect.left + padding, y, paint)
+                    y += line.height + paint.fontMetrics.ascent
                 }
                 pdf.finishPage(page)
             }
@@ -80,6 +80,25 @@ class TerminalPrintAdapter(
         } finally {
             pdf.close()
         }
+    }
+
+    private fun createLayoutPlan(width: Float, height: Float) = PrintLayoutPlanner.plan(
+        model,
+        width,
+        height,
+        PrintTextMeasurer { text, emphasis -> paintFor(emphasis).measureText(text) },
+        PrintLineHeightProvider { emphasis -> paintFor(emphasis).fontSpacing }
+    )
+
+    private fun paintFor(emphasis: PrintEmphasis) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = if (emphasis == PrintEmphasis.VOIDED) Color.rgb(150, 0, 0) else Color.BLACK
+        textSize = when (emphasis) {
+            PrintEmphasis.HEADING -> 18f
+            PrintEmphasis.STRONG, PrintEmphasis.VOIDED -> 14f
+            PrintEmphasis.NORMAL -> 11f
+        }
+        typeface = if (emphasis == PrintEmphasis.NORMAL) Typeface.MONOSPACE
+        else Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
     }
 }
 

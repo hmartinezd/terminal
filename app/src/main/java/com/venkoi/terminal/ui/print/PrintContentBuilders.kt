@@ -5,6 +5,7 @@ import com.venkoi.terminal.domain.model.ProductReport
 import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.SaleStatus
+import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.service.OrderTotals
 import com.venkoi.terminal.ui.util.HistoryMoneyFormatter
 import java.time.Instant
@@ -29,14 +30,14 @@ object MoneyReportPrintContentBuilder {
             lines += PrintLine("${labels.currency}: ${section.currencyCode}", PrintEmphasis.HEADING)
             lines += PrintLine("${labels.validSales}: ${section.validSaleCount}")
             lines += PrintLine("${labels.voidedSales}: ${section.voidedSaleCount}", PrintEmphasis.VOIDED)
-            lines += moneyLine(labels.cash, section.cashTotal.toString(), section.currencyCode, section.currencyScale, locale = locale)
-            lines += moneyLine(labels.transfer, section.transferTotal.toString(), section.currencyCode, section.currencyScale, locale = locale)
-            lines += moneyLine(labels.netSales, section.grandTotal.toString(), section.currencyCode, section.currencyScale, PrintEmphasis.STRONG, locale)
-            lines += moneyLine(labels.cashDiscounts, section.cashDiscounts.toString(), section.currencyCode, section.currencyScale, locale = locale)
-            lines += moneyLine(labels.voidedAmount, section.voidedAmount.toString(), section.currencyCode, section.currencyScale, PrintEmphasis.VOIDED, locale)
+            lines += moneyLine(labels.cash, section.cashTotal, section.currencyCode, section.currencyScale, locale = locale)
+            lines += moneyLine(labels.transfer, section.transferTotal, section.currencyCode, section.currencyScale, locale = locale)
+            lines += moneyLine(labels.netSales, section.grandTotal, section.currencyCode, section.currencyScale, PrintEmphasis.STRONG, locale)
+            lines += moneyLine(labels.cashDiscounts, section.cashDiscounts, section.currencyCode, section.currencyScale, locale = locale)
+            lines += moneyLine(labels.voidedAmount, section.voidedAmount, section.currencyCode, section.currencyScale, PrintEmphasis.VOIDED, locale)
             lines += PrintLine("")
         }
-        return PrintDocumentModel("Money report ${report.businessDate}", lines)
+        return PrintDocumentModel("${labels.dailySalesReport} ${report.businessDate}", lines)
     }
 }
 
@@ -60,7 +61,7 @@ object ProductReportPrintContentBuilder {
             }
             lines += PrintLine("")
         }
-        return PrintDocumentModel("Product report ${report.businessDate}", lines)
+        return PrintDocumentModel("${labels.productReport} ${report.businessDate}", lines)
     }
 }
 
@@ -89,7 +90,7 @@ object SalePrintContentBuilder {
         lines += PrintLine("")
         saleLines.forEach { line ->
             lines += PrintLine("${line.itemNameSnapshot}  x${line.quantity.stripTrailingZeros().toPlainString()}", PrintEmphasis.STRONG)
-            lines += PrintLine("${labels.pricingMode}: ${if (line.pricingMode.name == "CASH") labels.cash else labels.transfer}")
+            lines += PrintLine("${labels.pricingMode}: ${if (line.pricingMode == PricingMode.CASH) labels.cash else labels.transfer}")
             lines += PrintLine("${labels.unitPrice}: ${HistoryMoneyFormatter.format(line.regularUnitPriceSnapshot, code, scale, locale)}")
             if (line.cashDiscountAmount.amount.signum() != 0) {
                 lines += PrintLine("${labels.cashDiscounts}: ${HistoryMoneyFormatter.format(line.cashDiscountAmount, code, scale, locale)}")
@@ -100,7 +101,7 @@ object SalePrintContentBuilder {
         lines += PrintLine("${labels.cash}: ${HistoryMoneyFormatter.format(totals.cashTotal, code, scale, locale)}")
         lines += PrintLine("${labels.transfer}: ${HistoryMoneyFormatter.format(totals.transferTotal, code, scale, locale)}")
         lines += PrintLine("${labels.grandTotal}: ${HistoryMoneyFormatter.format(totals.grandTotal, code, scale, locale)}", PrintEmphasis.STRONG)
-        return PrintDocumentModel("Sale ${sale.businessDate}", lines)
+        return PrintDocumentModel("${labels.sale} ${sale.businessDate}", lines)
     }
 }
 
@@ -125,9 +126,9 @@ private fun header(
 
 private fun moneyLine(
     label: String,
-    amount: String,
+    money: com.venkoi.terminal.core.Money,
     code: String,
     scale: Int,
     emphasis: PrintEmphasis = PrintEmphasis.NORMAL,
     locale: Locale = Locale.getDefault()
-) = PrintLine("$label: ${HistoryMoneyFormatter.format(com.venkoi.terminal.core.Money(amount), code, scale, locale)}", emphasis)
+) = PrintLine("$label: ${HistoryMoneyFormatter.format(money, code, scale, locale)}", emphasis)

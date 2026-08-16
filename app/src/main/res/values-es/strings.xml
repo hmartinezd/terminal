@@ -130,6 +130,9 @@
     <string name="print_pricing_mode">Modalidad de precio</string>
     <string name="print_unit_price">Precio unitario regular</string>
     <string name="print_line_total">Total de línea</string>
+    <string name="print_job_daily_sales">Reporte diario de ventas</string>
+    <string name="print_job_product_report">Reporte de productos</string>
+    <string name="print_job_sale">Venta</string>
 
     <!-- Accessibility -->
     <string name="cd_remove">Eliminar</string>

@@ -2,7 +2,6 @@ package com.venkoi.terminal.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.venkoi.terminal.core.BusinessDateResolver
 import com.venkoi.terminal.core.Clock
 import com.venkoi.terminal.domain.model.DailyMoneyReport
 import com.venkoi.terminal.domain.model.ProductReport
@@ -10,6 +9,7 @@ import com.venkoi.terminal.domain.model.RestaurantConfiguration
 import com.venkoi.terminal.domain.repository.MenuRepository
 import com.venkoi.terminal.domain.repository.ReportRepository
 import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
+import com.venkoi.terminal.domain.service.ResolveCurrentReportBusinessDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +34,7 @@ class ReportsViewModel @Inject constructor(
     private val reportRepository: ReportRepository,
     private val menuRepository: MenuRepository,
     terminalConfigurationRepository: TerminalConfigurationRepository,
-    private val businessDateResolver: BusinessDateResolver,
+    private val resolveCurrentReportBusinessDate: ResolveCurrentReportBusinessDate,
     private val clock: Clock
 ) : ViewModel() {
 
@@ -55,11 +55,7 @@ class ReportsViewModel @Inject constructor(
     init {
         restaurantConfiguration.onEach { config ->
             if (config != null && _selectedDate.value == null) {
-                _selectedDate.value = businessDateResolver.resolve(
-                    instant = clock.now(),
-                    zoneId = config.timezone,
-                    cutoff = config.businessDayCutoff
-                )
+                _selectedDate.value = resolveCurrentReportBusinessDate.resolve(config)
             }
         }.launchIn(viewModelScope)
     }
@@ -100,11 +96,7 @@ class ReportsViewModel @Inject constructor(
 
     fun onToday() {
         restaurantConfiguration.value?.let { config ->
-            _selectedDate.value = businessDateResolver.resolve(
-                instant = clock.now(),
-                zoneId = config.timezone,
-                cutoff = config.businessDayCutoff
-            )
+            _selectedDate.value = resolveCurrentReportBusinessDate.resolve(config)
         }
     }
 

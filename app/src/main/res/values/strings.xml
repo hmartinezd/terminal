@@ -130,6 +130,9 @@
     <string name="print_pricing_mode">Pricing Mode</string>
     <string name="print_unit_price">Regular Unit Price</string>
     <string name="print_line_total">Line Total</string>
+    <string name="print_job_daily_sales">Daily Sales Report</string>
+    <string name="print_job_product_report">Product Report</string>
+    <string name="print_job_sale">Sale</string>
 
     <!-- Accessibility -->
     <string name="cd_remove">Remove</string>

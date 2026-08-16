@@ -76,6 +76,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                             item = item,
                             isSelected = isSelected,
                             timezone = timezone,
+                            locale = locale,
                             onClick = { viewModel.selectSale(item.sale.saleId) }
                         )
                     }
@@ -92,6 +93,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                     HistoryDetailScreen(
                         sale = sale,
                         timezone = timezone!!,
+                        locale = locale,
                         viewModel = viewModel,
                         onPrint = { lines, totals ->
                             val restaurantConfig = restaurant ?: return@HistoryDetailScreen
@@ -125,10 +127,10 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
 }
 
 @Composable
-fun SaleHistoryItemCard(item: SaleWithTotal, isSelected: Boolean, timezone: ZoneId?, onClick: () -> Unit) {
+fun SaleHistoryItemCard(item: SaleWithTotal, isSelected: Boolean, timezone: ZoneId?, locale: java.util.Locale, onClick: () -> Unit) {
     val sale = item.sale
     val formatter = remember(timezone) {
-        timezone?.let { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(it) }
+        timezone?.let { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(locale).withZone(it) }
     }
     
     TerminalCard(
@@ -160,7 +162,8 @@ fun SaleHistoryItemCard(item: SaleWithTotal, isSelected: Boolean, timezone: Zone
                     text = com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(
                         item.grandTotal,
                         sale.currencyCodeSnapshot,
-                        sale.currencyScaleSnapshot
+                        sale.currencyScaleSnapshot,
+                        locale
                     ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,

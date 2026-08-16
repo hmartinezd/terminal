@@ -36,5 +36,8 @@ data class PrintLabels(
     val lineTotal: String,
     val grandTotal: String,
     val completed: String,
-    val voided: String
+    val voided: String,
+    val dailySalesReport: String,
+    val productReport: String,
+    val sale: String
 )

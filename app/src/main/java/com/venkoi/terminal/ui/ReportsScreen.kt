@@ -78,6 +78,10 @@ fun ReportsScreen(viewModel: ReportsViewModel) {
             onPreviousDay = viewModel::onPreviousDay,
             onNextDay = viewModel::onNextDay,
             onToday = viewModel::onToday,
+            printEnabled = when (selectedTab) {
+                ReportTab.MONEY -> dailyMoneyReport?.currencySections?.isNotEmpty() == true
+                ReportTab.PRODUCTS -> productReport?.currencySections?.any { it.rows.isNotEmpty() } == true
+            },
             onPrint = {
                 val restaurantConfig = restaurant ?: return@ReportsHeader
                 val terminalName = terminal?.terminalName?.takeIf(String::isNotBlank)
@@ -117,10 +121,10 @@ fun ReportsScreen(viewModel: ReportsViewModel) {
 
         when (selectedTab) {
             ReportTab.MONEY -> {
-                MoneyReportContent(dailyMoneyReport)
+                MoneyReportContent(dailyMoneyReport, locale)
             }
             ReportTab.PRODUCTS -> {
-                ProductReportContent(productReport)
+                ProductReportContent(productReport, locale)
             }
         }
     }
@@ -133,7 +137,8 @@ fun ReportsHeader(
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
     onToday: () -> Unit,
-    onPrint: () -> Unit
+    onPrint: () -> Unit,
+    printEnabled: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -168,7 +173,7 @@ fun ReportsHeader(
                 Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.reports_next_day))
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Button(onClick = onPrint) {
+            Button(onClick = onPrint, enabled = printEnabled) {
                 Icon(Icons.Default.Print, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.reports_print_pdf))
@@ -178,20 +183,20 @@ fun ReportsHeader(
 }
 
 @Composable
-fun MoneyReportContent(report: DailyMoneyReport?) {
+fun MoneyReportContent(report: DailyMoneyReport?, locale: Locale) {
     if (report == null || report.currencySections.isEmpty()) {
         EmptyReportState(stringResource(R.string.reports_no_sales))
     } else {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             items(report.currencySections) { section ->
-                MoneyCurrencySectionView(section)
+                MoneyCurrencySectionView(section, locale)
             }
         }
     }
 }
 
 @Composable
-fun MoneyCurrencySectionView(section: DailyMoneyCurrencySection) {
+fun MoneyCurrencySectionView(section: DailyMoneyCurrencySection, locale: Locale) {
     Column {
         if (section.currencyCode.isNotEmpty()) {
             Text(
@@ -207,7 +212,7 @@ fun MoneyCurrencySectionView(section: DailyMoneyCurrencySection) {
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(stringResource(R.string.reports_net_sales), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = HistoryMoneyFormatter.format(section.grandTotal, section.currencyCode, section.currencyScale),
+                        text = HistoryMoneyFormatter.format(section.grandTotal, section.currencyCode, section.currencyScale, locale),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -221,12 +226,12 @@ fun MoneyCurrencySectionView(section: DailyMoneyCurrencySection) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
             MetricCard(
                 label = stringResource(R.string.reports_cash),
-                value = HistoryMoneyFormatter.format(section.cashTotal, section.currencyCode, section.currencyScale),
+                value = HistoryMoneyFormatter.format(section.cashTotal, section.currencyCode, section.currencyScale, locale),
                 modifier = Modifier.weight(1f)
             )
             MetricCard(
                 label = stringResource(R.string.reports_transfer),
-                value = HistoryMoneyFormatter.format(section.transferTotal, section.currencyCode, section.currencyScale),
+                value = HistoryMoneyFormatter.format(section.transferTotal, section.currencyCode, section.currencyScale, locale),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -239,12 +244,12 @@ fun MoneyCurrencySectionView(section: DailyMoneyCurrencySection) {
                 AuditRow(stringResource(R.string.reports_voided_sales), section.voidedSaleCount.toString())
                 AuditRow(
                     stringResource(R.string.reports_cash_discounts),
-                    HistoryMoneyFormatter.format(section.cashDiscounts, section.currencyCode, section.currencyScale)
+                    HistoryMoneyFormatter.format(section.cashDiscounts, section.currencyCode, section.currencyScale, locale)
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 AuditRow(
                     stringResource(R.string.reports_voided_amount),
-                    HistoryMoneyFormatter.format(section.voidedAmount, section.currencyCode, section.currencyScale),
+                    HistoryMoneyFormatter.format(section.voidedAmount, section.currencyCode, section.currencyScale, locale),
                     isWarning = section.voidedAmount.amount > java.math.BigDecimal.ZERO
                 )
             }
@@ -279,20 +284,20 @@ fun AuditRow(label: String, value: String, isWarning: Boolean = false) {
 }
 
 @Composable
-fun ProductReportContent(report: ProductReport?) {
+fun ProductReportContent(report: ProductReport?, locale: Locale) {
     if (report == null || report.currencySections.isEmpty()) {
         EmptyReportState(stringResource(R.string.reports_no_products))
     } else {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(24.dp)) {
             items(report.currencySections) { section ->
-                ProductCurrencySectionView(section)
+                ProductCurrencySectionView(section, locale)
             }
         }
     }
 }
 
 @Composable
-fun ProductCurrencySectionView(section: ProductReportCurrencySection) {
+fun ProductCurrencySectionView(section: ProductReportCurrencySection, locale: Locale) {
     Column {
         if (section.currencyCode.isNotEmpty()) {
             Text(
@@ -315,7 +320,7 @@ fun ProductCurrencySectionView(section: ProductReportCurrencySection) {
                 }
                 HorizontalDivider()
                 section.rows.forEach { row ->
-                    ProductRowView(row, section.currencyCode, section.currencyScale)
+                    ProductRowView(row, section.currencyCode, section.currencyScale, locale)
                 }
             }
         }
@@ -323,7 +328,7 @@ fun ProductCurrencySectionView(section: ProductReportCurrencySection) {
 }
 
 @Composable
-fun ProductRowView(row: ProductReportRow, currencyCode: String, currencyScale: Int) {
+fun ProductRowView(row: ProductReportRow, currencyCode: String, currencyScale: Int, locale: Locale) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -337,7 +342,7 @@ fun ProductRowView(row: ProductReportRow, currencyCode: String, currencyScale: I
             style = MaterialTheme.typography.bodyLarge
         )
         Text(
-            HistoryMoneyFormatter.format(row.amount, currencyCode, currencyScale),
+            HistoryMoneyFormatter.format(row.amount, currencyCode, currencyScale, locale),
             modifier = Modifier.weight(1.5f),
             textAlign = TextAlign.End,
             style = MaterialTheme.typography.bodyLarge,
