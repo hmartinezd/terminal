@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+*.private.pem
+license-authority-private.pem
+secrets/
+license-audit.jsonl

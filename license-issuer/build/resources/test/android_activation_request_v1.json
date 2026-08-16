@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "productCode": "SALES_TERMINAL",
+  "restaurantId": "pilot-restaurant",
+  "terminalId": "front-counter-1",
+  "deviceKeyId": "android-device-fixture-key-id",
+  "generatedAtDeviceUtc": "2026-08-16T12:00:00Z",
+  "requestId": "android-request-fixture-1"
+}

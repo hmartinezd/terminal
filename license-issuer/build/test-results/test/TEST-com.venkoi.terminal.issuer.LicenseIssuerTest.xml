@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.venkoi.terminal.issuer.LicenseIssuerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-16T18:09:32.555Z" hostname="Hectors-MacBook-Air.local" time="0.186">
+  <properties/>
+  <testcase name="Android activation fixture parses without identity drift" classname="com.venkoi.terminal.issuer.LicenseIssuerTest" time="0.026"/>
+  <testcase name="renewal increments and preserves binding" classname="com.venkoi.terminal.issuer.LicenseIssuerTest" time="0.12"/>
+  <testcase name="request and time validation reject malformed inputs" classname="com.venkoi.terminal.issuer.LicenseIssuerTest" time="0.003"/>
+  <testcase name="tamper wrong key and device copy fail" classname="com.venkoi.terminal.issuer.LicenseIssuerTest" time="0.015"/>
+  <testcase name="issuer output verifies with Android canonical verifier semantics" classname="com.venkoi.terminal.issuer.LicenseIssuerTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
