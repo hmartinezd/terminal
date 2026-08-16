@@ -12,9 +12,10 @@ import androidx.room.TypeConverters
         CategoryEntity::class,
         MenuItemEntity::class,
         SaleEntity::class,
-        SaleLineEntity::class
+        SaleLineEntity::class,
+        SaleExportStateEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(TerminalTypeConverters::class)
@@ -23,4 +24,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun menuDao(): MenuDao
     abstract fun saleDao(): SaleDao
     abstract fun reportDao(): ReportDao
+    abstract fun exportDao(): ExportDao
 }

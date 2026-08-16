@@ -6,6 +6,7 @@ import com.venkoi.terminal.data.local.database.AppDatabase
 import com.venkoi.terminal.data.local.database.MenuDao
 import com.venkoi.terminal.data.local.database.ReportDao
 import com.venkoi.terminal.data.local.database.TerminalDao
+import com.venkoi.terminal.data.local.database.ExportDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,4 +51,7 @@ object DataModule {
     fun provideReportDao(database: AppDatabase): ReportDao {
         return database.reportDao()
     }
+
+    @Provides
+    fun provideExportDao(database: AppDatabase): ExportDao = database.exportDao()
 }

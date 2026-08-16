@@ -8,6 +8,8 @@ import com.venkoi.terminal.domain.repository.MenuRepository
 import com.venkoi.terminal.domain.repository.ReportRepository
 import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
 import com.venkoi.terminal.domain.repository.SaleRepository
+import com.venkoi.terminal.domain.repository.SalesExportRepository
+import com.venkoi.terminal.data.local.repository.RoomSalesExportRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -41,4 +43,8 @@ abstract class RepositoryModule {
     abstract fun bindReportRepository(
         impl: RoomReportRepository
     ): ReportRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSalesExportRepository(impl: RoomSalesExportRepository): SalesExportRepository
 }

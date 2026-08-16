@@ -39,7 +39,9 @@ data class SaleDto(
     val completedAtUtc: String?,
     val voidedAtUtc: String?,
     val businessDate: String, // ISO date "YYYY-MM-DD"
-    val tableNumber: String?,
+    val tableLabel: String?,
+    val currencyCodeSnapshot: String,
+    val currencyScaleSnapshot: Int,
     val lines: List<SaleLineDto>
 )
 

@@ -79,6 +79,18 @@
     <string name="settings_import_new_menu">Import New Menu</string>
     <string name="settings_import_success">Menu imported successfully.</string>
     <string name="settings_import_error_title">Import Error</string>
+    <string name="settings_section_sales_export">SALES EXPORT</string>
+    <string name="settings_pending_changes">Pending Changes</string>
+    <string name="settings_last_successful_export">Last Successful Export</string>
+    <string name="settings_never">Never</string>
+    <string name="settings_export_pending">Export Pending Changes</string>
+    <string name="settings_export_day">Export Sales for Day</string>
+    <string name="settings_business_date">Business Date</string>
+    <string name="settings_choose_business_date">Choose business date</string>
+    <string name="settings_export_nothing_pending">All sales changes have been exported.</string>
+    <string name="settings_export_failed">Sales export failed. Please try again.</string>
+    <string name="settings_export_bookkeeping_failed">The file was created, but export tracking could not be updated. It is safe to export again.</string>
+    <plurals name="settings_export_success"><item quantity="one">%d sale exported.</item><item quantity="other">%d sales exported.</item></plurals>
 
     <string name="settings_section_language">LANGUAGE</string>
     <string name="settings_language">Language</string>

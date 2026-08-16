@@ -14,7 +14,9 @@
       "completedAtUtc": "2026-08-16T00:15:00Z",
       "voidedAtUtc": null,
       "businessDate": "2026-08-15",
-      "tableNumber": "Mesa 4",
+      "tableLabel": "Mesa 4",
+      "currencyCodeSnapshot": "USD",
+      "currencyScaleSnapshot": 2,
       "lines": [
         {
           "lineId": "line-1",

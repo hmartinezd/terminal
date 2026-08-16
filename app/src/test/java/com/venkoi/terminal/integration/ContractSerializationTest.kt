@@ -48,7 +48,9 @@ class ContractSerializationTest {
                     completedAtUtc = "2026-08-15T10:30:00Z",
                     voidedAtUtc = null,
                     businessDate = "2026-08-15",
-                    tableNumber = "5",
+                    tableLabel = "Barra",
+                    currencyCodeSnapshot = "USD",
+                    currencyScaleSnapshot = 2,
                     lines = listOf(
                         SaleLineDto(
                             lineId = "l1",
@@ -128,6 +130,9 @@ class ContractSerializationTest {
         assertEquals("term-789", decoded.terminalId)
         assertEquals("sale-001", decoded.sales[0].saleId)
         assertEquals(1, decoded.sales[0].revision)
+        assertEquals("Mesa 4", decoded.sales[0].tableLabel)
+        assertEquals("USD", decoded.sales[0].currencyCodeSnapshot)
+        assertEquals(2, decoded.sales[0].currencyScaleSnapshot)
         assertEquals(SaleStatus.COMPLETED, decoded.sales[0].status)
         assertEquals("2026-08-15", decoded.sales[0].businessDate)
         assertEquals(PricingMode.CASH, decoded.sales[0].lines[0].pricingMode)

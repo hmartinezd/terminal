@@ -11,6 +11,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import javax.inject.Singleton
+import android.content.ContentResolver
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -30,7 +33,7 @@ abstract class CoreModule {
         fun provideJson(): Json {
             return Json {
                 ignoreUnknownKeys = true
-                prettyPrint = false
+                prettyPrint = true
                 encodeDefaults = true
                 coerceInputValues = false
             }
@@ -41,5 +44,8 @@ abstract class CoreModule {
         fun provideMenuPackageParser(json: Json): com.venkoi.terminal.integration.menu.MenuPackageParser {
             return com.venkoi.terminal.integration.menu.MenuPackageParser(json)
         }
+
+        @Provides
+        fun provideContentResolver(@ApplicationContext context: Context): ContentResolver = context.contentResolver
     }
 }

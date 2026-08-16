@@ -11,11 +11,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.venkoi.terminal.R
 import com.venkoi.terminal.ui.components.TerminalCard
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun SettingsScreen(
@@ -25,15 +30,45 @@ fun SettingsScreen(
     val restaurantConfig by viewModel.restaurantConfig.collectAsState()
     val publishedMenu by viewModel.publishedMenu.collectAsState()
     val currentLanguageCode by viewModel.currentLanguageCode.collectAsState()
+    val resources = LocalContext.current.resources
+    val exportSummary by viewModel.exportSummary.collectAsState()
+    var showDatePicker by remember { mutableStateOf(false) }
     
     val na = stringResource(R.string.common_not_available)
     val snackbarHostState = remember { SnackbarHostState() }
     val importSuccessMsg = stringResource(R.string.settings_import_success)
+    val nothingPendingMsg = stringResource(R.string.settings_export_nothing_pending)
+    val noSalesMsg = stringResource(R.string.reports_no_sales)
+    val exportFailedMsg = stringResource(R.string.settings_export_failed)
+    val bookkeepingFailedMsg = stringResource(R.string.settings_export_bookkeeping_failed)
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { viewModel.onImportMenu(it) }
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> viewModel.onExportDocumentResult(uri) }
+
+    LaunchedEffect(Unit) { viewModel.ensureDefaultBusinessDate() }
+    LaunchedEffect(viewModel.pendingDocument) {
+        viewModel.pendingDocument?.let { exportLauncher.launch(it.suggestedFileName) }
+    }
+    LaunchedEffect(viewModel.exportMessage) {
+        val message = when (val result = viewModel.exportMessage) {
+            ExportMessage.NothingPending -> nothingPendingMsg
+            ExportMessage.NoSalesForDay -> noSalesMsg
+            ExportMessage.Failed -> exportFailedMsg
+            ExportMessage.BookkeepingFailed -> bookkeepingFailedMsg
+            is ExportMessage.Success -> resources.getQuantityString(R.plurals.settings_export_success, result.count, result.count)
+            null -> null
+        }
+        if (message != null) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeExportMessage()
+        }
     }
 
     LaunchedEffect(viewModel.showImportSuccess) {
@@ -106,6 +141,32 @@ fun SettingsScreen(
                 }
             }
 
+            SettingsSection(title = stringResource(R.string.settings_section_sales_export)) {
+                InfoRow(stringResource(R.string.settings_pending_changes), exportSummary.pendingCount.toString())
+                InfoRow(
+                    stringResource(R.string.settings_last_successful_export),
+                    exportSummary.lastSuccessfulExportAtUtc?.let {
+                        val zone = restaurantConfig?.timezone ?: ZoneOffset.UTC
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(zone).format(it)
+                    } ?: stringResource(R.string.settings_never)
+                )
+                Button(
+                    onClick = viewModel::preparePendingExport,
+                    enabled = !viewModel.isExporting,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.settings_export_pending)) }
+                HorizontalDivider()
+                Text(stringResource(R.string.settings_business_date), style = MaterialTheme.typography.labelMedium)
+                OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(viewModel.selectedBusinessDate?.toString() ?: stringResource(R.string.settings_choose_business_date))
+                }
+                Button(
+                    onClick = viewModel::prepareDayExport,
+                    enabled = !viewModel.isExporting,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.settings_export_day)) }
+            }
+
             viewModel.importError?.let {
                 AlertDialog(
                     onDismissRequest = { viewModel.clearImportError() },
@@ -119,6 +180,24 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showDatePicker) {
+        val initialMillis = (viewModel.selectedBusinessDate ?: LocalDate.ofEpochDay(0))
+            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        viewModel.setBusinessDate(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                    showDatePicker = false
+                }) { Text(stringResource(R.string.dialog_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.dialog_cancel)) } }
+        ) { DatePicker(state = pickerState) }
     }
 }
 
