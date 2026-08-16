@@ -6,51 +6,43 @@ import com.venkoi.terminal.data.local.database.MenuDao
 import com.venkoi.terminal.data.local.database.MenuItemEntity
 import com.venkoi.terminal.data.local.database.PublishedMenuEntity
 import com.venkoi.terminal.data.local.database.RestaurantConfigEntity
-import com.venkoi.terminal.data.local.database.TerminalDao
-import com.venkoi.terminal.data.local.database.TerminalEntity
 import com.venkoi.terminal.domain.model.MenuCategory
 import com.venkoi.terminal.domain.model.MenuItem
 import com.venkoi.terminal.domain.model.PublishedMenu
 import com.venkoi.terminal.domain.model.RestaurantConfiguration
-import com.venkoi.terminal.domain.model.TerminalConfiguration
-import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
+import com.venkoi.terminal.domain.repository.MenuRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class RoomTerminalConfigurationRepository @Inject constructor(
-    private val terminalDao: TerminalDao,
+class RoomMenuRepository @Inject constructor(
     private val menuDao: MenuDao,
     private val clock: Clock
-) : TerminalConfigurationRepository {
+) : MenuRepository {
 
-    override suspend fun getConfiguration(): TerminalConfiguration? {
-        return terminalDao.getTerminalConfiguration()?.toDomain()
+    override fun observeRestaurantConfiguration(): Flow<RestaurantConfiguration?> {
+        return menuDao.observeRestaurantConfig().map { it?.toDomain() }
     }
 
-    override fun observeConfiguration(): Flow<TerminalConfiguration?> {
-        return terminalDao.observeTerminalConfiguration().map { it?.toDomain() }
+    override fun observePublishedMenu(): Flow<PublishedMenu?> {
+        return menuDao.observePublishedMenu().map { it?.toDomain() }
     }
 
-    override suspend fun saveConfiguration(configuration: TerminalConfiguration) {
-        terminalDao.saveTerminalConfiguration(configuration.toEntity())
+    override fun observeCategories(): Flow<List<MenuCategory>> {
+        return menuDao.observeCategories().map { list -> list.map { it.toDomain() } }
     }
 
-    override suspend fun clearConfiguration() {
-        terminalDao.clear()
+    override fun observeMenuItems(): Flow<List<MenuItem>> {
+        return menuDao.observeMenuItems().map { list -> list.map { it.toDomain() } }
     }
 
-    override suspend fun provisionTerminal(
-        configuration: TerminalConfiguration,
+    override suspend fun installMenu(
         restaurant: RestaurantConfiguration,
         menu: PublishedMenu,
         categories: List<MenuCategory>,
         items: List<MenuItem>
     ) {
-        menuDao.provisionTerminal(
-            terminal = configuration.toEntity(),
+        menuDao.installMenu(
             restaurant = restaurant.toEntity(),
             menu = menu.toEntity(clock.now()),
             categories = categories.map { it.toEntity() },
@@ -58,23 +50,47 @@ class RoomTerminalConfigurationRepository @Inject constructor(
         )
     }
 
-    private fun TerminalEntity.toDomain(): TerminalConfiguration {
-        return TerminalConfiguration(
-            terminalId = terminalId,
-            restaurantId = restaurantId,
-            terminalName = terminalName,
-            createdAt = createdAt
-        )
+    override suspend fun getPublishedMenu(): PublishedMenu? {
+        return menuDao.getPublishedMenu()?.toDomain()
     }
 
-    private fun TerminalConfiguration.toEntity(): TerminalEntity {
-        return TerminalEntity(
-            terminalId = terminalId,
-            restaurantId = restaurantId,
-            terminalName = terminalName,
-            createdAt = createdAt
-        )
+    override suspend fun getRestaurantConfiguration(): RestaurantConfiguration? {
+        return menuDao.getRestaurantConfig()?.toDomain()
     }
+
+    private fun RestaurantConfigEntity.toDomain() = RestaurantConfiguration(
+        restaurantId = restaurantId,
+        restaurantName = restaurantName,
+        timezone = timezone,
+        currency = currency,
+        businessDayCutoff = businessDayCutoff
+    )
+
+    private fun PublishedMenuEntity.toDomain() = PublishedMenu(
+        menuId = menuId,
+        publicationRevision = publicationRevision,
+        publishedAtUtc = publishedAtUtc,
+        defaultCashDiscountPercent = defaultCashDiscountPercent,
+        importTimestamp = importTimestamp
+    )
+
+    private fun CategoryEntity.toDomain() = MenuCategory(
+        id = id,
+        name = name,
+        displayOrder = displayOrder
+    )
+
+    private fun MenuItemEntity.toDomain() = MenuItem(
+        id = id,
+        categoryId = categoryId,
+        name = name,
+        active = active,
+        displayOrder = displayOrder,
+        regularPrice = regularPrice,
+        cashDiscountMode = cashDiscountMode,
+        commercialRevision = commercialRevision,
+        consumptionRevision = consumptionRevision
+    )
 
     private fun RestaurantConfiguration.toEntity() = RestaurantConfigEntity(
         restaurantId = restaurantId,

@@ -1,6 +1,8 @@
 package com.venkoi.terminal.data.di
 
+import com.venkoi.terminal.data.local.repository.RoomMenuRepository
 import com.venkoi.terminal.data.local.repository.RoomTerminalConfigurationRepository
+import com.venkoi.terminal.domain.repository.MenuRepository
 import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
 import dagger.Binds
 import dagger.Module
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindTerminalConfigurationRepository(
         impl: RoomTerminalConfigurationRepository
     ): TerminalConfigurationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMenuRepository(
+        impl: RoomMenuRepository
+    ): MenuRepository
 }

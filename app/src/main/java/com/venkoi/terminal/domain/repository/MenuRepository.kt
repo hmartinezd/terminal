@@ -4,20 +4,21 @@ import com.venkoi.terminal.domain.model.MenuCategory
 import com.venkoi.terminal.domain.model.MenuItem
 import com.venkoi.terminal.domain.model.PublishedMenu
 import com.venkoi.terminal.domain.model.RestaurantConfiguration
-import com.venkoi.terminal.domain.model.TerminalConfiguration
 import kotlinx.coroutines.flow.Flow
 
-interface TerminalConfigurationRepository {
-    suspend fun getConfiguration(): TerminalConfiguration?
-    fun observeConfiguration(): Flow<TerminalConfiguration?>
-    suspend fun saveConfiguration(configuration: TerminalConfiguration)
-    suspend fun clearConfiguration()
+interface MenuRepository {
+    fun observeRestaurantConfiguration(): Flow<RestaurantConfiguration?>
+    fun observePublishedMenu(): Flow<PublishedMenu?>
+    fun observeCategories(): Flow<List<MenuCategory>>
+    fun observeMenuItems(): Flow<List<MenuItem>>
 
-    suspend fun provisionTerminal(
-        configuration: TerminalConfiguration,
+    suspend fun installMenu(
         restaurant: RestaurantConfiguration,
         menu: PublishedMenu,
         categories: List<MenuCategory>,
         items: List<MenuItem>
     )
+
+    suspend fun getPublishedMenu(): PublishedMenu?
+    suspend fun getRestaurantConfiguration(): RestaurantConfiguration?
 }

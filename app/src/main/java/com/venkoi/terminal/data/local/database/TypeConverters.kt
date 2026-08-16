@@ -7,6 +7,9 @@ import com.venkoi.terminal.core.SaleId
 import com.venkoi.terminal.core.TerminalId
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
+import java.util.Currency
 
 class TerminalTypeConverters {
     @TypeConverter
@@ -44,4 +47,22 @@ class TerminalTypeConverters {
 
     @TypeConverter
     fun toSaleId(value: String?): SaleId? = value?.let { SaleId(it) }
+
+    @TypeConverter
+    fun fromZoneId(value: ZoneId?): String? = value?.id
+
+    @TypeConverter
+    fun toZoneId(value: String?): ZoneId? = value?.let { ZoneId.of(it) }
+
+    @TypeConverter
+    fun fromCurrency(value: Currency?): String? = value?.currencyCode
+
+    @TypeConverter
+    fun toCurrency(value: String?): Currency? = value?.let { Currency.getInstance(it) }
+
+    @TypeConverter
+    fun fromLocalTime(value: LocalTime?): String? = value?.toString()
+
+    @TypeConverter
+    fun toLocalTime(value: String?): LocalTime? = value?.let { LocalTime.parse(it) }
 }

@@ -32,8 +32,14 @@ abstract class CoreModule {
                 ignoreUnknownKeys = true
                 prettyPrint = false
                 encodeDefaults = true
-                coerceInputValues = true
+                coerceInputValues = false
             }
+        }
+
+        @Provides
+        @Singleton
+        fun provideMenuPackageParser(json: Json): com.venkoi.terminal.integration.menu.MenuPackageParser {
+            return com.venkoi.terminal.integration.menu.MenuPackageParser(json)
         }
     }
 }

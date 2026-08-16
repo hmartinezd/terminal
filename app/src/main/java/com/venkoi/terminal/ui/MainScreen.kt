@@ -1,5 +1,6 @@
 package com.venkoi.terminal.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.venkoi.terminal.ui.MenuPreviewScreen
+import com.venkoi.terminal.ui.SettingsScreen
 
 sealed class Screen(val title: String, val icon: ImageVector) {
     object Orders : Screen("Orders", Icons.Default.ListAlt)
@@ -61,28 +64,28 @@ fun MainScreen() {
         // Main Content Area
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize(),
+            contentAlignment = Alignment.TopStart
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = currentScreen.title,
-                    style = MaterialTheme.typography.headlineLarge
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Placeholder for ${currentScreen.title} functionality",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                
-                if (currentScreen == Screen.Orders) {
-                    Spacer(modifier = Modifier.height(32.dp))
-                    Text(
-                        text = "Tablet Layout: [Orders List] | [Menu Grid] | [Current Order]",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
+            when (currentScreen) {
+                Screen.Orders -> MenuPreviewScreen()
+                Screen.Settings -> SettingsScreen()
+                else -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = currentScreen.title,
+                            style = MaterialTheme.typography.headlineLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Placeholder for ${currentScreen.title} functionality",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
             }
         }

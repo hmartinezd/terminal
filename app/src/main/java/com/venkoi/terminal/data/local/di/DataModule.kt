@@ -3,6 +3,7 @@ package com.venkoi.terminal.data.local.di
 import android.content.Context
 import androidx.room.Room
 import com.venkoi.terminal.data.local.database.AppDatabase
+import com.venkoi.terminal.data.local.database.MenuDao
 import com.venkoi.terminal.data.local.database.TerminalDao
 import dagger.Module
 import dagger.Provides
@@ -30,5 +31,10 @@ object DataModule {
     @Provides
     fun provideTerminalDao(database: AppDatabase): TerminalDao {
         return database.terminalDao()
+    }
+
+    @Provides
+    fun provideMenuDao(database: AppDatabase): MenuDao {
+        return database.menuDao()
     }
 }
