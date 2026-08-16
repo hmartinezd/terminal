@@ -27,6 +27,12 @@ interface MenuDao {
     @Query("DELETE FROM menu_items")
     suspend fun clearMenuItems()
 
+    @Query("DELETE FROM restaurant_configuration")
+    suspend fun clearRestaurantConfig()
+
+    @Query("DELETE FROM published_menu")
+    suspend fun clearPublishedMenu()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveTerminalConfiguration(terminal: TerminalEntity)
 

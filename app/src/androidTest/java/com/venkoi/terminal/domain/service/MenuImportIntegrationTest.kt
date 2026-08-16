@@ -31,6 +31,12 @@ class MenuImportIntegrationTest {
     @Inject
     lateinit var menuRepository: MenuRepository
 
+    @Inject
+    lateinit var menuDao: com.venkoi.terminal.data.local.database.MenuDao
+
+    @Inject
+    lateinit var terminalDao: com.venkoi.terminal.data.local.database.TerminalDao
+
     private val validJson = """
     {
       "schemaVersion": 1,
@@ -52,6 +58,13 @@ class MenuImportIntegrationTest {
     @Before
     fun init() {
         hiltRule.inject()
+        runBlocking {
+            terminalDao.clear()
+            menuDao.clearRestaurantConfig()
+            menuDao.clearPublishedMenu()
+            menuDao.clearCategories()
+            menuDao.clearMenuItems()
+        }
     }
 
     @Test
@@ -140,4 +153,56 @@ class MenuImportIntegrationTest {
         assertTrue(status is MenuImportStatus.Failure)
         assertTrue((status as MenuImportStatus.Failure).message.contains("Conflict"))
     }
+
+    @Test
+    fun testProvisionOnlyOnce() = runBlocking {
+        val firstResult = importService.parseAndValidate(validJson) as MenuPackageImportResult.Success
+        importService.provisionTerminal("T1", firstResult)
+
+        val status = importService.provisionTerminal("T2", firstResult)
+        assertTrue(status is MenuImportStatus.Failure)
+        assertTrue((status as MenuImportStatus.Failure).message.contains("already provisioned"))
+    }
+
+    @Test
+    fun testSameRevisionEquivalentDecimalFormattingIsNoOp() = runBlocking {
+        val firstResult = importService.parseAndValidate(validJson) as MenuPackageImportResult.Success
+        importService.provisionTerminal("T1", firstResult)
+
+        // Change "100" to "100.00"
+        val equivalentJson = validJson.replace("\"regularPrice\": \"100\"", "\"regularPrice\": \"100.00\"")
+        val secondResult = importService.parseAndValidate(equivalentJson) as MenuPackageImportResult.Success
+        val status = importService.importMenu(secondResult)
+
+        assertTrue(status is MenuImportStatus.Success)
+    }
+
+    @Test
+    fun testSameRevisionChangedRestaurantConfigIsConflict() = runBlocking {
+        val firstResult = importService.parseAndValidate(validJson) as MenuPackageImportResult.Success
+        importService.provisionTerminal("T1", firstResult)
+
+        // Change restaurant name but keep same revision
+        val changedJson = validJson.replace("\"restaurantName\": \"Bistro\"", "\"restaurantName\": \"Bistro Modified\"")
+        val secondResult = importService.parseAndValidate(changedJson) as MenuPackageImportResult.Success
+        val status = importService.importMenu(secondResult)
+
+        assertTrue(status is MenuImportStatus.Failure)
+        assertTrue((status as MenuImportStatus.Failure).message.contains("Conflict"))
+    }
+
+    @Test
+    fun testTerminalIdRemainsStable() = runBlocking {
+        val firstResult = importService.parseAndValidate(validJson) as MenuPackageImportResult.Success
+        importService.provisionTerminal("T1", firstResult)
+        val initialId = terminalRepository.getConfiguration()?.terminalId
+
+        val newJson = validJson.replace("\"publicationRevision\": 10", "\"publicationRevision\": 11")
+        val secondResult = importService.parseAndValidate(newJson) as MenuPackageImportResult.Success
+        importService.importMenu(secondResult)
+
+        val afterId = terminalRepository.getConfiguration()?.terminalId
+        assertEquals(initialId, afterId)
+    }
 }
+

@@ -5,6 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
+import com.venkoi.terminal.core.DocumentReader
+import com.venkoi.terminal.core.ReadResult
 import com.venkoi.terminal.domain.repository.MenuRepository
 import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
 import com.venkoi.terminal.domain.service.MenuImportService
@@ -20,7 +23,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     terminalRepository: TerminalConfigurationRepository,
     menuRepository: MenuRepository,
-    private val importService: MenuImportService
+    private val importService: MenuImportService,
+    private val documentReader: DocumentReader
 ) : ViewModel() {
 
     val terminalConfig = terminalRepository.observeConfiguration()
@@ -38,19 +42,32 @@ class SettingsViewModel @Inject constructor(
     var isImporting by mutableStateOf(false)
         private set
 
-    fun onImportMenu(jsonContent: String) {
+    var showImportSuccess by mutableStateOf(false)
+        private set
+
+    fun onImportMenu(uri: Uri) {
         viewModelScope.launch {
             isImporting = true
             importError = null
+            showImportSuccess = false
             
-            val parseResult = importService.parseAndValidate(jsonContent)
-            if (parseResult is MenuPackageImportResult.Success) {
-                val status = importService.importMenu(parseResult)
-                if (status is MenuImportStatus.Failure) {
-                    importError = status.message
+            when (val readResult = documentReader.readUri(uri)) {
+                is ReadResult.Success -> {
+                    val parseResult = importService.parseAndValidate(readResult.content)
+                    if (parseResult is MenuPackageImportResult.Success) {
+                        val status = importService.importMenu(parseResult)
+                        if (status is MenuImportStatus.Success) {
+                            showImportSuccess = true
+                        } else if (status is MenuImportStatus.Failure) {
+                            importError = status.message
+                        }
+                    } else if (parseResult is MenuPackageImportResult.Failure) {
+                        importError = with(importService) { parseResult.toErrorMessage() }
+                    }
                 }
-            } else if (parseResult is MenuPackageImportResult.Failure) {
-                importError = with(importService) { parseResult.toErrorMessage() }
+                is ReadResult.Failure -> {
+                    importError = readResult.message
+                }
             }
             
             isImporting = false
@@ -59,5 +76,9 @@ class SettingsViewModel @Inject constructor(
 
     fun clearImportError() {
         importError = null
+    }
+
+    fun dismissSuccess() {
+        showImportSuccess = false
     }
 }

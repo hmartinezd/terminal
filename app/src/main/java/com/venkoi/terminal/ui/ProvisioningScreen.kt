@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -16,16 +15,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 fun ProvisioningScreen(
     viewModel: ProvisioningViewModel = hiltViewModel<ProvisioningViewModel>()
 ) {
-    val context = LocalContext.current
+    // removed context
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            val content = context.contentResolver.openInputStream(it)?.use { stream ->
-                stream.bufferedReader().readText()
-            }
-            content?.let { viewModel.onFileSelected(it) }
-        }
+        uri?.let { viewModel.onFileSelected(it) }
     }
 
     Box(

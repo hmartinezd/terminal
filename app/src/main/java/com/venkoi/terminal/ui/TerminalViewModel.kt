@@ -15,6 +15,7 @@ sealed class AppState {
     object Loading : AppState()
     object NeedsProvisioning : AppState()
     object Ready : AppState()
+    data class SetupProblem(val message: String) : AppState()
 }
 
 @HiltViewModel
@@ -25,12 +26,19 @@ class TerminalViewModel @Inject constructor(
 
     val appState: StateFlow<AppState> = combine(
         terminalRepository.observeConfiguration(),
-        menuRepository.observePublishedMenu()
-    ) { config, menu ->
-        if (config == null || menu == null) {
-            AppState.NeedsProvisioning
-        } else {
-            AppState.Ready
+        menuRepository.observePublishedMenu(),
+        menuRepository.observeRestaurantConfiguration()
+    ) { config, menu, restaurant ->
+        when {
+            config == null || menu == null || restaurant == null -> {
+                AppState.NeedsProvisioning
+            }
+            config.restaurantId.value != restaurant.restaurantId -> {
+                AppState.SetupProblem("Terminal restaurant ID mismatch. Expected ${config.restaurantId.value}, found ${restaurant.restaurantId}.")
+            }
+            else -> {
+                AppState.Ready
+            }
         }
     }.stateIn(
         scope = viewModelScope,

@@ -26,23 +26,52 @@ class MenuPackageValidationTest {
         assertEquals("rest-123", success.restaurant.restaurantId)
         assertEquals("America/Havana", success.restaurant.timezone.id)
         assertEquals("CUP", success.restaurant.currency.currencyCode)
-        assertEquals(BigDecimal("10.00"), success.menu.defaultCashDiscountPercent)
+        assertEquals(0, BigDecimal("10.00").compareTo(success.menu.defaultCashDiscountPercent))
         assertEquals(1, success.categories.size)
         assertEquals(1, success.items.size)
     }
 
     @Test
-    fun `unsupported schema version fails`() {
-        val raw = readFixture("menu_package_v1_unsupported_version.json")
-        val result = parser.parse(raw)
-        
-        assertTrue(result is MenuPackageImportResult.Failure.UnsupportedSchemaVersion)
+    fun `empty input fails`() {
+        val result = parser.parse("")
+        assertTrue(result is MenuPackageImportResult.Failure.UnreadableInput)
     }
 
     @Test
     fun `malformed json fails`() {
         val result = parser.parse("{ invalid json }")
         assertTrue(result is MenuPackageImportResult.Failure.MalformedJson)
+    }
+
+    @Test
+    fun `non-object json root fails`() {
+        val result = parser.parse("[]")
+        assertTrue(result is MenuPackageImportResult.Failure.DeserializationFailure)
+        
+        val result2 = parser.parse("\"hello\"")
+        assertTrue(result2 is MenuPackageImportResult.Failure.DeserializationFailure)
+    }
+
+    @Test
+    fun `missing schemaVersion fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("\"schemaVersion\": 1,", "")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.MissingSchemaVersion)
+    }
+
+    @Test
+    fun `invalid schemaVersion type fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("\"schemaVersion\": 1", "\"schemaVersion\": \"1\"")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.MissingSchemaVersion)
+    }
+
+    @Test
+    fun `unsupported schema version fails`() {
+        val raw = readFixture("menu_package_v1_unsupported_version.json")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.UnsupportedSchemaVersion)
+        assertEquals(2, (result as MenuPackageImportResult.Failure.UnsupportedSchemaVersion).version)
     }
 
     @Test
@@ -60,10 +89,45 @@ class MenuPackageValidationTest {
     }
 
     @Test
+    fun `invalid publishedAtUtc fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("2026-08-15T21:00:00Z", "not-a-date")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+    }
+
+    @Test
+    fun `discount out of range fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("10.00", "101.00")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+        
+        val raw2 = readFixture("menu_package_v1_valid.json").replace("10.00", "-1.00")
+        val result2 = parser.parse(raw2)
+        assertTrue(result2 is MenuPackageImportResult.Failure.SemanticValidationError)
+    }
+
+    @Test
     fun `negative price fails`() {
         val raw = readFixture("menu_package_v1_valid.json").replace("1500.00", "-10.00")
         val result = parser.parse(raw)
         assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+    }
+
+    @Test
+    fun `duplicate menu item ID fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("\"menuItems\": [", "\"menuItems\": [ {\"id\": \"item-1\", \"categoryId\": \"cat-1\", \"name\": \"I1\", \"active\": true, \"displayOrder\": 1, \"regularPrice\": \"100\", \"cashDiscountMode\": \"APPLY_DEFAULT\", \"commercialRevision\": 1, \"consumptionRevision\": 1}, ")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+        assertTrue((result as MenuPackageImportResult.Failure.SemanticValidationError).message.contains("Duplicate MenuItem ID"))
+    }
+
+    @Test
+    fun `menu item referencing missing category fails`() {
+        // Only replace categoryId in menuItems, keeping categories intact
+        val raw = readFixture("menu_package_v1_valid.json").replace("\"categoryId\": \"cat-1\"", "\"categoryId\": \"missing-cat\"")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+        assertTrue((result as MenuPackageImportResult.Failure.SemanticValidationError).message.contains("references missing category"))
     }
 
     @Test

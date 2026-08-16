@@ -6,6 +6,7 @@ import com.venkoi.terminal.core.RestaurantId
 import com.venkoi.terminal.domain.model.MenuCategory
 import com.venkoi.terminal.domain.model.MenuItem
 import com.venkoi.terminal.domain.model.PublishedMenu
+import com.venkoi.terminal.domain.model.RestaurantConfiguration
 import com.venkoi.terminal.domain.model.TerminalConfiguration
 import com.venkoi.terminal.domain.repository.MenuRepository
 import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
@@ -35,6 +36,11 @@ class MenuImportService @Inject constructor(
         validated: MenuPackageImportResult.Success
     ): MenuImportStatus {
         try {
+            val existing = terminalRepository.getConfiguration()
+            if (existing != null) {
+                return MenuImportStatus.Failure("Terminal is already provisioned.")
+            }
+
             val terminalId = com.venkoi.terminal.core.TerminalId(idGenerator.nextId())
             val restaurantId = RestaurantId(validated.restaurant.restaurantId)
 
@@ -67,7 +73,9 @@ class MenuImportService @Inject constructor(
         }
 
         val currentMenu = menuRepository.getPublishedMenu()
-        if (currentMenu != null) {
+        val currentRestaurant = menuRepository.getRestaurantConfiguration()
+
+        if (currentMenu != null && currentRestaurant != null) {
             if (validated.menu.publicationRevision < currentMenu.publicationRevision) {
                 return MenuImportStatus.Failure("Attempted to import a stale menu (Revision ${validated.menu.publicationRevision} < ${currentMenu.publicationRevision})")
             }
@@ -75,7 +83,7 @@ class MenuImportService @Inject constructor(
                 val currentCategories = menuRepository.observeCategories().first()
                 val currentItems = menuRepository.observeMenuItems().first()
                 
-                if (isSemanticSame(currentMenu, currentCategories, currentItems, validated)) {
+                if (isSemanticSame(currentRestaurant, currentMenu, currentCategories, currentItems, validated)) {
                     return MenuImportStatus.Success
                 } else {
                     return MenuImportStatus.Failure("Conflict: Different menu content for the same revision (${validated.menu.publicationRevision})")
@@ -97,11 +105,18 @@ class MenuImportService @Inject constructor(
     }
 
     private fun isSemanticSame(
+        currentRestaurant: RestaurantConfiguration,
         currentMenu: PublishedMenu,
         currentCategories: List<MenuCategory>,
         currentItems: List<MenuItem>,
         new: MenuPackageImportResult.Success
     ): Boolean {
+        if (currentRestaurant.restaurantId != new.restaurant.restaurantId) return false
+        if (currentRestaurant.restaurantName != new.restaurant.restaurantName) return false
+        if (currentRestaurant.timezone != new.restaurant.timezone) return false
+        if (currentRestaurant.currency != new.restaurant.currency) return false
+        if (currentRestaurant.businessDayCutoff != new.restaurant.businessDayCutoff) return false
+
         if (currentMenu.menuId != new.menu.menuId) return false
         if (currentMenu.defaultCashDiscountPercent.compareTo(new.menu.defaultCashDiscountPercent) != 0) return false
         if (currentMenu.publishedAtUtc != new.menu.publishedAtUtc) return false
@@ -122,7 +137,7 @@ class MenuImportService @Inject constructor(
             if (i.name != other.name) return false
             if (i.active != other.active) return false
             if (i.displayOrder != other.displayOrder) return false
-            if (i.regularPrice != other.regularPrice) return false
+            if (i.regularPrice.amount.compareTo(other.regularPrice.amount) != 0) return false
             if (i.cashDiscountMode != other.cashDiscountMode) return false
             if (i.commercialRevision != other.commercialRevision) return false
             if (i.consumptionRevision != other.consumptionRevision) return false

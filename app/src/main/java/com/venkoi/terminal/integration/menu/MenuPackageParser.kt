@@ -27,7 +27,20 @@ class MenuPackageParser(private val json: Json) {
             return MenuPackageImportResult.Failure.MalformedJson
         }
 
-        val schemaVersion = jsonElement.jsonObject["schemaVersion"]?.jsonPrimitive?.intOrNull
+        val jsonObject = try {
+            jsonElement.jsonObject
+        } catch (_: Exception) {
+            return MenuPackageImportResult.Failure.DeserializationFailure
+        }
+
+        val schemaVersionElement = jsonObject["schemaVersion"]?.jsonPrimitive
+            ?: return MenuPackageImportResult.Failure.MissingSchemaVersion
+
+        if (schemaVersionElement.isString) {
+            return MenuPackageImportResult.Failure.MissingSchemaVersion
+        }
+
+        val schemaVersion = schemaVersionElement.intOrNull
             ?: return MenuPackageImportResult.Failure.MissingSchemaVersion
 
         if (schemaVersion != 1) {

@@ -5,6 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
+import com.venkoi.terminal.core.DocumentReader
+import com.venkoi.terminal.core.ReadResult
 import com.venkoi.terminal.domain.service.MenuImportService
 import com.venkoi.terminal.domain.service.MenuImportStatus
 import com.venkoi.terminal.integration.menu.MenuPackageImportResult
@@ -19,7 +22,8 @@ sealed class ProvisioningStep {
 
 @HiltViewModel
 class ProvisioningViewModel @Inject constructor(
-    private val importService: MenuImportService
+    private val importService: MenuImportService,
+    private val documentReader: DocumentReader
 ) : ViewModel() {
 
     var terminalName by mutableStateOf("")
@@ -38,15 +42,23 @@ class ProvisioningViewModel @Inject constructor(
         terminalName = name
     }
 
-    fun onFileSelected(jsonContent: String) {
+    fun onFileSelected(uri: Uri) {
         viewModelScope.launch {
             isProcessing = true
             error = null
-            val result = importService.parseAndValidate(jsonContent)
-            if (result is MenuPackageImportResult.Success) {
-                currentStep = ProvisioningStep.Review(result)
-            } else if (result is MenuPackageImportResult.Failure) {
-                error = with(importService) { result.toErrorMessage() }
+            
+            when (val readResult = documentReader.readUri(uri)) {
+                is ReadResult.Success -> {
+                    val result = importService.parseAndValidate(readResult.content)
+                    if (result is MenuPackageImportResult.Success) {
+                        currentStep = ProvisioningStep.Review(result)
+                    } else if (result is MenuPackageImportResult.Failure) {
+                        error = with(importService) { result.toErrorMessage() }
+                    }
+                }
+                is ReadResult.Failure -> {
+                    error = readResult.message
+                }
             }
             isProcessing = false
         }
