@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 data class CategoryVisualStyle(val background: Color, val accent: Color)
 
 object CategoryPalette {
+    val fallback = CategoryVisualStyle(Color(0xFFF1F3F5), Color(0xFF6B7280))
     private val styles = listOf(
         CategoryVisualStyle(Color(0xFFEAF2FF), Color(0xFF5B8DEF)),
         CategoryVisualStyle(Color(0xFFEAF8F2), Color(0xFF5FAE8B)),

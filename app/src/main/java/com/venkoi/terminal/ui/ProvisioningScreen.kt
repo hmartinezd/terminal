@@ -125,7 +125,7 @@ fun ProvisioningScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = it,
+                        text = it.ifBlank { stringResource(R.string.provisioning_failed) },
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(16.dp),
                         textAlign = TextAlign.Center

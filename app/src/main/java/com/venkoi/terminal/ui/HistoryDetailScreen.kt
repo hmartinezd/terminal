@@ -39,6 +39,7 @@ fun HistoryDetailScreen(
     val totals by viewModel.selectedSaleTotals.collectAsState()
     val isVoiding by viewModel.isVoiding.collectAsState()
     val voidResult by viewModel.voidResult.collectAsState()
+    val voidFailed by viewModel.voidFailed.collectAsState()
     
     var showVoidDialog by remember { mutableStateOf(false) }
 
@@ -146,6 +147,14 @@ fun HistoryDetailScreen(
                 )
             }
         }
+        if (voidFailed) {
+            Text(
+                text = stringResource(R.string.error_void_failed),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
 
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -175,7 +184,7 @@ fun HistoryDetailScreen(
                     TotalRow(
                         stringResource(R.string.totals_cash_discounts), 
                         "-${com.venkoi.terminal.ui.util.HistoryMoneyFormatter.format(t.cashDiscounts, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale)}",
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
                 TotalRow(

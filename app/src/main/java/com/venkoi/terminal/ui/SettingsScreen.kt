@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.venkoi.terminal.R
+import com.venkoi.terminal.BuildConfig
 import com.venkoi.terminal.ui.components.TerminalCard
 import java.time.Instant
 import java.time.LocalDate
@@ -103,6 +104,10 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsSection(title = stringResource(R.string.settings_section_app)) {
+                InfoRow(stringResource(R.string.settings_app_version), BuildConfig.VERSION_NAME)
+            }
+
             // Terminal Info
             SettingsSection(title = stringResource(R.string.settings_section_terminal)) {
                 InfoRow(stringResource(R.string.settings_terminal_name), terminalConfig?.terminalName ?: na)
@@ -176,7 +181,7 @@ fun SettingsScreen(
                         }
                     },
                     title = { Text(stringResource(R.string.settings_import_error_title)) },
-                    text = { Text(it) }
+                    text = { Text(it.ifBlank { stringResource(R.string.settings_import_failed) }) }
                 )
             }
         }

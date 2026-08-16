@@ -48,6 +48,8 @@
     <string name="error_order_not_found">Orden no encontrada</string>
     <string name="error_order_not_open">La orden no está abierta</string>
     <string name="error_void_not_completed">Solo se pueden anular ventas completadas</string>
+    <string name="error_complete_failed">No se pudo finalizar la venta. La orden sigue abierta; inténtelo de nuevo.</string>
+    <string name="error_void_failed">No se pudo anular la venta. Inténtelo de nuevo.</string>
 
     <!-- History Screen -->
     <string name="history_status_completed">COMPLETADA</string>
@@ -79,6 +81,9 @@
     <string name="settings_import_new_menu">Importar nuevo menú</string>
     <string name="settings_import_success">Menú importado con éxito.</string>
     <string name="settings_import_error_title">Error de importación</string>
+    <string name="settings_import_failed">No se pudo importar el menú. Revise el archivo e inténtelo de nuevo.</string>
+    <string name="settings_section_app">INFORMACIÓN DE LA APLICACIÓN</string>
+    <string name="settings_app_version">Versión de la aplicación</string>
     <string name="settings_section_sales_export">EXPORTACIÓN DE VENTAS</string>
     <string name="settings_pending_changes">Cambios pendientes</string>
     <string name="settings_last_successful_export">Última exportación correcta</string>
@@ -109,7 +114,9 @@
     <string name="provisioning_menu_items">Productos de menú</string>
     <string name="provisioning_back">Atrás</string>
     <string name="provisioning_confirm">Confirmar configuración</string>
-    <string name="provisioning_problem">Problema de configuración: %1$s</string>
+    <string name="provisioning_failed">No se pudo finalizar la configuración. Revise el MenuPackage e inténtelo de nuevo.</string>
+    <string name="provisioning_problem_title">Terminal no lista</string>
+    <string name="provisioning_problem_message">La configuración guardada está incompleta o no coincide con el menú. Importar un MenuPackage válido o reconfigurar la terminal puede corregir el problema.</string>
 
     <!-- Reports Screen -->
     <string name="reports_title">Reportes</string>

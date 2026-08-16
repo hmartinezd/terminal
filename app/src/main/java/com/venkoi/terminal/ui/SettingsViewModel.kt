@@ -98,12 +98,13 @@ class SettingsViewModel @Inject constructor(
         private set
 
     fun onImportMenu(uri: Uri) {
+        if (isImporting) return
+        isImporting = true
         viewModelScope.launch {
-            isImporting = true
             importError = null
             showImportSuccess = false
             
-            when (val readResult = documentReader.readUri(uri)) {
+            try { when (val readResult = documentReader.readUri(uri)) {
                 is ReadResult.Success -> {
                     val parseResult = importService.parseAndValidate(readResult.content)
                     if (parseResult is MenuPackageImportResult.Success) {
@@ -120,9 +121,11 @@ class SettingsViewModel @Inject constructor(
                 is ReadResult.Failure -> {
                     importError = readResult.message
                 }
+            } } catch (_: Exception) {
+                importError = ""
+            } finally {
+                isImporting = false
             }
-            
-            isImporting = false
         }
     }
 
@@ -152,8 +155,9 @@ class SettingsViewModel @Inject constructor(
     fun prepareDayExport() = prepareExport(pending = false)
 
     private fun prepareExport(pending: Boolean) {
+        if (isExporting || pendingDocument != null) return
+        isExporting = true
         viewModelScope.launch {
-            isExporting = true
             exportMessage = null
             try {
                 val terminal = terminalConfig.value ?: error("Terminal is not configured")
@@ -187,11 +191,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun onExportDocumentResult(uri: Uri?) {
+        if (isExporting) return
         val prepared = pendingDocument ?: return
         pendingDocument = null
+        isExporting = true
         viewModelScope.launch {
-            isExporting = true
-            when (exportSalesCoordinator.execute(
+            try { when (exportSalesCoordinator.execute(
                 destination = uri,
                 prepared = prepared,
                 write = { destination, json -> withContext(Dispatchers.IO) { documentWriter.write(destination, json) } },
@@ -203,8 +208,11 @@ class SettingsViewModel @Inject constructor(
                 ExportCoordinationResult.Success -> exportMessage = ExportMessage.Success(prepared.revisions.size)
                 is ExportCoordinationResult.WriteFailed -> exportMessage = ExportMessage.Failed
                 is ExportCoordinationResult.BookkeepingFailed -> exportMessage = ExportMessage.BookkeepingFailed
+            } } catch (_: Exception) {
+                exportMessage = ExportMessage.Failed
+            } finally {
+                isExporting = false
             }
-            isExporting = false
         }
     }
 

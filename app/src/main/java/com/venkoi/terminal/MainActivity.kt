@@ -48,13 +48,12 @@ class MainActivity : AppCompatActivity() {
                     AppState.Ready -> {
                         MainScreen()
                     }
-                    is AppState.SetupProblem -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.provisioning_problem, (appState as AppState.SetupProblem).message),
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(32.dp)
-                            )
+                    AppState.SetupProblem -> {
+                        Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+                            androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = stringResource(R.string.provisioning_problem_title), style = MaterialTheme.typography.headlineMedium)
+                                Text(text = stringResource(R.string.provisioning_problem_message), modifier = Modifier.padding(top = 16.dp))
+                            }
                         }
                     }
                 }

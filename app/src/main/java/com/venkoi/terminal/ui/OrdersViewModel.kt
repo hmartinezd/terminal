@@ -33,6 +33,10 @@ class OrdersViewModel @Inject constructor(
     private val menuRepository: MenuRepository
 ) : ViewModel() {
 
+    companion object {
+        const val MAX_ORDER_LABEL_LENGTH = 100
+    }
+
     val openOrders: StateFlow<List<Sale>> = saleRepository.observeOpenSales()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -73,6 +77,23 @@ class OrdersViewModel @Inject constructor(
     private val _completionSuccess = MutableStateFlow(false)
     val completionSuccess: StateFlow<Boolean> = _completionSuccess
 
+    private val _isCreating = MutableStateFlow(false)
+    val isCreating: StateFlow<Boolean> = _isCreating
+
+    private val _discardingOrderIds = MutableStateFlow<Set<SaleId>>(emptySet())
+    val discardingOrderIds: StateFlow<Set<SaleId>> = _discardingOrderIds
+
+    init {
+        viewModelScope.launch {
+            openOrders.collect { orders ->
+                val selected = _selectedOrderId.value
+                if (selected == null || orders.none { it.saleId == selected }) {
+                    _selectedOrderId.value = orders.firstOrNull()?.saleId
+                }
+            }
+        }
+    }
+
     fun selectCategory(categoryId: String?) {
         _selectedCategoryId.value = categoryId
     }
@@ -82,17 +103,29 @@ class OrdersViewModel @Inject constructor(
     }
 
     fun createOrder() {
+        if (_isCreating.value) return
+        _isCreating.value = true
         viewModelScope.launch {
-            val id = saleRepository.createSale()
-            _selectedOrderId.value = id
+            try {
+                val id = saleRepository.createSale()
+                _selectedOrderId.value = id
+            } finally {
+                _isCreating.value = false
+            }
         }
     }
 
     fun discardOrder(saleId: SaleId) {
+        if (saleId in _discardingOrderIds.value) return
+        _discardingOrderIds.value = _discardingOrderIds.value + saleId
         viewModelScope.launch {
-            saleRepository.discardSale(saleId)
-            if (_selectedOrderId.value == saleId) {
-                _selectedOrderId.value = null
+            try {
+                saleRepository.discardSale(saleId)
+                if (_selectedOrderId.value == saleId) {
+                    _selectedOrderId.value = null
+                }
+            } finally {
+                _discardingOrderIds.value = _discardingOrderIds.value - saleId
             }
         }
     }
@@ -127,8 +160,9 @@ class OrdersViewModel @Inject constructor(
 
     fun updateTableLabel(label: String) {
         val orderId = _selectedOrderId.value ?: return
+        if (label.length > MAX_ORDER_LABEL_LENGTH) return
         viewModelScope.launch {
-            saleRepository.updateSaleLabel(orderId, label)
+            saleRepository.updateSaleLabel(orderId, label.ifBlank { null })
         }
     }
 
@@ -142,7 +176,11 @@ class OrdersViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val result = saleRepository.completeSale(saleId)
+                val result = try {
+                    saleRepository.completeSale(saleId)
+                } catch (_: Exception) {
+                    SaleCompletionResult.Failure("Unable to complete sale")
+                }
                 _completionResult.value = result
                 if (result is SaleCompletionResult.Success) {
                     _selectedOrderId.value = null

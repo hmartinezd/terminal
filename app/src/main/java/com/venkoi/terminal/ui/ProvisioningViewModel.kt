@@ -39,15 +39,16 @@ class ProvisioningViewModel @Inject constructor(
         private set
 
     fun onTerminalNameChange(name: String) {
-        terminalName = name
+        terminalName = name.take(MAX_TERMINAL_NAME_LENGTH)
     }
 
     fun onFileSelected(uri: Uri) {
+        if (isProcessing) return
+        isProcessing = true
         viewModelScope.launch {
-            isProcessing = true
             error = null
-            
-            when (val readResult = documentReader.readUri(uri)) {
+            try {
+                when (val readResult = documentReader.readUri(uri)) {
                 is ReadResult.Success -> {
                     val result = importService.parseAndValidate(readResult.content)
                     if (result is MenuPackageImportResult.Success) {
@@ -59,21 +60,29 @@ class ProvisioningViewModel @Inject constructor(
                 is ReadResult.Failure -> {
                     error = readResult.message
                 }
+                }
+            } catch (_: Exception) {
+                error = ""
+            } finally {
+                isProcessing = false
             }
-            isProcessing = false
         }
     }
 
     fun onConfirm() {
         val step = currentStep as? ProvisioningStep.Review ?: return
+        if (isProcessing) return
+        isProcessing = true
         viewModelScope.launch {
-            isProcessing = true
             error = null
-            val status = importService.provisionTerminal(terminalName, step.validated)
-            if (status is MenuImportStatus.Failure) {
-                error = status.message
+            try {
+                val status = importService.provisionTerminal(terminalName, step.validated)
+                if (status is MenuImportStatus.Failure) error = status.message
+            } catch (_: Exception) {
+                error = ""
+            } finally {
+                isProcessing = false
             }
-            isProcessing = false
         }
     }
 
@@ -81,4 +90,6 @@ class ProvisioningViewModel @Inject constructor(
         currentStep = ProvisioningStep.SelectFile
         error = null
     }
+
+    private companion object { const val MAX_TERMINAL_NAME_LENGTH = 100 }
 }

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -32,6 +33,7 @@ import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.components.CategoryPalette
 import com.venkoi.terminal.ui.components.MenuProductCard
 import java.math.BigDecimal
+import com.venkoi.terminal.ui.util.HistoryMoneyFormatter
 
 @Composable
 fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
@@ -46,6 +48,9 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val completionResult by viewModel.completionResult.collectAsState()
     val isCompleting by viewModel.isCompleting.collectAsState()
     val completionSuccess by viewModel.completionSuccess.collectAsState()
+    val isCreating by viewModel.isCreating.collectAsState()
+    val discardingOrderIds by viewModel.discardingOrderIds.collectAsState()
+    val locale = LocalConfiguration.current.locales[0]
     val categoryStyles = remember(categories) {
         CategoryPalette.resolve(categories.sortedWith(compareBy({ it.displayOrder }, { it.id })).map { it.id })
     }
@@ -72,7 +77,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 TextButton(onClick = {
                     selectedOrderId?.let { viewModel.discardOrder(it) }
                     showDiscardDialog = false
-                }) {
+                }, enabled = selectedOrderId !in discardingOrderIds) {
                     Text(stringResource(R.string.dialog_discard_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
@@ -93,12 +98,14 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                     Text(stringResource(R.string.dialog_complete_message))
                     Spacer(Modifier.height(16.dp))
                     totals?.let { t ->
-                        TotalRow(stringResource(R.string.totals_cash_total), t.cashTotal.toString())
-                        TotalRow(stringResource(R.string.totals_transfer_total), t.transferTotal.toString())
+                        selectedOrder?.let { sale ->
+                            TotalRow(stringResource(R.string.totals_cash_total), HistoryMoneyFormatter.format(t.cashTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale))
+                            TotalRow(stringResource(R.string.totals_transfer_total), HistoryMoneyFormatter.format(t.transferTotal, sale.currencyCodeSnapshot, sale.currencyScaleSnapshot, locale))
+                        }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         TotalRow(
                             stringResource(R.string.totals_grand_total), 
-                            t.grandTotal.toString(), 
+                            selectedOrder?.let { HistoryMoneyFormatter.format(t.grandTotal, it.currencyCodeSnapshot, it.currencyScaleSnapshot, locale) } ?: t.grandTotal.toString(),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -212,6 +219,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 
                 Button(
                     onClick = { viewModel.createOrder() },
+                    enabled = !isCreating && !isCompleting,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     contentPadding = PaddingValues(16.dp)
@@ -251,7 +259,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         )
                     }
                     items(categories) { category ->
-                        val categoryStyle = categoryStyles.getValue(category.id)
+                        val categoryStyle = categoryStyles[category.id] ?: CategoryPalette.fallback
                         FilterChip(
                             selected = selectedCategoryId == category.id,
                             onClick = { viewModel.selectCategory(category.id) },
@@ -290,8 +298,8 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         items(menuItems) { item ->
                             MenuProductCard(
                                 name = item.name,
-                                price = item.regularPrice.toString(),
-                                categoryStyle = categoryStyles.getValue(item.categoryId),
+                                price = selectedOrder?.let { HistoryMoneyFormatter.format(item.regularPrice, it.currencyCodeSnapshot, it.currencyScaleSnapshot, locale) } ?: item.regularPrice.toString(),
+                                categoryStyle = categoryStyles[item.categoryId] ?: CategoryPalette.fallback,
                                 enabled = !isCompleting,
                                 onClick = { 
                                     viewModel.addItemToCurrentOrder(item.id)
@@ -320,8 +328,10 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         value = tableLabel,
                         onValueChange = { 
                             if (!isCompleting) {
-                                tableLabel = it
-                                viewModel.updateTableLabel(it)
+                                if (it.length <= OrdersViewModel.MAX_ORDER_LABEL_LENGTH) {
+                                    tableLabel = it
+                                    viewModel.updateTableLabel(it)
+                                }
                             }
                         },
                         label = { Text(stringResource(R.string.orders_table_label)) },
@@ -340,6 +350,9 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         items(currentLines) { line ->
                             OrderLineItemCard(
                                 line = line,
+                                currencyCode = order.currencyCodeSnapshot,
+                                currencyScale = order.currencyScaleSnapshot,
+                                locale = locale,
                                 onUpdateQuantity = { viewModel.updateQuantity(line.lineId, it) },
                                 onChangePricingMode = { viewModel.changePricingMode(line.lineId, it) },
                                 onRemove = { viewModel.removeLine(line.lineId) },
@@ -359,20 +372,20 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                                 )
                                 .padding(16.dp)
                         ) {
-                            TotalRow(stringResource(R.string.totals_regular_subtotal), t.regularSubtotal.toString())
+                            TotalRow(stringResource(R.string.totals_regular_subtotal), HistoryMoneyFormatter.format(t.regularSubtotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale))
                             if (t.cashDiscounts.amount > BigDecimal.ZERO) {
                                 TotalRow(
                                     stringResource(R.string.totals_cash_discounts), 
-                                    "-${t.cashDiscounts}", 
+                                    "-${HistoryMoneyFormatter.format(t.cashDiscounts, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale)}",
                                     color = MaterialTheme.colorScheme.secondary
                                 )
                             }
-                            TotalRow(stringResource(R.string.totals_cash_total), t.cashTotal.toString())
-                            TotalRow(stringResource(R.string.totals_transfer_total), t.transferTotal.toString())
+                            TotalRow(stringResource(R.string.totals_cash_total), HistoryMoneyFormatter.format(t.cashTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale))
+                            TotalRow(stringResource(R.string.totals_transfer_total), HistoryMoneyFormatter.format(t.transferTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale))
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                             TotalRow(
                                 stringResource(R.string.totals_grand_total), 
-                                t.grandTotal.toString(), 
+                                HistoryMoneyFormatter.format(t.grandTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -416,6 +429,9 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
 @Composable
 fun OrderLineItemCard(
     line: SaleLine,
+    currencyCode: String,
+    currencyScale: Int,
+    locale: java.util.Locale,
     onUpdateQuantity: (BigDecimal) -> Unit,
     onChangePricingMode: (PricingMode) -> Unit,
     onRemove: () -> Unit,
@@ -433,7 +449,7 @@ fun OrderLineItemCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = line.regularUnitPriceSnapshot.toString(),
+                    text = HistoryMoneyFormatter.format(line.regularUnitPriceSnapshot, currencyCode, currencyScale, locale),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -466,7 +482,7 @@ fun OrderLineItemCard(
             )
             
             Text(
-                text = line.lineTotal.toString(),
+                text = HistoryMoneyFormatter.format(line.lineTotal, currencyCode, currencyScale, locale),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -561,7 +577,7 @@ fun TotalRow(
 fun SaleCompletionResult.toLocalizedMessage(): String {
     return when (this) {
         is SaleCompletionResult.Success -> stringResource(R.string.orders_sale_completed)
-        is SaleCompletionResult.Failure -> this.message
+        is SaleCompletionResult.Failure -> stringResource(R.string.error_complete_failed)
         SaleCompletionResult.EmptySale -> stringResource(R.string.error_empty_sale)
         SaleCompletionResult.InvalidQuantity -> stringResource(R.string.error_invalid_quantity)
         SaleCompletionResult.NotFound -> stringResource(R.string.error_order_not_found)

@@ -85,6 +85,9 @@ class HistoryViewModel @Inject constructor(
     private val _voidSuccess = MutableStateFlow(false)
     val voidSuccess: StateFlow<Boolean> = _voidSuccess
 
+    private val _voidFailed = MutableStateFlow(false)
+    val voidFailed: StateFlow<Boolean> = _voidFailed
+
     fun selectSale(saleId: SaleId?) {
         _selectedSaleId.value = saleId
     }
@@ -95,10 +98,16 @@ class HistoryViewModel @Inject constructor(
         _isVoiding.value = true
         _voidResult.value = null
         _voidSuccess.value = false
+        _voidFailed.value = false
 
         viewModelScope.launch {
             try {
-                val result = saleRepository.voidSale(saleId)
+                val result = try {
+                    saleRepository.voidSale(saleId)
+                } catch (_: Exception) {
+                    _voidFailed.value = true
+                    return@launch
+                }
                 _voidResult.value = result
                 if (result is VoidResult.Success || result is VoidResult.AlreadyVoided) {
                     _voidSuccess.value = true
@@ -112,5 +121,6 @@ class HistoryViewModel @Inject constructor(
     fun clearVoidFeedback() {
         _voidResult.value = null
         _voidSuccess.value = false
+        _voidFailed.value = false
     }
 }

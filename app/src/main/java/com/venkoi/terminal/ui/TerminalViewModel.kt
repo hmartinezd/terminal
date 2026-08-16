@@ -15,7 +15,7 @@ sealed class AppState {
     object Loading : AppState()
     object NeedsProvisioning : AppState()
     object Ready : AppState()
-    data class SetupProblem(val message: String) : AppState()
+    object SetupProblem : AppState()
 }
 
 @HiltViewModel
@@ -35,17 +35,13 @@ class TerminalViewModel @Inject constructor(
             }
             config != null && menu != null && restaurant != null -> {
                 if (config.restaurantId.value != restaurant.restaurantId) {
-                    AppState.SetupProblem("Terminal restaurant ID mismatch. Expected ${config.restaurantId.value}, found ${restaurant.restaurantId}.")
+                    AppState.SetupProblem
                 } else {
                     AppState.Ready
                 }
             }
             else -> {
-                val missing = mutableListOf<String>()
-                if (config == null) missing.add("Terminal Identity")
-                if (menu == null) missing.add("Menu")
-                if (restaurant == null) missing.add("Restaurant Configuration")
-                AppState.SetupProblem("Incomplete configuration. Missing: ${missing.joinToString(", ")}.")
+                AppState.SetupProblem
             }
         }
     }.stateIn(

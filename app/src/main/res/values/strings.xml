@@ -48,6 +48,8 @@
     <string name="error_order_not_found">Order not found</string>
     <string name="error_order_not_open">Order is not open</string>
     <string name="error_void_not_completed">Only completed sales can be voided</string>
+    <string name="error_complete_failed">Unable to complete sale. The order is still open; please try again.</string>
+    <string name="error_void_failed">Unable to void sale. Please try again.</string>
 
     <!-- History Screen -->
     <string name="history_status_completed">COMPLETED</string>
@@ -79,6 +81,9 @@
     <string name="settings_import_new_menu">Import New Menu</string>
     <string name="settings_import_success">Menu imported successfully.</string>
     <string name="settings_import_error_title">Import Error</string>
+    <string name="settings_import_failed">Unable to import menu. Please check the file and try again.</string>
+    <string name="settings_section_app">APP INFORMATION</string>
+    <string name="settings_app_version">App Version</string>
     <string name="settings_section_sales_export">SALES EXPORT</string>
     <string name="settings_pending_changes">Pending Changes</string>
     <string name="settings_last_successful_export">Last Successful Export</string>
@@ -109,7 +114,9 @@
     <string name="provisioning_menu_items">Menu Items</string>
     <string name="provisioning_back">Back</string>
     <string name="provisioning_confirm">Confirm Setup</string>
-    <string name="provisioning_problem">Configuration Problem: %1$s</string>
+    <string name="provisioning_failed">Unable to finish setup. Check the MenuPackage and try again.</string>
+    <string name="provisioning_problem_title">Terminal Not Ready</string>
+    <string name="provisioning_problem_message">The saved terminal configuration is incomplete or does not match the menu. Importing a valid MenuPackage or reconfiguring the terminal can fix this problem.</string>
 
     <!-- Reports Screen -->
     <string name="reports_title">Reports</string>
