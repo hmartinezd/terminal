@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "sourceSystem": "SalesTerminal",
+  "restaurantId": "rest-123",
+  "terminalId": "term-789",
+  "batchId": "batch-001",
+  "exportedAtUtc": "2026-08-16T05:00:00Z",
+  "sales": [
+    {
+      "saleId": "sale-001",
+      "revision": 1,
+      "status": "COMPLETED",
+      "openedAtUtc": "2026-08-15T23:30:00Z",
+      "completedAtUtc": "2026-08-16T00:15:00Z",
+      "voidedAtUtc": null,
+      "businessDate": "2026-08-15",
+      "tableNumber": "Mesa 4",
+      "lines": [
+        {
+          "lineId": "line-1",
+          "menuItemId": "item-1",
+          "commercialRevision": 20,
+          "consumptionRevision": 5,
+          "itemNameSnapshot": "Chicken Burger",
+          "quantity": "2.00",
+          "regularUnitPriceSnapshot": "1500.00",
+          "pricingMode": "CASH",
+          "cashDiscountApplied": true,
+          "cashDiscountPercentSnapshot": "10.00",
+          "cashDiscountAmountSnapshot": "150.00",
+          "finalUnitPriceSnapshot": "1350.00",
+          "lineTotal": "2700.00"
+        }
+      ]
+    }
+  ]
+}

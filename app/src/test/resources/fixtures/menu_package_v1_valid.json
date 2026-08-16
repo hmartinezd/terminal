@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "restaurant": {
+    "restaurantId": "rest-123",
+    "restaurantName": "Venkoi Bistro",
+    "timezone": "America/Havana",
+    "currency": "CUP",
+    "businessDayCutoff": "04:00"
+  },
+  "menu": {
+    "menuId": "menu-456",
+    "publicationRevision": 58,
+    "publishedAtUtc": "2026-08-15T21:00:00Z",
+    "defaultCashDiscountPercent": "10.00"
+  },
+  "categories": [
+    {
+      "id": "cat-1",
+      "name": "Burgers",
+      "displayOrder": 1
+    }
+  ],
+  "menuItems": [
+    {
+      "id": "item-1",
+      "categoryId": "cat-1",
+      "name": "Chicken Burger",
+      "active": true,
+      "displayOrder": 1,
+      "regularPrice": "1500.00",
+      "cashDiscountMode": "APPLY_DEFAULT",
+      "commercialRevision": 20,
+      "consumptionRevision": 5
+    }
+  ]
+}
