@@ -49,6 +49,7 @@
     <string name="error_order_not_open">La orden no está abierta</string>
     <string name="error_void_not_completed">Solo se pueden anular ventas completadas</string>
     <string name="error_complete_failed">No se pudo finalizar la venta. La orden sigue abierta; inténtelo de nuevo.</string>
+    <string name="error_order_action_failed">No se pudo actualizar la orden. Inténtelo de nuevo.</string>
     <string name="error_void_failed">No se pudo anular la venta. Inténtelo de nuevo.</string>
 
     <!-- History Screen -->
@@ -178,6 +179,7 @@
     <string name="subscription_renewal_required">Se requiere renovar la suscripción</string>
     <string name="selling_disabled">Las ventas están deshabilitadas hasta renovar la suscripción</string>
     <string name="device_time_changed">Parece que se cambió la fecha/hora del dispositivo</string>
+    <string name="device_time_correction_required">Debe corregir la fecha/hora del dispositivo antes de continuar vendiendo.</string>
     <string name="unable_to_verify_license">No se pudo verificar la licencia</string>
     <string name="license_imported_successfully">Licencia importada correctamente</string>
     <string name="license_wrong_terminal">Esta licencia pertenece a otra terminal</string>

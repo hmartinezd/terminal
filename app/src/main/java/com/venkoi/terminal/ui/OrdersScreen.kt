@@ -28,6 +28,7 @@ import com.venkoi.terminal.R
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.repository.SaleCompletionResult
+import com.venkoi.terminal.licensing.SellingAuthorizationResult
 import com.venkoi.terminal.ui.components.QuantityControl
 import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.components.CategoryPalette
@@ -51,6 +52,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val isCreating by viewModel.isCreating.collectAsState()
     val discardingOrderIds by viewModel.discardingOrderIds.collectAsState()
     val sellingAllowed by viewModel.sellingAllowed.collectAsState()
+    val actionFeedback by viewModel.actionFeedback.collectAsState()
     val locale = LocalConfiguration.current.locales[0]
     val categoryStyles = remember(categories) {
         CategoryPalette.resolve(categories.sortedWith(compareBy({ it.displayOrder }, { it.id })).map { it.id })
@@ -58,6 +60,25 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val localizedCompletionSuccess = stringResource(R.string.orders_sale_completed)
+    val localizedSellingDisabled = stringResource(R.string.selling_disabled)
+    val localizedClockCorrection = stringResource(R.string.device_time_correction_required)
+    val localizedOperationFailed = stringResource(R.string.error_order_action_failed)
+
+    LaunchedEffect(actionFeedback) {
+        val feedback = actionFeedback ?: return@LaunchedEffect
+        val message = when (feedback) {
+            is OrderActionFeedback.SellingNotAuthorized -> {
+                if (feedback.reason == SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK) {
+                    localizedClockCorrection
+                } else {
+                    localizedSellingDisabled
+                }
+            }
+            OrderActionFeedback.OperationFailed -> localizedOperationFailed
+        }
+        snackbarHostState.showSnackbar(message)
+        viewModel.clearActionFeedback()
+    }
 
     LaunchedEffect(completionSuccess) {
         if (completionSuccess) {
@@ -330,6 +351,12 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
             ) {
                 selectedOrder?.let { order ->
                     var tableLabel by remember(order.saleId) { mutableStateOf(order.tableLabel ?: "") }
+
+                    LaunchedEffect(order.saleId, order.tableLabel, actionFeedback) {
+                        if (actionFeedback is OrderActionFeedback.SellingNotAuthorized) {
+                            tableLabel = order.tableLabel ?: ""
+                        }
+                    }
                     
                     OutlinedTextField(
                         value = tableLabel,
@@ -585,11 +612,7 @@ fun TotalRow(
 fun SaleCompletionResult.toLocalizedMessage(): String {
     return when (this) {
         is SaleCompletionResult.Success -> stringResource(R.string.orders_sale_completed)
-        is SaleCompletionResult.Failure -> if (message == "SELLING_NOT_AUTHORIZED") {
-            stringResource(R.string.selling_disabled)
-        } else {
-            stringResource(R.string.error_complete_failed)
-        }
+        is SaleCompletionResult.Failure -> stringResource(R.string.error_complete_failed)
         SaleCompletionResult.EmptySale -> stringResource(R.string.error_empty_sale)
         SaleCompletionResult.InvalidQuantity -> stringResource(R.string.error_invalid_quantity)
         SaleCompletionResult.NotFound -> stringResource(R.string.error_order_not_found)

@@ -49,6 +49,7 @@
     <string name="error_order_not_open">Order is not open</string>
     <string name="error_void_not_completed">Only completed sales can be voided</string>
     <string name="error_complete_failed">Unable to complete sale. The order is still open; please try again.</string>
+    <string name="error_order_action_failed">Unable to update the order. Please try again.</string>
     <string name="error_void_failed">Unable to void sale. Please try again.</string>
 
     <!-- History Screen -->
@@ -178,6 +179,7 @@
     <string name="subscription_renewal_required">Subscription renewal required</string>
     <string name="selling_disabled">Selling is disabled until the subscription is renewed</string>
     <string name="device_time_changed">Device date/time appears to have been changed</string>
+    <string name="device_time_correction_required">Device date/time must be corrected before selling can continue.</string>
     <string name="unable_to_verify_license">Unable to verify license</string>
     <string name="license_imported_successfully">License imported successfully</string>
     <string name="license_wrong_terminal">This license belongs to another terminal</string>

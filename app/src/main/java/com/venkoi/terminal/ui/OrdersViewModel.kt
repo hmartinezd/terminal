@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
 import com.venkoi.terminal.licensing.LicenseManager
-import com.venkoi.terminal.licensing.SellingNotAuthorizedException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -85,6 +84,9 @@ class OrdersViewModel @Inject constructor(
     private val _isCreating = MutableStateFlow(false)
     val isCreating: StateFlow<Boolean> = _isCreating
 
+    private val _actionFeedback = MutableStateFlow<OrderActionFeedback?>(null)
+    val actionFeedback: StateFlow<OrderActionFeedback?> = _actionFeedback
+
     private val _discardingOrderIds = MutableStateFlow<Set<SaleId>>(emptySet())
     val discardingOrderIds: StateFlow<Set<SaleId>> = _discardingOrderIds
 
@@ -112,8 +114,11 @@ class OrdersViewModel @Inject constructor(
         _isCreating.value = true
         viewModelScope.launch {
             try {
-                val id = saleRepository.createSale()
-                _selectedOrderId.value = id
+                when (val result = runSellingAction { saleRepository.createSale() }) {
+                    is SellingActionResult.Success -> _selectedOrderId.value = result.value
+                    is SellingActionResult.SellingDenied -> showSellingDenied(result)
+                    is SellingActionResult.Failure -> showOperationFailed()
+                }
             } finally {
                 _isCreating.value = false
             }
@@ -137,38 +142,28 @@ class OrdersViewModel @Inject constructor(
 
     fun addItemToCurrentOrder(menuItemId: String) {
         val orderId = _selectedOrderId.value ?: return
-        viewModelScope.launch {
-            saleRepository.addItem(orderId, menuItemId)
-        }
+        launchSellingAction { saleRepository.addItem(orderId, menuItemId) }
     }
 
     fun updateQuantity(lineId: LineId, newQuantity: BigDecimal) {
         val orderId = _selectedOrderId.value ?: return
-        viewModelScope.launch {
-            saleRepository.updateLineQuantity(orderId, lineId, newQuantity)
-        }
+        launchSellingAction { saleRepository.updateLineQuantity(orderId, lineId, newQuantity) }
     }
 
     fun changePricingMode(lineId: LineId, pricingMode: PricingMode) {
         val orderId = _selectedOrderId.value ?: return
-        viewModelScope.launch {
-            saleRepository.changeLinePricingMode(orderId, lineId, pricingMode)
-        }
+        launchSellingAction { saleRepository.changeLinePricingMode(orderId, lineId, pricingMode) }
     }
 
     fun removeLine(lineId: LineId) {
         val orderId = _selectedOrderId.value ?: return
-        viewModelScope.launch {
-            saleRepository.removeLine(orderId, lineId)
-        }
+        launchSellingAction { saleRepository.removeLine(orderId, lineId) }
     }
 
     fun updateTableLabel(label: String) {
         val orderId = _selectedOrderId.value ?: return
         if (label.length > MAX_ORDER_LABEL_LENGTH) return
-        viewModelScope.launch {
-            saleRepository.updateSaleLabel(orderId, label.ifBlank { null })
-        }
+        launchSellingAction { saleRepository.updateSaleLabel(orderId, label.ifBlank { null }) }
     }
 
     fun completeSale() {
@@ -181,17 +176,19 @@ class OrdersViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val result = try {
-                    saleRepository.completeSale(saleId)
-                } catch (_: SellingNotAuthorizedException) {
-                    SaleCompletionResult.Failure("SELLING_NOT_AUTHORIZED")
-                } catch (_: Exception) {
-                    SaleCompletionResult.Failure("Unable to complete sale")
-                }
-                _completionResult.value = result
-                if (result is SaleCompletionResult.Success) {
-                    _selectedOrderId.value = null
-                    _completionSuccess.value = true
+                when (val action = runSellingAction { saleRepository.completeSale(saleId) }) {
+                    is SellingActionResult.Success -> {
+                        val result = action.value
+                        _completionResult.value = result
+                        if (result is SaleCompletionResult.Success) {
+                            _selectedOrderId.value = null
+                            _completionSuccess.value = true
+                        }
+                    }
+                    is SellingActionResult.SellingDenied -> showSellingDenied(action)
+                    is SellingActionResult.Failure -> {
+                        _completionResult.value = SaleCompletionResult.Failure("Unable to complete sale")
+                    }
                 }
             } finally {
                 _isCompleting.value = false
@@ -202,5 +199,27 @@ class OrdersViewModel @Inject constructor(
     fun clearCompletionFeedback() {
         _completionResult.value = null
         _completionSuccess.value = false
+    }
+
+    fun clearActionFeedback() {
+        _actionFeedback.value = null
+    }
+
+    private fun launchSellingAction(action: suspend () -> Unit) {
+        viewModelScope.launch {
+            when (val result = runSellingAction(action)) {
+                is SellingActionResult.Success -> Unit
+                is SellingActionResult.SellingDenied -> showSellingDenied(result)
+                is SellingActionResult.Failure -> showOperationFailed()
+            }
+        }
+    }
+
+    private fun showSellingDenied(result: SellingActionResult.SellingDenied) {
+        _actionFeedback.value = OrderActionFeedback.SellingNotAuthorized(result.reason)
+    }
+
+    private fun showOperationFailed() {
+        _actionFeedback.value = OrderActionFeedback.OperationFailed
     }
 }
