@@ -25,7 +25,9 @@ object DataModule {
             context,
             AppDatabase::class.java,
             "sales_terminal.db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
@@ -36,5 +38,10 @@ object DataModule {
     @Provides
     fun provideMenuDao(database: AppDatabase): MenuDao {
         return database.menuDao()
+    }
+
+    @Provides
+    fun provideOrderDao(database: AppDatabase): com.venkoi.terminal.data.local.database.OrderDao {
+        return database.orderDao()
     }
 }

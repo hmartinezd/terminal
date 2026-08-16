@@ -10,7 +10,9 @@ import androidx.room.TypeConverters
         RestaurantConfigEntity::class,
         PublishedMenuEntity::class,
         CategoryEntity::class,
-        MenuItemEntity::class
+        MenuItemEntity::class,
+        OpenOrderEntity::class,
+        OpenOrderLineEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -19,4 +21,5 @@ import androidx.room.TypeConverters
 abstract class AppDatabase : RoomDatabase() {
     abstract fun terminalDao(): TerminalDao
     abstract fun menuDao(): MenuDao
+    abstract fun orderDao(): OrderDao
 }

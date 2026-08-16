@@ -153,6 +153,57 @@ class MenuPackageValidationTest {
         assertTrue((result as MenuPackageImportResult.Failure.SemanticValidationError).message.contains("Duplicate category ID"))
     }
 
+    @Test
+    fun `invalid business-day cutoff fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("04:00", "invalid-time")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+        assertTrue((result as MenuPackageImportResult.Failure.SemanticValidationError).message.contains("Invalid businessDayCutoff"))
+    }
+
+    @Test
+    fun `invalid enum value fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("APPLY_DEFAULT", "INVALID_ENUM")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.DeserializationFailure)
+    }
+
+    @Test
+    fun `publicationRevision zero or negative fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("\"publicationRevision\": 58", "\"publicationRevision\": 0")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+        assertTrue((result as MenuPackageImportResult.Failure.SemanticValidationError).message.contains("publicationRevision must be positive"))
+
+        val raw2 = readFixture("menu_package_v1_valid.json").replace("\"publicationRevision\": 58", "\"publicationRevision\": -1")
+        val result2 = parser.parse(raw2)
+        assertTrue(result2 is MenuPackageImportResult.Failure.SemanticValidationError)
+    }
+
+    @Test
+    fun `commercialRevision zero or negative fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("\"commercialRevision\": 20", "\"commercialRevision\": 0")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+        assertTrue((result as MenuPackageImportResult.Failure.SemanticValidationError).message.contains("commercialRevision must be positive"))
+
+        val raw2 = readFixture("menu_package_v1_valid.json").replace("\"commercialRevision\": 20", "\"commercialRevision\": -1")
+        val result2 = parser.parse(raw2)
+        assertTrue(result2 is MenuPackageImportResult.Failure.SemanticValidationError)
+    }
+
+    @Test
+    fun `consumptionRevision zero or negative fails`() {
+        val raw = readFixture("menu_package_v1_valid.json").replace("\"consumptionRevision\": 5", "\"consumptionRevision\": 0")
+        val result = parser.parse(raw)
+        assertTrue(result is MenuPackageImportResult.Failure.SemanticValidationError)
+        assertTrue((result as MenuPackageImportResult.Failure.SemanticValidationError).message.contains("consumptionRevision must be positive"))
+
+        val raw2 = readFixture("menu_package_v1_valid.json").replace("\"consumptionRevision\": 5", "\"consumptionRevision\": -1")
+        val result2 = parser.parse(raw2)
+        assertTrue(result2 is MenuPackageImportResult.Failure.SemanticValidationError)
+    }
+
     private fun readFixture(name: String): String {
         return javaClass.classLoader!!.getResourceAsStream("fixtures/$name").bufferedReader().readText()
     }

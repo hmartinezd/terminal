@@ -30,14 +30,22 @@ class TerminalViewModel @Inject constructor(
         menuRepository.observeRestaurantConfiguration()
     ) { config, menu, restaurant ->
         when {
-            config == null || menu == null || restaurant == null -> {
+            config == null && menu == null && restaurant == null -> {
                 AppState.NeedsProvisioning
             }
-            config.restaurantId.value != restaurant.restaurantId -> {
-                AppState.SetupProblem("Terminal restaurant ID mismatch. Expected ${config.restaurantId.value}, found ${restaurant.restaurantId}.")
+            config != null && menu != null && restaurant != null -> {
+                if (config.restaurantId.value != restaurant.restaurantId) {
+                    AppState.SetupProblem("Terminal restaurant ID mismatch. Expected ${config.restaurantId.value}, found ${restaurant.restaurantId}.")
+                } else {
+                    AppState.Ready
+                }
             }
             else -> {
-                AppState.Ready
+                val missing = mutableListOf<String>()
+                if (config == null) missing.add("Terminal Identity")
+                if (menu == null) missing.add("Menu")
+                if (restaurant == null) missing.add("Restaurant Configuration")
+                AppState.SetupProblem("Incomplete configuration. Missing: ${missing.joinToString(", ")}.")
             }
         }
     }.stateIn(

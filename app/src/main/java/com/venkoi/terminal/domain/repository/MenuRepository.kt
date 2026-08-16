@@ -11,6 +11,7 @@ interface MenuRepository {
     fun observePublishedMenu(): Flow<PublishedMenu?>
     fun observeCategories(): Flow<List<MenuCategory>>
     fun observeMenuItems(): Flow<List<MenuItem>>
+    fun observeActiveMenuItems(): Flow<List<MenuItem>>
 
     suspend fun installMenu(
         restaurant: RestaurantConfiguration,

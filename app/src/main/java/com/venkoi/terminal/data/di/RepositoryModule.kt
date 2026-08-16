@@ -25,4 +25,10 @@ abstract class RepositoryModule {
     abstract fun bindMenuRepository(
         impl: RoomMenuRepository
     ): MenuRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindOrderRepository(
+        impl: com.venkoi.terminal.data.local.repository.RoomOrderRepository
+    ): com.venkoi.terminal.domain.repository.OrderRepository
 }

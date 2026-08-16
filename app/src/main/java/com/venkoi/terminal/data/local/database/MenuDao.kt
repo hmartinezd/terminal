@@ -75,6 +75,9 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items ORDER BY displayOrder ASC")
     fun observeMenuItems(): Flow<List<MenuItemEntity>>
 
+    @Query("SELECT * FROM menu_items WHERE active = 1 ORDER BY displayOrder ASC")
+    fun observeActiveMenuItems(): Flow<List<MenuItemEntity>>
+
     @Query("SELECT * FROM menu_items WHERE id = :id")
     suspend fun getMenuItem(id: String): MenuItemEntity?
 

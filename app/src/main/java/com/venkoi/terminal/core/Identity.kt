@@ -20,3 +20,9 @@ value class TerminalId(val value: String) {
 value class SaleId(val value: String) {
     constructor(uuid: UUID = UUID.randomUUID()) : this(uuid.toString())
 }
+
+@Serializable
+@JvmInline
+value class LineId(val value: String) {
+    constructor(uuid: UUID = UUID.randomUUID()) : this(uuid.toString())
+}

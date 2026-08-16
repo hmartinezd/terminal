@@ -65,4 +65,28 @@ class TerminalTypeConverters {
 
     @TypeConverter
     fun toLocalTime(value: String?): LocalTime? = value?.let { LocalTime.parse(it) }
+
+    @TypeConverter
+    fun fromLineId(id: com.venkoi.terminal.core.LineId?): String? = id?.value
+
+    @TypeConverter
+    fun toLineId(value: String?): com.venkoi.terminal.core.LineId? = value?.let { com.venkoi.terminal.core.LineId(it) }
+
+    @TypeConverter
+    fun fromPricingMode(value: com.venkoi.terminal.domain.model.PricingMode?): String? = value?.name
+
+    @TypeConverter
+    fun toPricingMode(value: String?): com.venkoi.terminal.domain.model.PricingMode? = value?.let { com.venkoi.terminal.domain.model.PricingMode.valueOf(it) }
+
+    @TypeConverter
+    fun fromCashDiscountMode(value: com.venkoi.terminal.domain.model.CashDiscountMode?): String? = value?.name
+
+    @TypeConverter
+    fun toCashDiscountMode(value: String?): com.venkoi.terminal.domain.model.CashDiscountMode? = value?.let { com.venkoi.terminal.domain.model.CashDiscountMode.valueOf(it) }
+
+    @TypeConverter
+    fun fromOrderStatus(value: com.venkoi.terminal.domain.model.OrderStatus?): String? = value?.name
+
+    @TypeConverter
+    fun toOrderStatus(value: String?): com.venkoi.terminal.domain.model.OrderStatus? = value?.let { com.venkoi.terminal.domain.model.OrderStatus.valueOf(it) }
 }

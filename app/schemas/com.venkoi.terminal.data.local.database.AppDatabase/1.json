@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "9d8794e2dced7bb18d7c3d126e40c85d",
+    "identityHash": "ab9defc84eca99c9ce51b7d58eabcf66",
     "entities": [
       {
         "tableName": "terminal_configuration",
@@ -236,11 +236,160 @@
             "id"
           ]
         }
+      },
+      {
+        "tableName": "open_orders",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`saleId` TEXT NOT NULL, `terminalId` TEXT NOT NULL, `openedAtUtc` TEXT NOT NULL, `updatedAtUtc` TEXT NOT NULL, `tableLabel` TEXT, `status` TEXT NOT NULL, PRIMARY KEY(`saleId`))",
+        "fields": [
+          {
+            "fieldPath": "saleId",
+            "columnName": "saleId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "terminalId",
+            "columnName": "terminalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "openedAtUtc",
+            "columnName": "openedAtUtc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updatedAtUtc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tableLabel",
+            "columnName": "tableLabel",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "saleId"
+          ]
+        }
+      },
+      {
+        "tableName": "open_order_lines",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`lineId` TEXT NOT NULL, `saleId` TEXT NOT NULL, `menuItemId` TEXT NOT NULL, `commercialRevision` INTEGER NOT NULL, `consumptionRevision` INTEGER NOT NULL, `itemNameSnapshot` TEXT NOT NULL, `quantity` TEXT NOT NULL, `regularUnitPriceSnapshot` TEXT NOT NULL, `cashDiscountModeSnapshot` TEXT NOT NULL, `pricingMode` TEXT NOT NULL, `cashDiscountApplied` INTEGER NOT NULL, `cashDiscountPercentSnapshot` TEXT NOT NULL, `cashDiscountAmount` TEXT NOT NULL, `finalUnitPrice` TEXT NOT NULL, `lineTotal` TEXT NOT NULL, PRIMARY KEY(`lineId`))",
+        "fields": [
+          {
+            "fieldPath": "lineId",
+            "columnName": "lineId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "saleId",
+            "columnName": "saleId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "menuItemId",
+            "columnName": "menuItemId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "commercialRevision",
+            "columnName": "commercialRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consumptionRevision",
+            "columnName": "consumptionRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemNameSnapshot",
+            "columnName": "itemNameSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quantity",
+            "columnName": "quantity",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regularUnitPriceSnapshot",
+            "columnName": "regularUnitPriceSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cashDiscountModeSnapshot",
+            "columnName": "cashDiscountModeSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pricingMode",
+            "columnName": "pricingMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cashDiscountApplied",
+            "columnName": "cashDiscountApplied",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cashDiscountPercentSnapshot",
+            "columnName": "cashDiscountPercentSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cashDiscountAmount",
+            "columnName": "cashDiscountAmount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finalUnitPrice",
+            "columnName": "finalUnitPrice",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lineTotal",
+            "columnName": "lineTotal",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "lineId"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9d8794e2dced7bb18d7c3d126e40c85d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ab9defc84eca99c9ce51b7d58eabcf66')"
     ]
   }
 }

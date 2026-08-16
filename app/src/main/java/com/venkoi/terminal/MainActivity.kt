@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.ui.unit.dp
 import com.venkoi.terminal.ui.AppState
 import com.venkoi.terminal.ui.MainScreen
@@ -46,10 +48,10 @@ class MainActivity : ComponentActivity() {
                     }
                     is AppState.SetupProblem -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            androidx.compose.material3.Text(
+                            Text(
                                 text = "Configuration Problem: ${(appState as AppState.SetupProblem).message}",
-                                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
-                                modifier = androidx.compose.ui.Modifier.padding(32.dp)
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(32.dp)
                             )
                         }
                     }

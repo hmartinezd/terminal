@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import com.venkoi.terminal.domain.model.CashDiscountMode as DomainCashDiscountMode
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalTime
@@ -88,8 +89,8 @@ class MenuPackageParser(private val json: Json) {
                 if (!categoryIds.contains(i.categoryId)) return semanticError("MenuItem ${i.id} references missing category: ${i.categoryId}")
                 if (i.name.isBlank()) return semanticError("MenuItem name is blank for ${i.id}")
                 if (i.regularPrice.amount < BigDecimal.ZERO) return semanticError("Negative price for MenuItem ${i.id}")
-                if (i.commercialRevision < 0) return semanticError("Invalid commercialRevision for ${i.id}")
-                if (i.consumptionRevision < 0) return semanticError("Invalid consumptionRevision for ${i.id}")
+                if (i.commercialRevision <= 0) return semanticError("commercialRevision must be positive for ${i.id}")
+                if (i.consumptionRevision <= 0) return semanticError("consumptionRevision must be positive for ${i.id}")
 
                 items.add(
                     MenuItem(
@@ -99,7 +100,10 @@ class MenuPackageParser(private val json: Json) {
                         active = i.active,
                         displayOrder = i.displayOrder,
                         regularPrice = i.regularPrice,
-                        cashDiscountMode = i.cashDiscountMode,
+                        cashDiscountMode = when (i.cashDiscountMode) {
+                            com.venkoi.terminal.integration.menu.CashDiscountMode.APPLY_DEFAULT -> DomainCashDiscountMode.APPLY_DEFAULT
+                            com.venkoi.terminal.integration.menu.CashDiscountMode.NONE -> DomainCashDiscountMode.NONE
+                        },
                         commercialRevision = i.commercialRevision,
                         consumptionRevision = i.consumptionRevision
                     )

@@ -36,6 +36,10 @@ class RoomMenuRepository @Inject constructor(
         return menuDao.observeMenuItems().map { list -> list.map { it.toDomain() } }
     }
 
+    override fun observeActiveMenuItems(): Flow<List<MenuItem>> {
+        return menuDao.observeActiveMenuItems().map { list -> list.map { it.toDomain() } }
+    }
+
     override suspend fun installMenu(
         restaurant: RestaurantConfiguration,
         menu: PublishedMenu,

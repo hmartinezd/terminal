@@ -3,7 +3,7 @@ package com.venkoi.terminal.data.local.database
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.venkoi.terminal.core.Money
-import com.venkoi.terminal.integration.menu.CashDiscountMode
+import com.venkoi.terminal.domain.model.CashDiscountMode
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalTime

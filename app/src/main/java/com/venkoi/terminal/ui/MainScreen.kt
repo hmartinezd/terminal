@@ -28,7 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.venkoi.terminal.ui.MenuPreviewScreen
+import com.venkoi.terminal.ui.OrdersScreen
 import com.venkoi.terminal.ui.SettingsScreen
 
 sealed class Screen(val title: String, val icon: ImageVector) {
@@ -68,7 +68,7 @@ fun MainScreen() {
             contentAlignment = Alignment.TopStart
         ) {
             when (currentScreen) {
-                Screen.Orders -> MenuPreviewScreen()
+                Screen.Orders -> OrdersScreen()
                 Screen.Settings -> SettingsScreen()
                 else -> {
                     Column(

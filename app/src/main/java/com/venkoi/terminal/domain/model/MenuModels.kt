@@ -1,7 +1,6 @@
 package com.venkoi.terminal.domain.model
 
 import com.venkoi.terminal.core.Money
-import com.venkoi.terminal.integration.menu.CashDiscountMode
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
