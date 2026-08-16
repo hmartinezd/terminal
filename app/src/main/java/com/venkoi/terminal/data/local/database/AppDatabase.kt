@@ -7,5 +7,5 @@ import androidx.room.TypeConverters
 @Database(entities = [TerminalEntity::class], version = 1, exportSchema = true)
 @TypeConverters(TerminalTypeConverters::class)
 abstract class AppDatabase : RoomDatabase() {
-    // Placeholder for DAOs
+    abstract fun terminalDao(): TerminalDao
 }

@@ -54,8 +54,15 @@ class MoneyTest {
     }
 
     @Test
-    fun testSerialization() {
+    fun testSerializationRoundTrip() {
         val m = Money("123.456")
-        assertEquals("123.456", m.toString())
+        val json = kotlinx.serialization.json.Json.encodeToString(Money.serializer(), m)
+        
+        // Should serialize as a JSON string to preserve precision
+        assertEquals("\"123.456\"", json)
+        
+        val deserialized = kotlinx.serialization.json.Json.decodeFromString(Money.serializer(), json)
+        assertEquals(m, deserialized)
+        assertEquals("123.456", deserialized.amount.toPlainString())
     }
 }

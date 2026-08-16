@@ -2,12 +2,18 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "60e95252c591e750118d92a523bcf38c",
+    "identityHash": "868a6b9daa24ef262abbcb2719755a3d",
     "entities": [
       {
-        "tableName": "terminal",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`terminalId` TEXT NOT NULL, `restaurantId` TEXT NOT NULL, `timestamp` TEXT NOT NULL, PRIMARY KEY(`terminalId`))",
+        "tableName": "terminal_configuration",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `terminalId` TEXT NOT NULL, `restaurantId` TEXT NOT NULL, `terminalName` TEXT, `createdAt` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
           {
             "fieldPath": "terminalId",
             "columnName": "terminalId",
@@ -21,8 +27,13 @@
             "notNull": true
           },
           {
-            "fieldPath": "timestamp",
-            "columnName": "timestamp",
+            "fieldPath": "terminalName",
+            "columnName": "terminalName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -30,14 +41,14 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "terminalId"
+            "id"
           ]
         }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '60e95252c591e750118d92a523bcf38c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '868a6b9daa24ef262abbcb2719755a3d')"
     ]
   }
 }
