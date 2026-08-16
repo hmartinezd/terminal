@@ -1,4 +1,4 @@
-name: Android CI
+name: Three-project verification
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,23 +20,36 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-      
-    - name: Build with Gradle
+    - name: Grant execute permission for wrappers
+      run: chmod +x SalesTerminal/gradlew LicenseContract/gradlew LicenseAdmin/gradlew
+
+    - name: Build, test, and publish License Contract locally
+      working-directory: LicenseContract
+      run: ./gradlew build publishToMavenLocal
+
+    - name: Build and test License Admin
+      working-directory: LicenseAdmin
+      run: ./gradlew build
+
+    - name: Build Sales Terminal debug
+      working-directory: SalesTerminal
       run: ./gradlew assembleDebug
 
     - name: Run unit tests
+      working-directory: SalesTerminal
       run: ./gradlew test
 
     - name: Run lint
+      working-directory: SalesTerminal
       run: ./gradlew lint
 
     - name: Compile instrumentation tests
+      working-directory: SalesTerminal
       run: ./gradlew compileDebugAndroidTestKotlin
 
     - name: Verify minified release build with non-production public configuration
       env:
         CI_TEST_LICENSE_PUBLIC_KEY: MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEiDKg/uve//7qF6eWYI6xOWaeClbgGRyXU+nPIGlhDG5bhTCcCBwwocu1DXlhE4u3pGDYC7m/Mv03YZoWhLxdUw==
         CI_TEST_CERT_SHA256: 0000000000000000000000000000000000000000000000000000000000000000
+      working-directory: SalesTerminal
       run: ./gradlew assembleRelease -PLICENSE_AUTHORITY_PUBLIC_KEY="$CI_TEST_LICENSE_PUBLIC_KEY" -PEXPECTED_RELEASE_CERT_SHA256="$CI_TEST_CERT_SHA256"
