@@ -6,13 +6,16 @@ import com.venkoi.terminal.core.Money
 import com.venkoi.terminal.core.SaleId
 import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
+import com.venkoi.terminal.domain.repository.MenuRepository
 import com.venkoi.terminal.domain.repository.SaleRepository
+import com.venkoi.terminal.domain.repository.VoidResult
 import com.venkoi.terminal.domain.service.CalculateOrderTotals
 import com.venkoi.terminal.domain.service.OrderTotals
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class SaleWithTotal(
@@ -23,8 +26,13 @@ data class SaleWithTotal(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val saleRepository: SaleRepository
+    private val saleRepository: SaleRepository,
+    private val menuRepository: MenuRepository
 ) : ViewModel() {
+
+    val restaurantTimezone: StateFlow<ZoneId> = menuRepository.observeRestaurantConfiguration()
+        .map { it?.timezone ?: ZoneId.systemDefault() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ZoneId.systemDefault())
 
     val historySales: StateFlow<List<SaleWithTotal>> = saleRepository.observeHistorySales()
         .flatMapLatest { sales ->
@@ -56,13 +64,48 @@ class HistoryViewModel @Inject constructor(
         if (lines.isEmpty()) null else CalculateOrderTotals.calculate(lines)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    private val _isVoiding = MutableStateFlow(false)
+    val isVoiding: StateFlow<Boolean> = _isVoiding
+
+    private val _voidError = MutableStateFlow<String?>(null)
+    val voidError: StateFlow<String?> = _voidError
+
+    private val _voidSuccess = MutableStateFlow(false)
+    val voidSuccess: StateFlow<Boolean> = _voidSuccess
+
     fun selectSale(saleId: SaleId?) {
         _selectedSaleId.value = saleId
     }
 
     fun voidSale(saleId: SaleId) {
+        if (_isVoiding.value) return
+
+        _isVoiding.value = true
+        _voidError.value = null
+        _voidSuccess.value = false
+
         viewModelScope.launch {
-            saleRepository.voidSale(saleId)
+            try {
+                val result = saleRepository.voidSale(saleId)
+                when (result) {
+                    VoidResult.Success -> {
+                        _voidSuccess.value = true
+                    }
+                    VoidResult.AlreadyVoided -> {
+                        // Success because it's in the desired state
+                        _voidSuccess.value = true
+                    }
+                    VoidResult.NotCompleted -> _voidError.value = "Only completed sales can be voided"
+                    VoidResult.NotFound -> _voidError.value = "Sale not found"
+                }
+            } finally {
+                _isVoiding.value = false
+            }
         }
+    }
+
+    fun clearVoidFeedback() {
+        _voidError.value = null
+        _voidSuccess.value = false
     }
 }

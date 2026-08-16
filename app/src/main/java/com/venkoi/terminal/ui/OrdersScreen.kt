@@ -37,6 +37,8 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val categories by viewModel.categories.collectAsState()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
     val completionError by viewModel.completionError.collectAsState()
+    val isCompleting by viewModel.isCompleting.collectAsState()
+    val completionSuccess by viewModel.completionSuccess.collectAsState()
 
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showCompleteDialog by remember { mutableStateOf(false) }
@@ -64,7 +66,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
 
     if (showCompleteDialog) {
         AlertDialog(
-            onDismissRequest = { showCompleteDialog = false },
+            onDismissRequest = { if (!isCompleting) showCompleteDialog = false },
             title = { Text("Complete Sale?") },
             text = {
                 Column {
@@ -75,31 +77,47 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         TotalRow("TRANSFER Total", t.transferTotal.toString())
                         TotalRow("GRAND TOTAL", t.grandTotal.toString(), style = MaterialTheme.typography.titleMedium)
                     }
+                    if (isCompleting) {
+                        Spacer(Modifier.height(16.dp))
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.completeSale()
-                    showCompleteDialog = false
-                }) {
+                TextButton(
+                    onClick = { viewModel.completeSale() },
+                    enabled = !isCompleting
+                ) {
                     Text("Complete Sale")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCompleteDialog = false }) {
+                TextButton(
+                    onClick = { showCompleteDialog = false },
+                    enabled = !isCompleting
+                ) {
                     Text("Cancel")
                 }
             }
         )
     }
 
+    LaunchedEffect(completionSuccess) {
+        if (completionSuccess) {
+            showCompleteDialog = false
+            // The success feedback can be shown via a Snackbar if we had one,
+            // but for now, the sale will just disappear from the list.
+            viewModel.clearCompletionFeedback()
+        }
+    }
+
     if (completionError != null) {
         AlertDialog(
-            onDismissRequest = { viewModel.clearCompletionError() },
+            onDismissRequest = { viewModel.clearCompletionFeedback() },
             title = { Text("Completion Error") },
             text = { Text(completionError!!) },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearCompletionError() }) {
+                TextButton(onClick = { viewModel.clearCompletionFeedback() }) {
                     Text("OK")
                 }
             }

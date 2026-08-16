@@ -18,6 +18,8 @@ class CompleteSale @Inject constructor(
     private val clock: Clock
 ) {
     suspend fun execute(saleId: SaleId): SaleCompletionResult {
+        val now = clock.now()
+        
         val saleEntity = saleDao.getSaleSync(saleId) ?: return SaleCompletionResult.NotFound
         if (saleEntity.status != SaleStatus.OPEN) return SaleCompletionResult.NotOpen
 
@@ -31,23 +33,23 @@ class CompleteSale @Inject constructor(
         val restaurant = menuRepository.getRestaurantConfiguration()
             ?: return SaleCompletionResult.Failure("Restaurant configuration missing")
 
-        val now = clock.now()
         val businessDate = businessDateResolver.resolve(
             instant = now,
             zoneId = restaurant.timezone,
             cutoff = restaurant.businessDayCutoff
         )
 
-        val completedSale = saleEntity.copy(
-            status = SaleStatus.COMPLETED,
-            revision = 1,
-            completedAtUtc = now,
+        val affected = saleDao.completeSaleGuarded(
+            saleId = saleId,
+            completedAt = now,
             businessDate = businessDate,
-            updatedAtUtc = now
+            updatedAt = now
         )
 
-        saleDao.insertSale(completedSale)
-
-        return SaleCompletionResult.Success
+        return if (affected > 0) {
+            SaleCompletionResult.Success
+        } else {
+            SaleCompletionResult.NotOpen
+        }
     }
 }

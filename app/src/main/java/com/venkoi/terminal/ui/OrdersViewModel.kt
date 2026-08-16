@@ -64,8 +64,14 @@ class OrdersViewModel @Inject constructor(
         if (selectedId == null) items else items.filter { it.categoryId == selectedId }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _isCompleting = MutableStateFlow(false)
+    val isCompleting: StateFlow<Boolean> = _isCompleting
+
     private val _completionError = MutableStateFlow<String?>(null)
     val completionError: StateFlow<String?> = _completionError
+
+    private val _completionSuccess = MutableStateFlow(false)
+    val completionSuccess: StateFlow<Boolean> = _completionSuccess
 
     fun selectCategory(categoryId: String?) {
         _selectedCategoryId.value = categoryId
@@ -128,23 +134,34 @@ class OrdersViewModel @Inject constructor(
 
     fun completeSale() {
         val saleId = _selectedOrderId.value ?: return
+        if (_isCompleting.value) return
+
+        _isCompleting.value = true
         _completionError.value = null
+        _completionSuccess.value = false
+
         viewModelScope.launch {
-            val result = saleRepository.completeSale(saleId)
-            when (result) {
-                SaleCompletionResult.Success -> {
-                    _selectedOrderId.value = null
+            try {
+                val result = saleRepository.completeSale(saleId)
+                when (result) {
+                    SaleCompletionResult.Success -> {
+                        _selectedOrderId.value = null
+                        _completionSuccess.value = true
+                    }
+                    is SaleCompletionResult.Failure -> _completionError.value = result.message
+                    SaleCompletionResult.EmptySale -> _completionError.value = "Cannot complete an empty sale"
+                    SaleCompletionResult.InvalidQuantity -> _completionError.value = "One or more items have invalid quantity"
+                    SaleCompletionResult.NotFound -> _completionError.value = "Sale not found"
+                    SaleCompletionResult.NotOpen -> _completionError.value = "Sale is not open"
                 }
-                is SaleCompletionResult.Failure -> _completionError.value = result.message
-                SaleCompletionResult.EmptySale -> _completionError.value = "Cannot complete an empty sale"
-                SaleCompletionResult.InvalidQuantity -> _completionError.value = "One or more items have invalid quantity"
-                SaleCompletionResult.NotFound -> _completionError.value = "Sale not found"
-                SaleCompletionResult.NotOpen -> _completionError.value = "Sale is not open"
+            } finally {
+                _isCompleting.value = false
             }
         }
     }
 
-    fun clearCompletionError() {
+    fun clearCompletionFeedback() {
         _completionError.value = null
+        _completionSuccess.value = false
     }
 }

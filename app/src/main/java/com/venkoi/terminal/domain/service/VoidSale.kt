@@ -12,6 +12,7 @@ class VoidSale @Inject constructor(
     private val clock: Clock
 ) {
     suspend fun execute(saleId: SaleId): VoidResult {
+        val now = clock.now()
         val saleEntity = saleDao.getSaleSync(saleId) ?: return VoidResult.NotFound
         
         if (saleEntity.status == SaleStatus.VOIDED) {
@@ -22,15 +23,22 @@ class VoidSale @Inject constructor(
             return VoidResult.NotCompleted
         }
 
-        val voidedSale = saleEntity.copy(
-            status = SaleStatus.VOIDED,
-            revision = 2,
-            voidedAtUtc = clock.now(),
-            updatedAtUtc = clock.now()
+        val affected = saleDao.voidSaleGuarded(
+            saleId = saleId,
+            voidedAt = now,
+            updatedAt = now
         )
 
-        saleDao.insertSale(voidedSale)
-
-        return VoidResult.Success
+        return if (affected > 0) {
+            VoidResult.Success
+        } else {
+            // Re-read to see if it was already voided by someone else
+            val reRead = saleDao.getSaleSync(saleId)
+            if (reRead?.status == SaleStatus.VOIDED) {
+                VoidResult.AlreadyVoided
+            } else {
+                VoidResult.NotCompleted
+            }
+        }
     }
 }

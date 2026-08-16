@@ -18,11 +18,20 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @Composable
-fun HistoryDetailScreen(sale: Sale, viewModel: HistoryViewModel) {
+fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, viewModel: HistoryViewModel) {
     val lines by viewModel.selectedSaleLines.collectAsState()
     val totals by viewModel.selectedSaleTotals.collectAsState()
+    val isVoiding by viewModel.isVoiding.collectAsState()
+    val voidError by viewModel.voidError.collectAsState()
+    val voidSuccess by viewModel.voidSuccess.collectAsState()
     
     var showVoidDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(voidError) {
+        voidError?.let {
+            // In a real app we might show a snackbar
+        }
+    }
 
     if (showVoidDialog) {
         AlertDialog(
@@ -61,9 +70,14 @@ fun HistoryDetailScreen(sale: Sale, viewModel: HistoryViewModel) {
             if (sale.status == SaleStatus.COMPLETED) {
                 Button(
                     onClick = { showVoidDialog = true },
+                    enabled = !isVoiding,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Void Sale")
+                    if (isVoiding) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Void Sale")
+                    }
                 }
             } else if (sale.status == SaleStatus.VOIDED) {
                 Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
@@ -74,7 +88,7 @@ fun HistoryDetailScreen(sale: Sale, viewModel: HistoryViewModel) {
         
         Spacer(Modifier.height(16.dp))
         
-        val dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withZone(ZoneId.systemDefault())
+        val dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withZone(timezone)
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
@@ -88,6 +102,16 @@ fun HistoryDetailScreen(sale: Sale, viewModel: HistoryViewModel) {
         Spacer(Modifier.height(16.dp))
         HorizontalDivider()
         
+        voidError?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
+        }
+
+        if (voidSuccess) {
+            Text("Sale voided successfully", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
+        }
+
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(lines) { line ->
                 HistoryLineItem(line)

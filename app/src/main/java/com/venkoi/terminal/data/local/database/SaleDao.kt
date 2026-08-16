@@ -9,6 +9,7 @@ import com.venkoi.terminal.core.LineId
 import com.venkoi.terminal.core.SaleId
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
+import java.time.LocalDate
 
 @Dao
 interface SaleDao {
@@ -36,31 +37,55 @@ interface SaleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSaleLines(lines: List<SaleLineEntity>)
 
+    @Query("UPDATE sales SET status = 'COMPLETED', revision = 1, completedAtUtc = :completedAt, businessDate = :businessDate, updatedAtUtc = :updatedAt WHERE saleId = :saleId AND status = 'OPEN' AND revision IS NULL")
+    suspend fun completeSaleGuarded(
+        saleId: SaleId,
+        completedAt: Instant,
+        businessDate: LocalDate,
+        updatedAt: Instant
+    ): Int
+
+    @Query("UPDATE sales SET status = 'VOIDED', revision = 2, voidedAtUtc = :voidedAt, updatedAtUtc = :updatedAt WHERE saleId = :saleId AND status = 'COMPLETED' AND revision = 1")
+    suspend fun voidSaleGuarded(
+        saleId: SaleId,
+        voidedAt: Instant,
+        updatedAt: Instant
+    ): Int
+
+    @Query("UPDATE sales SET tableLabel = :label, updatedAtUtc = :updatedAt WHERE saleId = :saleId AND status = 'OPEN'")
+    suspend fun updateSaleLabelGuarded(saleId: SaleId, label: String?, updatedAt: Instant): Int
+
     @Query("DELETE FROM sale_lines WHERE lineId = :lineId AND saleId = :saleId")
     suspend fun deleteSaleLineScoped(lineId: LineId, saleId: SaleId)
 
-    @Query("UPDATE sales SET status = 'DISCARDED', updatedAtUtc = :updatedAt WHERE saleId = :saleId")
-    suspend fun discardSale(saleId: SaleId, updatedAt: Instant)
+    @Query("UPDATE sales SET status = 'DISCARDED', updatedAtUtc = :updatedAt WHERE saleId = :saleId AND status = 'OPEN'")
+    suspend fun discardSaleGuarded(saleId: SaleId, updatedAt: Instant): Int
 
     @Transaction
     suspend fun upsertSaleWithLines(sale: SaleEntity, lines: List<SaleLineEntity>) {
-        insertSale(sale)
-        insertSaleLines(lines)
+        val affected = updateSaleTimestampGuarded(sale.saleId, sale.updatedAtUtc)
+        if (affected > 0) {
+            insertSaleLines(lines)
+        }
     }
 
-    @Query("DELETE FROM sale_lines WHERE saleId = :saleId")
-    suspend fun deleteSaleLines(saleId: SaleId)
+    @Query("UPDATE sales SET updatedAtUtc = :updatedAt WHERE saleId = :saleId AND status = 'OPEN'")
+    suspend fun updateSaleTimestampGuarded(saleId: SaleId, updatedAt: Instant): Int
 
     @Transaction
-    suspend fun removeLineAndUpdateSale(saleId: SaleId, lineId: LineId, sale: SaleEntity) {
-        deleteSaleLineScoped(lineId, saleId)
-        insertSale(sale)
+    suspend fun removeLineAndUpdateSale(saleId: SaleId, lineId: LineId, updatedAt: Instant) {
+        val affected = updateSaleTimestampGuarded(saleId, updatedAt)
+        if (affected > 0) {
+            deleteSaleLineScoped(lineId, saleId)
+        }
     }
 
     @Transaction
-    suspend fun updateLinesAndSale(sale: SaleEntity, lines: List<SaleLineEntity>) {
-        insertSale(sale)
-        insertSaleLines(lines)
+    suspend fun updateLinesAndSale(saleId: SaleId, lines: List<SaleLineEntity>, updatedAt: Instant) {
+        val affected = updateSaleTimestampGuarded(saleId, updatedAt)
+        if (affected > 0) {
+            insertSaleLines(lines)
+        }
     }
 
     @Transaction
@@ -68,11 +93,13 @@ interface SaleDao {
         saleId: SaleId,
         lineIdToRemove: LineId,
         lineEntityToUpdate: SaleLineEntity,
-        saleEntity: SaleEntity
+        updatedAt: Instant
     ) {
-        deleteSaleLineScoped(lineIdToRemove, saleId)
-        insertSaleLines(listOf(lineEntityToUpdate))
-        insertSale(saleEntity)
+        val affected = updateSaleTimestampGuarded(saleId, updatedAt)
+        if (affected > 0) {
+            deleteSaleLineScoped(lineIdToRemove, saleId)
+            insertSaleLines(listOf(lineEntityToUpdate))
+        }
     }
 
     @Query("DELETE FROM sale_lines")

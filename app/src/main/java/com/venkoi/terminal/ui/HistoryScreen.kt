@@ -24,6 +24,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
     val sales by viewModel.historySales.collectAsState()
     val selectedSaleId by viewModel.selectedSaleId.collectAsState()
     val selectedSale by viewModel.selectedSale.collectAsState()
+    val timezone by viewModel.restaurantTimezone.collectAsState()
 
     Row(modifier = Modifier.fillMaxSize()) {
         // Left Panel: Sale List
@@ -40,6 +41,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                     SaleHistoryItem(
                         item = sale,
                         isSelected = selectedSaleId == sale.sale.saleId,
+                        timezone = timezone,
                         onClick = { viewModel.selectSale(sale.sale.saleId) }
                     )
                 }
@@ -51,7 +53,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         // Right Panel: Detail
         Box(modifier = Modifier.weight(1f)) {
             selectedSale?.let { sale ->
-                HistoryDetailScreen(sale = sale, viewModel = viewModel)
+                HistoryDetailScreen(sale = sale, timezone = timezone, viewModel = viewModel)
             } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Select a sale to view details", style = MaterialTheme.typography.bodyLarge)
             }
@@ -60,9 +62,9 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
 }
 
 @Composable
-fun SaleHistoryItem(item: SaleWithTotal, isSelected: Boolean, onClick: () -> Unit) {
+fun SaleHistoryItem(item: SaleWithTotal, isSelected: Boolean, timezone: ZoneId, onClick: () -> Unit) {
     val sale = item.sale
-    val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault())
+    val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(timezone)
     
     ListItem(
         headlineContent = { Text(sale.tableLabel?.ifBlank { null } ?: sale.saleId.value.takeLast(8)) },

@@ -73,11 +73,7 @@ class RoomSaleRepository @Inject constructor(
     }
 
     override suspend fun updateSaleLabel(saleId: SaleId, label: String?) {
-        val saleEntity = saleDao.getSaleSync(saleId) ?: return
-        if (saleEntity.status != SaleStatus.OPEN) return
-
-        val updated = saleEntity.toDomain().copy(tableLabel = label, updatedAtUtc = clock.now())
-        saleDao.insertSale(SaleEntity.fromDomain(updated))
+        saleDao.updateSaleLabelGuarded(saleId, label, clock.now())
     }
 
     override suspend fun addItem(saleId: SaleId, menuItemId: String) {
@@ -136,10 +132,10 @@ class RoomSaleRepository @Inject constructor(
         if (equivalentLine != null) {
             updateLineQuantity(saleId, equivalentLine.toDomain().lineId, equivalentLine.quantity.add(BigDecimal.ONE))
         } else {
-            val updatedSale = saleEntity.toDomain().copy(updatedAtUtc = clock.now())
             saleDao.updateLinesAndSale(
-                SaleEntity.fromDomain(updatedSale),
-                listOf(SaleLineEntity.fromDomain(line))
+                saleId = saleId,
+                lines = listOf(SaleLineEntity.fromDomain(line)),
+                updatedAt = clock.now()
             )
         }
     }
@@ -177,10 +173,10 @@ class RoomSaleRepository @Inject constructor(
             lineTotal = pricing.lineTotal
         )
         
-        val updatedSale = saleEntity.toDomain().copy(updatedAtUtc = clock.now())
         saleDao.updateLinesAndSale(
-            SaleEntity.fromDomain(updatedSale),
-            listOf(SaleLineEntity.fromDomain(updatedLine))
+            saleId = saleId,
+            lines = listOf(SaleLineEntity.fromDomain(updatedLine)),
+            updatedAt = clock.now()
         )
     }
 
@@ -224,7 +220,6 @@ class RoomSaleRepository @Inject constructor(
             it.cashDiscountPolicyPercentSnapshot.compareTo(line.cashDiscountPolicyPercentSnapshot) == 0
         }
 
-        val updatedSale = saleEntity.toDomain().copy(updatedAtUtc = clock.now())
         if (otherEquivalent != null) {
             val mergedLine = otherEquivalent.toDomain().copy(
                 quantity = otherEquivalent.quantity.add(line.quantity),
@@ -248,32 +243,23 @@ class RoomSaleRepository @Inject constructor(
                 saleId = saleId,
                 lineIdToRemove = lineId,
                 lineEntityToUpdate = SaleLineEntity.fromDomain(finalMergedLine),
-                saleEntity = SaleEntity.fromDomain(updatedSale)
+                updatedAt = clock.now()
             )
         } else {
             saleDao.updateLinesAndSale(
-                SaleEntity.fromDomain(updatedSale),
-                listOf(SaleLineEntity.fromDomain(updatedLine))
+                saleId = saleId,
+                lines = listOf(SaleLineEntity.fromDomain(updatedLine)),
+                updatedAt = clock.now()
             )
         }
     }
 
     override suspend fun removeLine(saleId: SaleId, lineId: LineId) {
-        val saleEntity = saleDao.getSaleSync(saleId) ?: return
-        if (saleEntity.status != SaleStatus.OPEN) return
-        
-        val lines = saleDao.getSaleLinesSync(saleId)
-        if (lines.none { it.lineId == lineId }) return
-
-        val updatedSale = saleEntity.toDomain().copy(updatedAtUtc = clock.now())
-        saleDao.removeLineAndUpdateSale(saleId, lineId, SaleEntity.fromDomain(updatedSale))
+        saleDao.removeLineAndUpdateSale(saleId, lineId, clock.now())
     }
 
     override suspend fun discardSale(saleId: SaleId) {
-        val saleEntity = saleDao.getSaleSync(saleId) ?: return
-        if (saleEntity.status != SaleStatus.OPEN) return
-        
-        saleDao.discardSale(saleId, clock.now())
+        saleDao.discardSaleGuarded(saleId, clock.now())
     }
 
     override suspend fun completeSale(saleId: SaleId): SaleCompletionResult {
