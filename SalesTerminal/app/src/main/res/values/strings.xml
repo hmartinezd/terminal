@@ -96,6 +96,14 @@
     <string name="settings_export_nothing_pending">All sales changes have been exported.</string>
     <string name="settings_export_failed">Sales export failed. Please try again.</string>
     <string name="settings_export_bookkeeping_failed">The file was created, but export tracking could not be updated. It is safe to export again.</string>
+    <string name="settings_choose_export_method">Choose export method</string>
+    <string name="settings_choose_export_method_message">Save the sales export as a file or share it with another app.</string>
+    <string name="settings_save_file">Save file</string>
+    <string name="settings_share">Share</string>
+    <string name="settings_share_title">Share sales export</string>
+    <string name="settings_share_subject">Sales export</string>
+    <string name="settings_share_ready">Sales export ready to share.</string>
+    <string name="settings_share_failed">Unable to share sales export. Please try again.</string>
     <plurals name="settings_export_success"><item quantity="one">%d sale exported.</item><item quantity="other">%d sales exported.</item></plurals>
 
     <string name="settings_section_language">LANGUAGE</string>

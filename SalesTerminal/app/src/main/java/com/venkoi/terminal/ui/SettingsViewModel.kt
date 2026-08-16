@@ -29,6 +29,7 @@ import com.venkoi.terminal.core.Clock
 import com.venkoi.terminal.core.IdGenerator
 import com.venkoi.terminal.data.file.DocumentWriteResult
 import com.venkoi.terminal.data.file.SalesBatchDocumentWriter
+import com.venkoi.terminal.data.file.SalesExportShareManager
 import com.venkoi.terminal.domain.model.ExportedSaleRevision
 import com.venkoi.terminal.domain.model.PreparedSalesExport
 import com.venkoi.terminal.domain.model.SaleExportSummary
@@ -56,6 +57,7 @@ class SettingsViewModel @Inject constructor(
     private val salesExportRepository: SalesExportRepository,
     private val buildSalesBatch: BuildSalesBatch,
     private val documentWriter: SalesBatchDocumentWriter,
+    private val shareManager: SalesExportShareManager,
     private val exportSalesCoordinator: ExportSalesCoordinator,
     private val resolveCurrentReportBusinessDate: ResolveCurrentReportBusinessDate,
     private val clock: Clock,
@@ -224,8 +226,39 @@ class SettingsViewModel @Inject constructor(
                 ExportCoordinationResult.Success -> exportMessage = ExportMessage.Success(prepared.revisions.size)
                 is ExportCoordinationResult.WriteFailed -> exportMessage = ExportMessage.Failed
                 is ExportCoordinationResult.BookkeepingFailed -> exportMessage = ExportMessage.BookkeepingFailed
+                is ExportCoordinationResult.HandoffFailed -> exportMessage = ExportMessage.Failed
             } } catch (_: Exception) {
                 exportMessage = ExportMessage.Failed
+            } finally {
+                isExporting = false
+            }
+        }
+    }
+
+    fun cancelPreparedExport() {
+        if (!isExporting) pendingDocument = null
+    }
+
+    fun sharePreparedExport() {
+        if (isExporting) return
+        val prepared = pendingDocument ?: return
+        pendingDocument = null
+        isExporting = true
+        viewModelScope.launch {
+            try {
+                when (exportSalesCoordinator.executeShare(
+                    prepared = prepared,
+                    handoff = { exact -> shareManager.share(exact.json, exact.suggestedFileName) },
+                    markExactRevisions = { exact ->
+                        salesExportRepository.markExported(exact.revisions, exact.exportedAtUtc, exact.batchId)
+                    }
+                )) {
+                    ExportCoordinationResult.Success -> exportMessage = ExportMessage.ShareReady
+                    is ExportCoordinationResult.BookkeepingFailed -> exportMessage = ExportMessage.BookkeepingFailed
+                    else -> exportMessage = ExportMessage.ShareFailed
+                }
+            } catch (_: Exception) {
+                exportMessage = ExportMessage.ShareFailed
             } finally {
                 isExporting = false
             }
@@ -271,5 +304,7 @@ sealed interface ExportMessage {
     data object NoSalesForDay : ExportMessage
     data object Failed : ExportMessage
     data object BookkeepingFailed : ExportMessage
+    data object ShareFailed : ExportMessage
+    data object ShareReady : ExportMessage
     data class Success(val count: Int) : ExportMessage
 }

@@ -45,6 +45,8 @@ fun SettingsScreen(
     val noSalesMsg = stringResource(R.string.reports_no_sales)
     val exportFailedMsg = stringResource(R.string.settings_export_failed)
     val bookkeepingFailedMsg = stringResource(R.string.settings_export_bookkeeping_failed)
+    val shareFailedMsg = stringResource(R.string.settings_share_failed)
+    val shareReadyMsg = stringResource(R.string.settings_share_ready)
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -63,9 +65,6 @@ fun SettingsScreen(
     ) { uri -> uri?.let(viewModel::onImportLicense) }
 
     LaunchedEffect(Unit) { viewModel.ensureDefaultBusinessDate() }
-    LaunchedEffect(viewModel.pendingDocument) {
-        viewModel.pendingDocument?.let { exportLauncher.launch(it.suggestedFileName) }
-    }
     LaunchedEffect(viewModel.pendingActivationJson) {
         if (viewModel.pendingActivationJson != null) activationLauncher.launch(viewModel.pendingActivationFileName ?: "sales_terminal_activation.json")
     }
@@ -87,6 +86,8 @@ fun SettingsScreen(
             ExportMessage.NoSalesForDay -> noSalesMsg
             ExportMessage.Failed -> exportFailedMsg
             ExportMessage.BookkeepingFailed -> bookkeepingFailedMsg
+            ExportMessage.ShareFailed -> shareFailedMsg
+            ExportMessage.ShareReady -> shareReadyMsg
             is ExportMessage.Success -> resources.getQuantityString(R.plurals.settings_export_success, result.count, result.count)
             null -> null
         }
@@ -245,6 +246,24 @@ fun SettingsScreen(
             },
             dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.dialog_cancel)) } }
         ) { DatePicker(state = pickerState) }
+    }
+
+    viewModel.pendingDocument?.let { prepared ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelPreparedExport,
+            title = { Text(stringResource(R.string.settings_choose_export_method)) },
+            text = { Text(stringResource(R.string.settings_choose_export_method_message)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::sharePreparedExport) {
+                    Text(stringResource(R.string.settings_share))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { exportLauncher.launch(prepared.suggestedFileName) }) {
+                    Text(stringResource(R.string.settings_save_file))
+                }
+            }
+        )
     }
 }
 

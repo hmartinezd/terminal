@@ -96,6 +96,14 @@
     <string name="settings_export_nothing_pending">Todos los cambios de ventas han sido exportados.</string>
     <string name="settings_export_failed">Error al exportar ventas. Inténtelo de nuevo.</string>
     <string name="settings_export_bookkeeping_failed">El archivo fue creado, pero no se pudo actualizar el seguimiento. Es seguro exportar de nuevo.</string>
+    <string name="settings_choose_export_method">Elegir método de exportación</string>
+    <string name="settings_choose_export_method_message">Guarde la exportación de ventas como archivo o compártala con otra aplicación.</string>
+    <string name="settings_save_file">Guardar archivo</string>
+    <string name="settings_share">Compartir</string>
+    <string name="settings_share_title">Compartir exportación de ventas</string>
+    <string name="settings_share_subject">Exportación de ventas</string>
+    <string name="settings_share_ready">La exportación de ventas está lista para compartir.</string>
+    <string name="settings_share_failed">No se pudo compartir la exportación de ventas. Inténtelo de nuevo.</string>
     <plurals name="settings_export_success"><item quantity="one">Se exportó %d venta.</item><item quantity="other">Se exportaron %d ventas.</item></plurals>
 
     <string name="settings_section_language">IDIOMA</string>

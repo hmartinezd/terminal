@@ -49,4 +49,27 @@ class ExportSalesCoordinatorTest {
         assertTrue(wrote)
         assertTrue(result is ExportCoordinationResult.BookkeepingFailed)
     }
+
+    @Test fun `share uses exact prepared payload and marks only after handoff`() = runBlocking {
+        var handedOff: PreparedSalesExport? = null
+        var marked: PreparedSalesExport? = null
+        val result = coordinator.executeShare(prepared, { handedOff = it; true }, { marked = it })
+        assertEquals(ExportCoordinationResult.Success, result)
+        assertEquals(prepared, handedOff)
+        assertEquals(prepared, marked)
+    }
+
+    @Test fun `failed share handoff never marks revisions`() = runBlocking {
+        var marks = 0
+        val result = coordinator.executeShare(prepared, { false }, { marks++ })
+        assertTrue(result is ExportCoordinationResult.HandoffFailed)
+        assertEquals(0, marks)
+    }
+
+    @Test fun `share exception never marks revisions`() = runBlocking {
+        var marks = 0
+        val result = coordinator.executeShare(prepared, { throw IllegalStateException("chooser") }, { marks++ })
+        assertTrue(result is ExportCoordinationResult.HandoffFailed)
+        assertEquals(0, marks)
+    }
 }

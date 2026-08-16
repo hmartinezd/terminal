@@ -9,6 +9,7 @@ sealed interface ExportCoordinationResult {
     data object Success : ExportCoordinationResult
     data class WriteFailed(val failure: DocumentWriteResult.Failure) : ExportCoordinationResult
     data class BookkeepingFailed(val cause: Exception) : ExportCoordinationResult
+    data class HandoffFailed(val cause: Exception? = null) : ExportCoordinationResult
 }
 
 /** Enforces the duplicate-safe write-first boundary independently of Android UI. */
@@ -28,6 +29,26 @@ class ExportSalesCoordinator @Inject constructor() {
             } catch (error: Exception) {
                 ExportCoordinationResult.BookkeepingFailed(error)
             }
+        }
+    }
+
+    /** Marks only the immutable prepared revisions, and only after Android accepts the share handoff. */
+    suspend fun executeShare(
+        prepared: PreparedSalesExport,
+        handoff: suspend (PreparedSalesExport) -> Boolean,
+        markExactRevisions: suspend (PreparedSalesExport) -> Unit
+    ): ExportCoordinationResult {
+        val handedOff = try {
+            handoff(prepared)
+        } catch (error: Exception) {
+            return ExportCoordinationResult.HandoffFailed(error)
+        }
+        if (!handedOff) return ExportCoordinationResult.HandoffFailed()
+        return try {
+            markExactRevisions(prepared)
+            ExportCoordinationResult.Success
+        } catch (error: Exception) {
+            ExportCoordinationResult.BookkeepingFailed(error)
         }
     }
 }
