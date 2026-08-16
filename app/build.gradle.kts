@@ -30,6 +30,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 // Built-in Kotlin configuration (AGP 9.0+)
 kotlin {
     compilerOptions {

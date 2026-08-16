@@ -1,7 +1,13 @@
-package com.venkoi.terminal.data.dto
+package com.venkoi.terminal.integration.menu
 
 import com.venkoi.terminal.core.Money
 import kotlinx.serialization.Serializable
+
+@Serializable
+enum class CashDiscountMode {
+    APPLY_DEFAULT,
+    NONE
+}
 
 @Serializable
 data class MenuPackageV1(
@@ -48,7 +54,7 @@ data class MenuItemDto(
     val active: Boolean,
     val displayOrder: Int,
     val regularPrice: Money,
-    val cashDiscountMode: String, // APPLY_DEFAULT, NONE
+    val cashDiscountMode: CashDiscountMode,
     val commercialRevision: Int,
     val consumptionRevision: Int
 )

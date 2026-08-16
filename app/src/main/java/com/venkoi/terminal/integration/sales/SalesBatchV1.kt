@@ -1,7 +1,19 @@
-package com.venkoi.terminal.data.dto
+package com.venkoi.terminal.integration.sales
 
 import com.venkoi.terminal.core.Money
 import kotlinx.serialization.Serializable
+
+@Serializable
+enum class SaleStatus {
+    COMPLETED,
+    VOIDED
+}
+
+@Serializable
+enum class PricingMode {
+    CASH,
+    TRANSFER
+}
 
 @Serializable
 data class SalesBatchV1(
@@ -22,7 +34,7 @@ data class SalesBatchV1(
 data class SaleDto(
     val saleId: String,
     val revision: Int,
-    val status: String, // COMPLETED, VOIDED
+    val status: SaleStatus,
     val openedAtUtc: String,
     val completedAtUtc: String?,
     val voidedAtUtc: String?,
@@ -40,7 +52,7 @@ data class SaleLineDto(
     val itemNameSnapshot: String,
     val quantity: String, // BigDecimal as String
     val regularUnitPriceSnapshot: Money,
-    val pricingMode: String, // CASH, TRANSFER
+    val pricingMode: PricingMode,
     val cashDiscountApplied: Boolean,
     val cashDiscountPercentSnapshot: String,
     val cashDiscountAmountSnapshot: Money,
