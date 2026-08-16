@@ -2,11 +2,11 @@ package com.venkoi.terminal.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Branding - Restrained Indigo
-val TerminalPrimary = Color(0xFF3F51B5)
+// Primary Branding - Clear action blue
+val TerminalPrimary = Color(0xFF2563EB)
 val TerminalOnPrimary = Color(0xFFFFFFFF)
-val TerminalPrimaryContainer = Color(0xFFE8EAF6)
-val TerminalOnPrimaryContainer = Color(0xFF1A237E)
+val TerminalPrimaryContainer = Color(0xFFDBEAFE)
+val TerminalOnPrimaryContainer = Color(0xFF1E3A8A)
 
 // Neutrals for Surfaces
 val TerminalBackground = Color(0xFFF5F7FA)

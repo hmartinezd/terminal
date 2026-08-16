@@ -44,6 +44,62 @@ class BuildSalesBatchTest {
         builder("restaurant", "terminal", "batch", Instant.EPOCH, listOf(snapshot(SaleStatus.COMPLETED, 2)))
     }
 
+    @Test fun `maps completed revision one persisted fields exactly`() {
+        val source = snapshot(SaleStatus.COMPLETED, 1)
+        val dto = builder(
+            "restaurant", "terminal", "batch", Instant.parse("2026-08-16T03:00:00Z"), listOf(source)
+        ).sales.single()
+
+        assertEquals("sale", dto.saleId)
+        assertEquals(1, dto.revision)
+        assertEquals("COMPLETED", dto.status.name)
+        assertEquals("Patio", dto.tableLabel)
+        assertEquals("USD", dto.currencyCodeSnapshot)
+        assertEquals(3, dto.currencyScaleSnapshot)
+        source.lines.sortedBy { it.lineId.value }.zip(dto.lines).forEach { (persisted, exported) ->
+            assertEquals(persisted.lineId.value, exported.lineId)
+            assertEquals(persisted.menuItemId, exported.menuItemId)
+            assertEquals(persisted.commercialRevision, exported.commercialRevision)
+            assertEquals(persisted.consumptionRevision, exported.consumptionRevision)
+            assertEquals(persisted.itemNameSnapshot, exported.itemNameSnapshot)
+            assertEquals(persisted.quantity.toPlainString(), exported.quantity)
+            assertEquals(persisted.regularUnitPriceSnapshot, exported.regularUnitPriceSnapshot)
+            assertEquals(persisted.pricingMode.name, exported.pricingMode.name)
+            assertEquals(persisted.cashDiscountApplied, exported.cashDiscountApplied)
+            assertEquals(persisted.cashDiscountPercent.toPlainString(), exported.cashDiscountPercentSnapshot)
+            assertEquals(persisted.cashDiscountAmount, exported.cashDiscountAmountSnapshot)
+            assertEquals(persisted.finalUnitPrice, exported.finalUnitPriceSnapshot)
+            assertEquals(persisted.lineTotal, exported.lineTotal)
+        }
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `rejects a sale from another terminal`() {
+        val value = snapshot(SaleStatus.COMPLETED, 1)
+        builder("restaurant", "other-terminal", "batch", Instant.EPOCH, listOf(value))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `rejects a line belonging to another sale`() {
+        val value = snapshot(SaleStatus.COMPLETED, 1)
+        val mismatched = value.copy(lines = value.lines.toMutableList().also {
+            it[0] = it[0].copy(saleId = SaleId("different-sale"))
+        })
+        builder("restaurant", "terminal", "batch", Instant.EPOCH, listOf(mismatched))
+    }
+
+    @Test fun `duplicate builds change envelope identity but not persisted sale payload`() {
+        val source = snapshot(SaleStatus.COMPLETED, 1)
+        val first = builder("restaurant", "terminal", "batch-1", Instant.EPOCH, listOf(source))
+        val second = builder("restaurant", "terminal", "batch-2", Instant.EPOCH.plusSeconds(1), listOf(source))
+
+        assertTrue(first.batchId != second.batchId)
+        assertTrue(first.exportedAtUtc != second.exportedAtUtc)
+        assertEquals(first.sales, second.sales)
+        assertEquals(SaleStatus.COMPLETED, source.sale.status)
+        assertEquals(1, source.sale.revision)
+    }
+
     private fun snapshot(status: SaleStatus, revision: Int): SaleWithLines {
         val saleId = SaleId("sale")
         val sale = Sale(saleId, TerminalId("terminal"), Instant.EPOCH, Instant.EPOCH, "Patio", status,

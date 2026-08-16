@@ -29,6 +29,8 @@ import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.repository.SaleCompletionResult
 import com.venkoi.terminal.ui.components.QuantityControl
 import com.venkoi.terminal.ui.components.TerminalCard
+import com.venkoi.terminal.ui.components.CategoryPalette
+import com.venkoi.terminal.ui.components.MenuProductCard
 import java.math.BigDecimal
 
 @Composable
@@ -44,6 +46,9 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val completionResult by viewModel.completionResult.collectAsState()
     val isCompleting by viewModel.isCompleting.collectAsState()
     val completionSuccess by viewModel.completionSuccess.collectAsState()
+    val categoryStyles = remember(categories) {
+        CategoryPalette.resolve(categories.sortedWith(compareBy({ it.displayOrder }, { it.id })).map { it.id })
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val localizedCompletionSuccess = stringResource(R.string.orders_sale_completed)
@@ -246,11 +251,23 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         )
                     }
                     items(categories) { category ->
+                        val categoryStyle = categoryStyles.getValue(category.id)
                         FilterChip(
                             selected = selectedCategoryId == category.id,
                             onClick = { viewModel.selectCategory(category.id) },
                             label = { Text(category.name) },
-                            shape = MaterialTheme.shapes.extraLarge
+                            shape = MaterialTheme.shapes.extraLarge,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = categoryStyle.background,
+                                selectedContainerColor = categoryStyle.accent,
+                                selectedLabelColor = Color.White
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selectedCategoryId == category.id,
+                                borderColor = categoryStyle.accent.copy(alpha = 0.65f),
+                                selectedBorderColor = categoryStyle.accent
+                            )
                         )
                     }
                 }
@@ -265,36 +282,22 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                     }
                 } else {
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 160.dp),
+                        columns = GridCells.Adaptive(minSize = 180.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(bottom = 16.dp)
                     ) {
                         items(menuItems) { item ->
-                            TerminalCard(
+                            MenuProductCard(
+                                name = item.name,
+                                price = item.regularPrice.toString(),
+                                categoryStyle = categoryStyles.getValue(item.categoryId),
+                                enabled = !isCompleting,
                                 onClick = { 
-                                    if (!isCompleting) viewModel.addItemToCurrentOrder(item.id) 
+                                    viewModel.addItemToCurrentOrder(item.id)
                                 },
-                                modifier = Modifier.height(120.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = item.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = item.regularPrice.toString(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
+                                modifier = Modifier.height(136.dp)
+                            )
                         }
                     }
                 }
@@ -361,7 +364,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                                 TotalRow(
                                     stringResource(R.string.totals_cash_discounts), 
                                     "-${t.cashDiscounts}", 
-                                    color = MaterialTheme.colorScheme.error
+                                    color = MaterialTheme.colorScheme.secondary
                                 )
                             }
                             TotalRow(stringResource(R.string.totals_cash_total), t.cashTotal.toString())

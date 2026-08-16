@@ -28,12 +28,16 @@ class BuildSalesBatch @Inject constructor() {
             batchId = batchId,
             exportedAtUtc = exportedAtUtc.toString(),
             sales = sales.sortedWith(compareBy({ it.sale.businessDate }, { it.sale.completedAtUtc }, { it.sale.saleId.value }))
-                .map(::mapSale)
+                .map { mapSale(it, terminalId) }
         )
     }
 
-    private fun mapSale(value: SaleWithLines): SaleDto {
+    private fun mapSale(value: SaleWithLines, terminalId: String): SaleDto {
         val sale = value.sale
+        require(sale.saleId.value.isNotBlank()) { "saleId must not be blank" }
+        require(sale.terminalId.value == terminalId) {
+            "Sale ${sale.saleId.value} belongs to terminal ${sale.terminalId.value}, not $terminalId"
+        }
         require(sale.status == com.venkoi.terminal.domain.model.SaleStatus.COMPLETED ||
             sale.status == com.venkoi.terminal.domain.model.SaleStatus.VOIDED) { "Sale ${sale.saleId.value} is not exportable" }
         val revision = requireNotNull(sale.revision) { "Sale ${sale.saleId.value} has no lifecycle revision" }
@@ -64,6 +68,11 @@ class BuildSalesBatch @Inject constructor() {
             currencyCodeSnapshot = sale.currencyCodeSnapshot,
             currencyScaleSnapshot = sale.currencyScaleSnapshot,
             lines = value.lines.sortedBy { it.lineId.value }.map { line ->
+                require(line.lineId.value.isNotBlank()) { "lineId must not be blank" }
+                require(line.saleId == sale.saleId) {
+                    "Line ${line.lineId.value} belongs to sale ${line.saleId.value}, not ${sale.saleId.value}"
+                }
+                require(line.menuItemId.isNotBlank()) { "Line ${line.lineId.value} has no menu item ID" }
                 require(line.quantity.signum() > 0) { "Line ${line.lineId.value} has invalid quantity" }
                 require(line.commercialRevision > 0 && line.consumptionRevision > 0) { "Line ${line.lineId.value} has invalid revisions" }
                 require(line.itemNameSnapshot.isNotBlank()) { "Line ${line.lineId.value} has no item name" }

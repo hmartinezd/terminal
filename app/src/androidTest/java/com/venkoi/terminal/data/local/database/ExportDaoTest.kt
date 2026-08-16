@@ -60,13 +60,52 @@ class ExportDaoTest {
         assertEquals(emptyList<SaleWithLinesEntity>(), database.exportDao().getPendingChanges(terminal))
     }
 
-    private suspend fun insert(id: String, status: SaleStatus, revision: Int?) {
+    @Test fun dayExportFiltersTerminalDateAndLifecycleStatusAndIncludesLines() = runBlocking {
+        insert("completed-a", SaleStatus.COMPLETED, 1)
+        insert("voided-a", SaleStatus.VOIDED, 2)
+        insert("open-a", SaleStatus.OPEN, null)
+        insert("discarded-a", SaleStatus.DISCARDED, null)
+        insert("other-day", SaleStatus.COMPLETED, 1, businessDate = day.plusDays(1))
+        insert("other-terminal", SaleStatus.COMPLETED, 1, owner = TerminalId("terminal-b"))
+
+        val result = database.exportDao().getSalesForDay(terminal, day)
+        assertEquals(listOf("completed-a", "voided-a"), result.map { it.sale.saleId.value }.sorted())
+        assertEquals(listOf("line-completed-a", "line-voided-a"), result.flatMap { it.lines }.map { it.lineId.value }.sorted())
+    }
+
+    @Test fun voidBeforeFirstExportIsPendingAtRevisionTwoOnly() = runBlocking {
+        insert("sale", SaleStatus.COMPLETED, 1)
+        val voidedAt = firstExport.plusSeconds(10)
+        database.saleDao().voidSaleGuarded(SaleId("sale"), voidedAt, voidedAt)
+
+        val pending = database.exportDao().getPendingChanges(terminal).single()
+        assertEquals(2, pending.sale.revision)
+    }
+
+    @Test fun markingPreparedRevisionOneAfterConcurrentVoidLeavesRevisionTwoPending() = runBlocking {
+        insert("sale", SaleStatus.COMPLETED, 1)
+        val prepared = ExportedSaleRevision(SaleId("sale"), 1)
+        val voidedAt = firstExport.plusSeconds(10)
+        database.saleDao().voidSaleGuarded(SaleId("sale"), voidedAt, voidedAt)
+        database.exportDao().markExported(listOf(prepared), firstExport, "prepared-rev-1")
+
+        assertEquals(2, database.exportDao().getPendingChanges(terminal).single().sale.revision)
+        assertEquals(1, database.exportDao().getExportState(SaleId("sale"))?.lastExportedRevision)
+    }
+
+    private suspend fun insert(
+        id: String,
+        status: SaleStatus,
+        revision: Int?,
+        businessDate: LocalDate = day,
+        owner: TerminalId = terminal
+    ) {
         val completed = Instant.parse("2026-08-10T12:00:00Z")
         database.saleDao().insertSale(SaleEntity(
-            SaleId(id), terminal, completed.minusSeconds(60), completed, "Mesa 4", status, revision,
+            SaleId(id), owner, completed.minusSeconds(60), completed, "Mesa 4", status, revision,
             if (revision == null) null else completed,
             if (status == SaleStatus.VOIDED) completed.plusSeconds(10) else null,
-            if (revision == null) null else day, "USD", 2
+            if (revision == null) null else businessDate, "USD", 2
         ))
         database.saleDao().insertSaleLines(listOf(SaleLineEntity(
             LineId("line-$id"), SaleId(id), "item", 1, 1, "Historical", BigDecimal.ONE,

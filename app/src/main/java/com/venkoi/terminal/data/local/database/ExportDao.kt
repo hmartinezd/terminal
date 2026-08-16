@@ -26,6 +26,9 @@ data class ExportSummaryRow(val pendingCount: Int, val lastSuccessfulExportAtUtc
 
 @Dao
 interface ExportDao {
+    @Query("SELECT * FROM sale_export_state WHERE saleId = :saleId")
+    suspend fun getExportState(saleId: SaleId): SaleExportStateEntity?
+
     @Transaction
     @Query("""
         SELECT * FROM sales WHERE terminalId = :terminalId

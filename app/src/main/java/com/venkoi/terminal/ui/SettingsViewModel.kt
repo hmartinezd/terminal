@@ -35,6 +35,8 @@ import com.venkoi.terminal.domain.model.PreparedSalesExport
 import com.venkoi.terminal.domain.model.SaleExportSummary
 import com.venkoi.terminal.domain.repository.SalesExportRepository
 import com.venkoi.terminal.domain.service.BuildSalesBatch
+import com.venkoi.terminal.domain.service.ExportCoordinationResult
+import com.venkoi.terminal.domain.service.ExportSalesCoordinator
 import com.venkoi.terminal.domain.service.ResolveCurrentReportBusinessDate
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -51,6 +53,7 @@ class SettingsViewModel @Inject constructor(
     private val salesExportRepository: SalesExportRepository,
     private val buildSalesBatch: BuildSalesBatch,
     private val documentWriter: SalesBatchDocumentWriter,
+    private val exportSalesCoordinator: ExportSalesCoordinator,
     private val resolveCurrentReportBusinessDate: ResolveCurrentReportBusinessDate,
     private val clock: Clock,
     private val idGenerator: IdGenerator,
@@ -186,17 +189,20 @@ class SettingsViewModel @Inject constructor(
     fun onExportDocumentResult(uri: Uri?) {
         val prepared = pendingDocument ?: return
         pendingDocument = null
-        if (uri == null) return
         viewModelScope.launch {
             isExporting = true
-            when (withContext(Dispatchers.IO) { documentWriter.write(uri, prepared.json) }) {
-                DocumentWriteResult.Success -> try {
-                    salesExportRepository.markExported(prepared.revisions, prepared.exportedAtUtc, prepared.batchId)
-                    exportMessage = ExportMessage.Success(prepared.revisions.size)
-                } catch (_: Exception) {
-                    exportMessage = ExportMessage.BookkeepingFailed
+            when (exportSalesCoordinator.execute(
+                destination = uri,
+                prepared = prepared,
+                write = { destination, json -> withContext(Dispatchers.IO) { documentWriter.write(destination, json) } },
+                markExactRevisions = { exact ->
+                    salesExportRepository.markExported(exact.revisions, exact.exportedAtUtc, exact.batchId)
                 }
-                is DocumentWriteResult.Failure -> exportMessage = ExportMessage.Failed
+            )) {
+                ExportCoordinationResult.Cancelled -> Unit
+                ExportCoordinationResult.Success -> exportMessage = ExportMessage.Success(prepared.revisions.size)
+                is ExportCoordinationResult.WriteFailed -> exportMessage = ExportMessage.Failed
+                is ExportCoordinationResult.BookkeepingFailed -> exportMessage = ExportMessage.BookkeepingFailed
             }
             isExporting = false
         }
