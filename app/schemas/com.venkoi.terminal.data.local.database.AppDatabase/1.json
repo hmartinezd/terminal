@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "ab9defc84eca99c9ce51b7d58eabcf66",
+    "identityHash": "344d8b2b1b5f35921b24810f3f374547",
     "entities": [
       {
         "tableName": "terminal_configuration",
@@ -286,7 +286,7 @@
       },
       {
         "tableName": "open_order_lines",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`lineId` TEXT NOT NULL, `saleId` TEXT NOT NULL, `menuItemId` TEXT NOT NULL, `commercialRevision` INTEGER NOT NULL, `consumptionRevision` INTEGER NOT NULL, `itemNameSnapshot` TEXT NOT NULL, `quantity` TEXT NOT NULL, `regularUnitPriceSnapshot` TEXT NOT NULL, `cashDiscountModeSnapshot` TEXT NOT NULL, `pricingMode` TEXT NOT NULL, `cashDiscountApplied` INTEGER NOT NULL, `cashDiscountPercentSnapshot` TEXT NOT NULL, `cashDiscountAmount` TEXT NOT NULL, `finalUnitPrice` TEXT NOT NULL, `lineTotal` TEXT NOT NULL, PRIMARY KEY(`lineId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`lineId` TEXT NOT NULL, `saleId` TEXT NOT NULL, `menuItemId` TEXT NOT NULL, `commercialRevision` INTEGER NOT NULL, `consumptionRevision` INTEGER NOT NULL, `itemNameSnapshot` TEXT NOT NULL, `quantity` TEXT NOT NULL, `regularUnitPriceSnapshot` TEXT NOT NULL, `cashDiscountModeSnapshot` TEXT NOT NULL, `cashDiscountPolicyPercentSnapshot` TEXT NOT NULL, `pricingMode` TEXT NOT NULL, `cashDiscountApplied` INTEGER NOT NULL, `cashDiscountPercent` TEXT NOT NULL, `cashDiscountAmount` TEXT NOT NULL, `finalUnitPrice` TEXT NOT NULL, `lineTotal` TEXT NOT NULL, PRIMARY KEY(`lineId`))",
         "fields": [
           {
             "fieldPath": "lineId",
@@ -343,6 +343,12 @@
             "notNull": true
           },
           {
+            "fieldPath": "cashDiscountPolicyPercentSnapshot",
+            "columnName": "cashDiscountPolicyPercentSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
             "fieldPath": "pricingMode",
             "columnName": "pricingMode",
             "affinity": "TEXT",
@@ -355,8 +361,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "cashDiscountPercentSnapshot",
-            "columnName": "cashDiscountPercentSnapshot",
+            "fieldPath": "cashDiscountPercent",
+            "columnName": "cashDiscountPercent",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -389,7 +395,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ab9defc84eca99c9ce51b7d58eabcf66')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '344d8b2b1b5f35921b24810f3f374547')"
     ]
   }
 }

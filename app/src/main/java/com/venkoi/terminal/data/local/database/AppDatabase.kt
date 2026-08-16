@@ -14,7 +14,7 @@ import androidx.room.TypeConverters
         OpenOrderEntity::class,
         OpenOrderLineEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(TerminalTypeConverters::class)

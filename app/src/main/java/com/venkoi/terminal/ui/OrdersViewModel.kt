@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.venkoi.terminal.core.LineId
 import com.venkoi.terminal.core.SaleId
-import com.venkoi.terminal.domain.model.MenuItem
 import com.venkoi.terminal.domain.model.OpenOrder
 import com.venkoi.terminal.domain.model.OpenOrderLine
 import com.venkoi.terminal.domain.model.PricingMode
@@ -17,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -53,8 +53,19 @@ class OrdersViewModel @Inject constructor(
     val categories = menuRepository.observeCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val menuItems = menuRepository.observeActiveMenuItems()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _selectedCategoryId = MutableStateFlow<String?>(null)
+    val selectedCategoryId: StateFlow<String?> = _selectedCategoryId
+
+    val menuItems = combine(
+        menuRepository.observeActiveMenuItems(),
+        _selectedCategoryId
+    ) { items, selectedId ->
+        if (selectedId == null) items else items.filter { it.categoryId == selectedId }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun selectCategory(categoryId: String?) {
+        _selectedCategoryId.value = categoryId
+    }
 
     fun selectOrder(saleId: SaleId) {
         _selectedOrderId.value = saleId
@@ -76,10 +87,10 @@ class OrdersViewModel @Inject constructor(
         }
     }
 
-    fun addItemToCurrentOrder(item: MenuItem) {
+    fun addItemToCurrentOrder(menuItemId: String) {
         val orderId = _selectedOrderId.value ?: return
         viewModelScope.launch {
-            orderRepository.addItem(orderId, item)
+            orderRepository.addItem(orderId, menuItemId)
         }
     }
 

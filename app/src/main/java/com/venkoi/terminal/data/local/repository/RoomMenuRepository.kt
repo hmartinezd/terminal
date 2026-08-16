@@ -62,6 +62,10 @@ class RoomMenuRepository @Inject constructor(
         return menuDao.getRestaurantConfig()?.toDomain()
     }
 
+    override suspend fun getMenuItem(id: String): MenuItem? {
+        return menuDao.getMenuItem(id)?.toDomain()
+    }
+
     private fun RestaurantConfigEntity.toDomain() = RestaurantConfiguration(
         restaurantId = restaurantId,
         restaurantName = restaurantName,

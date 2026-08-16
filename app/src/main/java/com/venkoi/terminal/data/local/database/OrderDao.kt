@@ -41,4 +41,34 @@ interface OrderDao {
 
     @Query("DELETE FROM open_order_lines WHERE saleId = :saleId")
     suspend fun deleteOrderLines(saleId: SaleId)
+
+    @Transaction
+    suspend fun removeLineAndUpdateOrder(saleId: SaleId, lineId: LineId, order: OpenOrderEntity) {
+        deleteOrderLine(lineId)
+        insertOrder(order)
+    }
+
+    @Transaction
+    suspend fun updateLinesAndOrder(order: OpenOrderEntity, lines: List<OpenOrderLineEntity>) {
+        insertOrder(order)
+        insertOrderLines(lines)
+    }
+
+    @Transaction
+    suspend fun mergeLinesAndOrder(
+        saleId: SaleId,
+        lineIdToRemove: LineId,
+        lineEntityToUpdate: OpenOrderLineEntity,
+        orderEntity: OpenOrderEntity
+    ) {
+        deleteOrderLine(lineIdToRemove)
+        insertOrderLines(listOf(lineEntityToUpdate))
+        insertOrder(orderEntity)
+    }
+
+    @Query("DELETE FROM open_order_lines")
+    suspend fun clearOrderLines()
+
+    @Query("DELETE FROM open_orders")
+    suspend fun clearOrders()
 }

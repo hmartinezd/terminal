@@ -7,7 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.venkoi.terminal.core.Money
 import com.venkoi.terminal.core.RestaurantId
 import com.venkoi.terminal.core.TerminalId
-import com.venkoi.terminal.integration.menu.CashDiscountMode
+import com.venkoi.terminal.domain.model.CashDiscountMode
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

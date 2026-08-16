@@ -31,9 +31,10 @@ data class OpenOrderLine(
     val quantity: BigDecimal,
     val regularUnitPriceSnapshot: Money,
     val cashDiscountModeSnapshot: CashDiscountMode,
+    val cashDiscountPolicyPercentSnapshot: BigDecimal,
     val pricingMode: PricingMode,
     val cashDiscountApplied: Boolean,
-    val cashDiscountPercentSnapshot: BigDecimal,
+    val cashDiscountPercent: BigDecimal,
     val cashDiscountAmount: Money,
     val finalUnitPrice: Money,
     val lineTotal: Money

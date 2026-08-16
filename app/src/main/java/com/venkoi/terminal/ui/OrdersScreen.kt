@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -21,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.venkoi.terminal.domain.model.MenuItem
 import com.venkoi.terminal.domain.model.OpenOrderLine
 import com.venkoi.terminal.domain.model.PricingMode
 import java.math.BigDecimal
@@ -34,6 +34,31 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val currentLines by viewModel.currentOrderLines.collectAsState()
     val totals by viewModel.currentOrderTotals.collectAsState()
     val menuItems by viewModel.menuItems.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
+
+    var showDiscardDialog by remember { mutableStateOf(false) }
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text("Discard Order?") },
+            text = { Text("This will remove it from the active orders list.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedOrderId?.let { viewModel.discardOrder(it) }
+                    showDiscardDialog = false
+                }) {
+                    Text("Discard", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Row(modifier = Modifier.fillMaxSize()) {
         // Left Panel: Open Orders
@@ -75,6 +100,27 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 .padding(8.dp)
         ) {
             Text("MENU", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+            
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    FilterChip(
+                        selected = selectedCategoryId == null,
+                        onClick = { viewModel.selectCategory(null) },
+                        label = { Text("All") }
+                    )
+                }
+                items(categories) { category ->
+                    FilterChip(
+                        selected = selectedCategoryId == category.id,
+                        onClick = { viewModel.selectCategory(category.id) },
+                        label = { Text(category.name) }
+                    )
+                }
+            }
+
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 150.dp),
                 contentPadding = PaddingValues(8.dp),
@@ -83,7 +129,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
             ) {
                 items(menuItems) { item ->
                     Card(
-                        onClick = { viewModel.addItemToCurrentOrder(item) },
+                        onClick = { viewModel.addItemToCurrentOrder(item.id) },
                         modifier = Modifier.height(100.dp)
                     ) {
                         Column(
@@ -149,7 +195,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 }
                 
                 Button(
-                    onClick = { viewModel.discardOrder(order.saleId) },
+                    onClick = { showDiscardDialog = true },
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {

@@ -14,10 +14,10 @@ class OrderTotalsTest {
 
     @Test
     fun `totals equal sum of persisted line totals`() {
-        val saleId = SaleId()
+        val saleId = SaleId("sale-123")
         val lines = listOf(
             OpenOrderLine(
-                lineId = LineId(),
+                lineId = LineId("line-1"),
                 saleId = saleId,
                 menuItemId = "item-1",
                 commercialRevision = 1,
@@ -26,15 +26,16 @@ class OrderTotalsTest {
                 quantity = BigDecimal.ONE,
                 regularUnitPriceSnapshot = Money("100"),
                 cashDiscountModeSnapshot = CashDiscountMode.APPLY_DEFAULT,
+                cashDiscountPolicyPercentSnapshot = BigDecimal("10"),
                 pricingMode = PricingMode.CASH,
                 cashDiscountApplied = true,
-                cashDiscountPercentSnapshot = BigDecimal("10"),
+                cashDiscountPercent = BigDecimal("10"),
                 cashDiscountAmount = Money("10"),
                 finalUnitPrice = Money("90"),
                 lineTotal = Money("90")
             ),
             OpenOrderLine(
-                lineId = LineId(),
+                lineId = LineId("line-2"),
                 saleId = saleId,
                 menuItemId = "item-2",
                 commercialRevision = 1,
@@ -43,9 +44,10 @@ class OrderTotalsTest {
                 quantity = BigDecimal.ONE,
                 regularUnitPriceSnapshot = Money("200"),
                 cashDiscountModeSnapshot = CashDiscountMode.APPLY_DEFAULT,
+                cashDiscountPolicyPercentSnapshot = BigDecimal("10"),
                 pricingMode = PricingMode.TRANSFER,
                 cashDiscountApplied = false,
-                cashDiscountPercentSnapshot = BigDecimal.ZERO,
+                cashDiscountPercent = BigDecimal.ZERO,
                 cashDiscountAmount = Money.ZERO,
                 finalUnitPrice = Money("200"),
                 lineTotal = Money("200")

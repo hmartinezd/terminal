@@ -2,7 +2,7 @@ package com.venkoi.terminal.domain.repository
 
 import com.venkoi.terminal.core.LineId
 import com.venkoi.terminal.core.SaleId
-import com.venkoi.terminal.domain.model.MenuItem
+import com.venkoi.terminal.core.SaleId
 import com.venkoi.terminal.domain.model.OpenOrder
 import com.venkoi.terminal.domain.model.OpenOrderLine
 import com.venkoi.terminal.domain.model.PricingMode
@@ -16,7 +16,7 @@ interface OrderRepository {
     
     suspend fun createOrder(tableLabel: String? = null): SaleId
     suspend fun updateOrderLabel(saleId: SaleId, label: String?)
-    suspend fun addItem(saleId: SaleId, item: MenuItem)
+    suspend fun addItem(saleId: SaleId, menuItemId: String)
     suspend fun updateLineQuantity(saleId: SaleId, lineId: LineId, newQuantity: BigDecimal)
     suspend fun changeLinePricingMode(saleId: SaleId, lineId: LineId, pricingMode: PricingMode)
     suspend fun removeLine(saleId: SaleId, lineId: LineId)

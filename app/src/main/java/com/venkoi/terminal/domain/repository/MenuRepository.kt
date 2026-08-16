@@ -22,4 +22,5 @@ interface MenuRepository {
 
     suspend fun getPublishedMenu(): PublishedMenu?
     suspend fun getRestaurantConfiguration(): RestaurantConfiguration?
+    suspend fun getMenuItem(id: String): MenuItem?
 }

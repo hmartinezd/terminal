@@ -1,10 +1,8 @@
 package com.venkoi.terminal.domain.service
 
 import com.venkoi.terminal.core.Money
-import com.venkoi.terminal.domain.model.CashDiscountMode
 import com.venkoi.terminal.domain.model.PricingMode
 import java.math.BigDecimal
-import java.math.RoundingMode
 
 data class LinePricingResult(
     val cashDiscountApplied: Boolean,
@@ -19,30 +17,29 @@ object CalculateLinePricing {
         regularUnitPrice: Money,
         quantity: BigDecimal,
         pricingMode: PricingMode,
-        cashDiscountMode: CashDiscountMode,
-        restaurantDefaultCashDiscountPercent: BigDecimal,
-        currencyScale: Int = 2
+        cashDiscountPolicyPercent: BigDecimal,
+        currencyScale: Int
     ): LinePricingResult {
         val regularSubtotal = regularUnitPrice.amount.multiply(quantity)
         
         val shouldApplyDiscount = pricingMode == PricingMode.CASH && 
-                                cashDiscountMode == CashDiscountMode.APPLY_DEFAULT
+                                cashDiscountPolicyPercent > BigDecimal.ZERO
         
-        val discountPercent = if (shouldApplyDiscount) restaurantDefaultCashDiscountPercent else BigDecimal.ZERO
+        val discountPercent = if (shouldApplyDiscount) cashDiscountPolicyPercent else BigDecimal.ZERO
         
         val exactDiscount = regularSubtotal.multiply(discountPercent).divide(BigDecimal("100"))
-        val persistedDiscount = exactDiscount.setScale(currencyScale, RoundingMode.HALF_UP)
+        val persistedDiscount = exactDiscount.setScale(currencyScale, CurrencyRoundingPolicy.roundingMode)
         
-        val lineTotalAmount = regularSubtotal.subtract(persistedDiscount).setScale(currencyScale, RoundingMode.HALF_UP)
+        val lineTotalAmount = regularSubtotal.subtract(persistedDiscount).setScale(currencyScale, CurrencyRoundingPolicy.roundingMode)
         
         val finalUnitPriceAmount = if (quantity > BigDecimal.ZERO) {
-            lineTotalAmount.divide(quantity, currencyScale, RoundingMode.HALF_UP)
+            lineTotalAmount.divide(quantity, currencyScale, CurrencyRoundingPolicy.roundingMode)
         } else {
             BigDecimal.ZERO.setScale(currencyScale)
         }
 
         return LinePricingResult(
-            cashDiscountApplied = shouldApplyDiscount && discountPercent > BigDecimal.ZERO,
+            cashDiscountApplied = shouldApplyDiscount,
             cashDiscountPercent = discountPercent,
             cashDiscountAmount = Money(persistedDiscount),
             finalUnitPrice = Money(finalUnitPriceAmount),
