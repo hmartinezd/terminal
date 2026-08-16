@@ -1,3 +1,105 @@
 <resources>
-    <string name="app_name">Terminal</string>
+    <string name="app_name">Sales Terminal</string>
+
+    <!-- Navigation -->
+    <string name="nav_orders">Orders</string>
+    <string name="nav_history">History</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Orders Screen -->
+    <string name="orders_open_orders">OPEN ORDERS</string>
+    <string name="orders_new_order">New Order</string>
+    <string name="orders_menu">MENU</string>
+    <string name="orders_category_all">All</string>
+    <string name="orders_table_label">Table / Order Label</string>
+    <string name="orders_complete_sale">Complete Sale</string>
+    <string name="orders_discard_order">Discard Order</string>
+    <string name="orders_select_order">Select or create an order</string>
+    <string name="orders_empty_menu">No menu items in this category</string>
+    <string name="orders_sale_completed">Sale completed</string>
+
+    <!-- Totals -->
+    <string name="totals_regular_subtotal">Regular Subtotal</string>
+    <string name="totals_cash_discounts">Cash Discounts</string>
+    <string name="totals_cash_total">CASH Total</string>
+    <string name="totals_transfer_total">TRANSFER Total</string>
+    <string name="totals_grand_total">GRAND TOTAL</string>
+
+    <!-- Pricing Mode -->
+    <string name="pricing_mode_cash">CASH</string>
+    <string name="pricing_mode_transfer">TRANSFER</string>
+    <string name="pricing_mode_cash_discount">%1$s%% cash discount</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_discard_title">Discard Order?</string>
+    <string name="dialog_discard_message">This will remove it from the active orders list.</string>
+    <string name="dialog_discard_confirm">Discard</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_complete_title">Complete Sale?</string>
+    <string name="dialog_complete_message">Confirm that the sale is complete. This order cannot be edited after completion.</string>
+    <string name="dialog_complete_confirm">Complete Sale</string>
+    <string name="dialog_error_title">Completion Error</string>
+    <string name="dialog_ok">OK</string>
+
+    <!-- Error Messages -->
+    <string name="error_empty_sale">Cannot complete an empty sale</string>
+    <string name="error_invalid_quantity">One or more items have invalid quantity</string>
+    <string name="error_order_not_found">Order not found</string>
+    <string name="error_order_not_open">Order is not open</string>
+    <string name="error_void_not_completed">Only completed sales can be voided</string>
+
+    <!-- History Screen -->
+    <string name="history_status_completed">COMPLETED</string>
+    <string name="history_status_voided">VOIDED</string>
+    <string name="history_void_sale">Void Sale</string>
+    <string name="history_sale_voided">Sale voided</string>
+    <string name="history_empty_state">No history found</string>
+    <string name="history_select_sale">Select a sale to view details</string>
+    <string name="history_business_date">Business Date</string>
+    <string name="history_timestamp">Timestamp</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_terminal">TERMINAL</string>
+    <string name="settings_terminal_name">Terminal Name</string>
+    <string name="settings_terminal_id">Terminal ID</string>
+    <string name="settings_section_restaurant">RESTAURANT</string>
+    <string name="settings_restaurant_name">Name</string>
+    <string name="settings_restaurant_id">Restaurant ID</string>
+    <string name="settings_currency">Currency</string>
+    <string name="settings_timezone">Timezone</string>
+    <string name="settings_business_cutoff">Business Day Cutoff</string>
+    <string name="settings_section_menu">MENU</string>
+    <string name="settings_menu_id">Menu ID</string>
+    <string name="settings_publication_revision">Publication Revision</string>
+    <string name="settings_published_at">Published At (UTC)</string>
+    <string name="settings_imported_at">Imported At</string>
+    <string name="settings_import_new_menu">Import New Menu</string>
+    <string name="settings_import_success">Menu imported successfully.</string>
+    <string name="settings_import_error_title">Import Error</string>
+
+    <string name="settings_section_language">LANGUAGE</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_default">System default</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_language_es">Español</string>
+
+    <!-- Provisioning -->
+    <string name="provisioning_title">Sales Terminal Setup</string>
+    <string name="provisioning_terminal_name">Terminal Name (Optional)</string>
+    <string name="provisioning_select_file">Select MenuPackage JSON</string>
+    <string name="provisioning_restaurant">Restaurant</string>
+    <string name="provisioning_currency">Currency</string>
+    <string name="provisioning_menu_revision">Menu Revision</string>
+    <string name="provisioning_categories">Categories</string>
+    <string name="provisioning_menu_items">Menu Items</string>
+    <string name="provisioning_back">Back</string>
+    <string name="provisioning_confirm">Confirm Setup</string>
+    <string name="provisioning_problem">Configuration Problem: %1$s</string>
+
+    <!-- Accessibility -->
+    <string name="cd_remove">Remove</string>
+    <string name="cd_increase">Increase</string>
+    <string name="cd_decrease">Decrease</string>
 </resources>

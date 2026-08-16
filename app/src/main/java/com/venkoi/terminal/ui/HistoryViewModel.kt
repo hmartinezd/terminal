@@ -67,8 +67,8 @@ class HistoryViewModel @Inject constructor(
     private val _isVoiding = MutableStateFlow(false)
     val isVoiding: StateFlow<Boolean> = _isVoiding
 
-    private val _voidError = MutableStateFlow<String?>(null)
-    val voidError: StateFlow<String?> = _voidError
+    private val _voidResult = MutableStateFlow<VoidResult?>(null)
+    val voidResult: StateFlow<VoidResult?> = _voidResult
 
     private val _voidSuccess = MutableStateFlow(false)
     val voidSuccess: StateFlow<Boolean> = _voidSuccess
@@ -81,22 +81,15 @@ class HistoryViewModel @Inject constructor(
         if (_isVoiding.value) return
 
         _isVoiding.value = true
-        _voidError.value = null
+        _voidResult.value = null
         _voidSuccess.value = false
 
         viewModelScope.launch {
             try {
                 val result = saleRepository.voidSale(saleId)
-                when (result) {
-                    VoidResult.Success -> {
-                        _voidSuccess.value = true
-                    }
-                    VoidResult.AlreadyVoided -> {
-                        // Success because it's in the desired state
-                        _voidSuccess.value = true
-                    }
-                    VoidResult.NotCompleted -> _voidError.value = "Only completed sales can be voided"
-                    VoidResult.NotFound -> _voidError.value = "Sale not found"
+                _voidResult.value = result
+                if (result is VoidResult.Success || result is VoidResult.AlreadyVoided) {
+                    _voidSuccess.value = true
                 }
             } finally {
                 _isVoiding.value = false
@@ -105,7 +98,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun clearVoidFeedback() {
-        _voidError.value = null
+        _voidResult.value = null
         _voidSuccess.value = false
     }
 }

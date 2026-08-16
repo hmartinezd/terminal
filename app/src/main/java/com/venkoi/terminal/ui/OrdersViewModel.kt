@@ -67,8 +67,8 @@ class OrdersViewModel @Inject constructor(
     private val _isCompleting = MutableStateFlow(false)
     val isCompleting: StateFlow<Boolean> = _isCompleting
 
-    private val _completionError = MutableStateFlow<String?>(null)
-    val completionError: StateFlow<String?> = _completionError
+    private val _completionResult = MutableStateFlow<SaleCompletionResult?>(null)
+    val completionResult: StateFlow<SaleCompletionResult?> = _completionResult
 
     private val _completionSuccess = MutableStateFlow(false)
     val completionSuccess: StateFlow<Boolean> = _completionSuccess
@@ -137,22 +137,16 @@ class OrdersViewModel @Inject constructor(
         if (_isCompleting.value) return
 
         _isCompleting.value = true
-        _completionError.value = null
+        _completionResult.value = null
         _completionSuccess.value = false
 
         viewModelScope.launch {
             try {
                 val result = saleRepository.completeSale(saleId)
-                when (result) {
-                    SaleCompletionResult.Success -> {
-                        _selectedOrderId.value = null
-                        _completionSuccess.value = true
-                    }
-                    is SaleCompletionResult.Failure -> _completionError.value = result.message
-                    SaleCompletionResult.EmptySale -> _completionError.value = "Cannot complete an empty sale"
-                    SaleCompletionResult.InvalidQuantity -> _completionError.value = "One or more items have invalid quantity"
-                    SaleCompletionResult.NotFound -> _completionError.value = "Sale not found"
-                    SaleCompletionResult.NotOpen -> _completionError.value = "Sale is not open"
+                _completionResult.value = result
+                if (result is SaleCompletionResult.Success) {
+                    _selectedOrderId.value = null
+                    _completionSuccess.value = true
                 }
             } finally {
                 _isCompleting.value = false
@@ -161,7 +155,7 @@ class OrdersViewModel @Inject constructor(
     }
 
     fun clearCompletionFeedback() {
-        _completionError.value = null
+        _completionResult.value = null
         _completionSuccess.value = false
     }
 }

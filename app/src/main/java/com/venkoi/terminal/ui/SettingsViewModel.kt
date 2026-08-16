@@ -13,8 +13,11 @@ import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
 import com.venkoi.terminal.domain.service.MenuImportService
 import com.venkoi.terminal.domain.service.MenuImportStatus
 import com.venkoi.terminal.integration.menu.MenuPackageImportResult
+import com.venkoi.terminal.ui.util.LocaleManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,6 +38,9 @@ class SettingsViewModel @Inject constructor(
 
     val publishedMenu = menuRepository.observePublishedMenu()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _currentLanguageCode = MutableStateFlow(LocaleManager.getCurrentLanguageCode())
+    val currentLanguageCode = _currentLanguageCode.asStateFlow()
 
     var importError by mutableStateOf<String?>(null)
         private set
@@ -80,5 +86,10 @@ class SettingsViewModel @Inject constructor(
 
     fun dismissSuccess() {
         showImportSuccess = false
+    }
+
+    fun setLanguage(languageCode: String?) {
+        LocaleManager.setLocale(languageCode)
+        _currentLanguageCode.value = languageCode
     }
 }

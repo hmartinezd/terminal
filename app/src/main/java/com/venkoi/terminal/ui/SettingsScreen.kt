@@ -2,16 +2,20 @@ package com.venkoi.terminal.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import java.time.format.DateTimeFormatter
+import com.venkoi.terminal.R
+import com.venkoi.terminal.ui.components.TerminalCard
 
 @Composable
 fun SettingsScreen(
@@ -20,7 +24,10 @@ fun SettingsScreen(
     val terminalConfig by viewModel.terminalConfig.collectAsState()
     val restaurantConfig by viewModel.restaurantConfig.collectAsState()
     val publishedMenu by viewModel.publishedMenu.collectAsState()
+    val currentLanguageCode by viewModel.currentLanguageCode.collectAsState()
+    
     val snackbarHostState = remember { SnackbarHostState() }
+    val importSuccessMsg = stringResource(R.string.settings_import_success)
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -30,7 +37,7 @@ fun SettingsScreen(
 
     LaunchedEffect(viewModel.showImportSuccess) {
         if (viewModel.showImportSuccess) {
-            snackbarHostState.showSnackbar("Menu imported successfully.")
+            snackbarHostState.showSnackbar(importSuccessMsg)
             viewModel.dismissSuccess()
         }
     }
@@ -43,43 +50,58 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = stringResource(R.string.settings_title), 
+                style = MaterialTheme.typography.headlineMedium, 
+                fontWeight = FontWeight.Bold
+            )
+
+            // Language Info
+            SettingsSection(title = stringResource(R.string.settings_section_language)) {
+                LanguageSelector(
+                    currentLanguageCode = currentLanguageCode,
+                    onLanguageSelected = { viewModel.setLanguage(it) }
+                )
+            }
 
             // Terminal Info
-            SettingsSection(title = "Terminal Configuration") {
-                InfoRow("Terminal Name", terminalConfig?.terminalName ?: "N/A")
-                InfoRow("Terminal ID", terminalConfig?.terminalId?.value ?: "N/A")
+            SettingsSection(title = stringResource(R.string.settings_section_terminal)) {
+                InfoRow(stringResource(R.string.settings_terminal_name), terminalConfig?.terminalName ?: "N/A")
+                InfoRow(stringResource(R.string.settings_terminal_id), terminalConfig?.terminalId?.value ?: "N/A")
             }
 
             // Restaurant Info
-            SettingsSection(title = "Restaurant") {
-                InfoRow("Name", restaurantConfig?.restaurantName ?: "N/A")
-                InfoRow("Restaurant ID", restaurantConfig?.restaurantId ?: "N/A")
-                InfoRow("Currency", restaurantConfig?.currency?.currencyCode ?: "N/A")
-                InfoRow("Timezone", restaurantConfig?.timezone?.id ?: "N/A")
-                InfoRow("Business Cutoff", restaurantConfig?.businessDayCutoff?.toString() ?: "N/A")
+            SettingsSection(title = stringResource(R.string.settings_section_restaurant)) {
+                InfoRow(stringResource(R.string.settings_restaurant_name), restaurantConfig?.restaurantName ?: "N/A")
+                InfoRow(stringResource(R.string.settings_restaurant_id), restaurantConfig?.restaurantId ?: "N/A")
+                InfoRow(stringResource(R.string.settings_currency), restaurantConfig?.currency?.currencyCode ?: "N/A")
+                InfoRow(stringResource(R.string.settings_timezone), restaurantConfig?.timezone?.id ?: "N/A")
+                InfoRow(stringResource(R.string.settings_business_cutoff), restaurantConfig?.businessDayCutoff?.toString() ?: "N/A")
             }
 
             // Menu Info
-            SettingsSection(title = "Published Menu") {
-                InfoRow("Menu ID", publishedMenu?.menuId ?: "N/A")
-                InfoRow("Publication Revision", publishedMenu?.publicationRevision?.toString() ?: "N/A")
-                InfoRow("Published At (UTC)", publishedMenu?.publishedAtUtc?.toString() ?: "N/A")
-                InfoRow("Imported At", publishedMenu?.importTimestamp?.toString() ?: "N/A")
-            }
-
-            Button(
-                onClick = { filePickerLauncher.launch("application/json") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !viewModel.isImporting
-            ) {
-                if (viewModel.isImporting) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text("Import New Menu")
+            SettingsSection(title = stringResource(R.string.settings_section_menu)) {
+                InfoRow(stringResource(R.string.settings_menu_id), publishedMenu?.menuId ?: "N/A")
+                InfoRow(stringResource(R.string.settings_publication_revision), publishedMenu?.publicationRevision?.toString() ?: "N/A")
+                InfoRow(stringResource(R.string.settings_published_at), publishedMenu?.publishedAtUtc?.toString() ?: "N/A")
+                InfoRow(stringResource(R.string.settings_imported_at), publishedMenu?.importTimestamp?.toString() ?: "N/A")
+                
+                Spacer(Modifier.height(8.dp))
+                
+                Button(
+                    onClick = { filePickerLauncher.launch("application/json") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !viewModel.isImporting,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    if (viewModel.isImporting) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text(stringResource(R.string.settings_import_new_menu))
+                    }
                 }
             }
 
@@ -88,10 +110,10 @@ fun SettingsScreen(
                     onDismissRequest = { viewModel.clearImportError() },
                     confirmButton = {
                         TextButton(onClick = { viewModel.clearImportError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.dialog_ok))
                         }
                     },
-                    title = { Text("Import Error") },
+                    title = { Text(stringResource(R.string.settings_import_error_title)) },
                     text = { Text(it) }
                 )
             }
@@ -101,13 +123,15 @@ fun SettingsScreen(
 
 @Composable
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = title, 
+            style = MaterialTheme.typography.labelLarge, 
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+        TerminalCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 content()
             }
         }
@@ -117,7 +141,46 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
 @Composable
 fun InfoRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun LanguageSelector(
+    currentLanguageCode: String?,
+    onLanguageSelected: (String?) -> Unit
+) {
+    val languages = listOf(
+        null to stringResource(R.string.settings_language_default),
+        "en" to stringResource(R.string.settings_language_en),
+        "es" to stringResource(R.string.settings_language_es)
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        languages.forEach { (code, label) ->
+            val isSelected = currentLanguageCode == code
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onLanguageSelected(code) }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
+                RadioButton(
+                    selected = isSelected,
+                    onClick = { onLanguageSelected(code) }
+                )
+            }
+            if (code != "es") {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
     }
 }

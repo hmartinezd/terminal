@@ -15,7 +15,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.venkoi.terminal.R
 import com.venkoi.terminal.ui.AppState
 import com.venkoi.terminal.ui.MainScreen
 import com.venkoi.terminal.ui.ProvisioningScreen
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
                     is AppState.SetupProblem -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = "Configuration Problem: ${(appState as AppState.SetupProblem).message}",
+                                text = stringResource(R.string.provisioning_problem, (appState as AppState.SetupProblem).message),
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(32.dp)
                             )

@@ -1,7 +1,6 @@
 package com.venkoi.terminal.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -12,18 +11,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.venkoi.terminal.R
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
+import com.venkoi.terminal.domain.repository.SaleCompletionResult
+import com.venkoi.terminal.ui.components.QuantityControl
+import com.venkoi.terminal.ui.components.TerminalCard
 import java.math.BigDecimal
 
 @Composable
@@ -36,15 +41,16 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val menuItems by viewModel.menuItems.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
-    val completionError by viewModel.completionError.collectAsState()
+    val completionResult by viewModel.completionResult.collectAsState()
     val isCompleting by viewModel.isCompleting.collectAsState()
     val completionSuccess by viewModel.completionSuccess.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val localizedCompletionSuccess = stringResource(R.string.orders_sale_completed)
 
     LaunchedEffect(completionSuccess) {
         if (completionSuccess) {
-            snackbarHostState.showSnackbar("Sale completed")
+            snackbarHostState.showSnackbar(localizedCompletionSuccess)
             viewModel.clearCompletionFeedback()
         }
     }
@@ -55,19 +61,19 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text("Discard Order?") },
-            text = { Text("This will remove it from the active orders list.") },
+            title = { Text(stringResource(R.string.dialog_discard_title)) },
+            text = { Text(stringResource(R.string.dialog_discard_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     selectedOrderId?.let { viewModel.discardOrder(it) }
                     showDiscardDialog = false
                 }) {
-                    Text("Discard", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.dialog_discard_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.dialog_cancel))
                 }
             }
         )
@@ -76,15 +82,21 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     if (showCompleteDialog) {
         AlertDialog(
             onDismissRequest = { if (!isCompleting) showCompleteDialog = false },
-            title = { Text("Complete Sale?") },
+            title = { Text(stringResource(R.string.dialog_complete_title)) },
             text = {
                 Column {
-                    Text("Confirm that the sale is complete. This order cannot be edited after completion.")
-                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.dialog_complete_message))
+                    Spacer(Modifier.height(16.dp))
                     totals?.let { t ->
-                        TotalRow("CASH Total", t.cashTotal.toString())
-                        TotalRow("TRANSFER Total", t.transferTotal.toString())
-                        TotalRow("GRAND TOTAL", t.grandTotal.toString(), style = MaterialTheme.typography.titleMedium)
+                        TotalRow(stringResource(R.string.totals_cash_total), t.cashTotal.toString())
+                        TotalRow(stringResource(R.string.totals_transfer_total), t.transferTotal.toString())
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        TotalRow(
+                            stringResource(R.string.totals_grand_total), 
+                            t.grandTotal.toString(), 
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     if (isCompleting) {
                         Spacer(Modifier.height(16.dp))
@@ -93,11 +105,11 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = { viewModel.completeSale() },
                     enabled = !isCompleting
                 ) {
-                    Text("Complete Sale")
+                    Text(stringResource(R.string.dialog_complete_confirm))
                 }
             },
             dismissButton = {
@@ -105,7 +117,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                     onClick = { showCompleteDialog = false },
                     enabled = !isCompleting
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.dialog_cancel))
                 }
             }
         )
@@ -117,17 +129,19 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
         }
     }
 
-    if (completionError != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearCompletionFeedback() },
-            title = { Text("Completion Error") },
-            text = { Text(completionError!!) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearCompletionFeedback() }) {
-                    Text("OK")
+    completionResult?.let { result ->
+        if (result !is SaleCompletionResult.Success) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearCompletionFeedback() },
+                title = { Text(stringResource(R.string.dialog_error_title)) },
+                text = { Text(result.toLocalizedMessage()) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearCompletionFeedback() }) {
+                        Text(stringResource(R.string.dialog_ok))
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 
     Scaffold(
@@ -137,154 +151,259 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
             // Left Panel: Open Orders
             Column(
                 modifier = Modifier
-                    .width(250.dp)
+                    .width(280.dp)
                     .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(8.dp)
+                    .padding(16.dp)
             ) {
-                Text("OPEN ORDERS", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(openOrders) { order ->
-                        ListItem(
-                            headlineContent = { Text(order.tableLabel?.ifBlank { null } ?: order.saleId.value.takeLast(8)) },
-                            supportingContent = { if (!order.tableLabel.isNullOrBlank()) Text(order.saleId.value.takeLast(8)) },
-                            modifier = Modifier.clickable { viewModel.selectOrder(order.saleId) },
-                            colors = if (selectedOrderId == order.saleId) ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ListItemDefaults.colors()
+                Text(
+                    text = stringResource(R.string.orders_open_orders),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                if (openOrders.isEmpty()) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.orders_select_order),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(openOrders) { order ->
+                            val isSelected = selectedOrderId == order.saleId
+                            TerminalCard(
+                                onClick = { viewModel.selectOrder(order.saleId) },
+                                selected = isSelected,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val label = order.tableLabel?.ifBlank { null } ?: order.saleId.value.takeLast(6).uppercase()
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (!order.tableLabel.isNullOrBlank()) {
+                                    Text(
+                                        text = "#${order.saleId.value.takeLast(6).uppercase()}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
+                
+                Spacer(Modifier.height(16.dp))
+                
                 Button(
                     onClick = { viewModel.createOrder() },
-                    modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    contentPadding = PaddingValues(16.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("New Order")
+                    Text(stringResource(R.string.orders_new_order))
                 }
             }
 
-            VerticalDivider()
+            VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // Center Panel: Menu
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(8.dp)
+                    .padding(16.dp)
             ) {
-                Text("MENU", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+                Text(
+                    text = stringResource(R.string.orders_menu),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
                 
                 LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
                         FilterChip(
                             selected = selectedCategoryId == null,
                             onClick = { viewModel.selectCategory(null) },
-                            label = { Text("All") }
+                            label = { Text(stringResource(R.string.orders_category_all)) },
+                            shape = MaterialTheme.shapes.extraLarge
                         )
                     }
                     items(categories) { category ->
                         FilterChip(
                             selected = selectedCategoryId == category.id,
                             onClick = { viewModel.selectCategory(category.id) },
-                            label = { Text(category.name) }
+                            label = { Text(category.name) },
+                            shape = MaterialTheme.shapes.extraLarge
                         )
                     }
                 }
 
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(menuItems) { item ->
-                        Card(
-                            onClick = { viewModel.addItemToCurrentOrder(item.id) },
-                            modifier = Modifier.height(100.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxSize().padding(8.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
+                if (menuItems.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.orders_empty_menu),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 160.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        items(menuItems) { item ->
+                            TerminalCard(
+                                onClick = { 
+                                    if (!isCompleting) viewModel.addItemToCurrentOrder(item.id) 
+                                },
+                                modifier = Modifier.height(120.dp)
                             ) {
-                                Text(item.name, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
-                                Text("${item.regularPrice}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = item.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = item.regularPrice.toString(),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            VerticalDivider()
+            VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // Right Panel: Current Order
             Column(
                 modifier = Modifier
-                    .width(350.dp)
+                    .width(400.dp)
                     .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(8.dp)
+                    .padding(16.dp)
             ) {
                 selectedOrder?.let { order ->
                     var tableLabel by remember(order.saleId) { mutableStateOf(order.tableLabel ?: "") }
                     
-                    TextField(
+                    OutlinedTextField(
                         value = tableLabel,
                         onValueChange = { 
-                            tableLabel = it
-                            viewModel.updateTableLabel(it)
+                            if (!isCompleting) {
+                                tableLabel = it
+                                viewModel.updateTableLabel(it)
+                            }
                         },
-                        label = { Text("Table/Order Label") },
-                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                        label = { Text(stringResource(R.string.orders_table_label)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        singleLine = true,
+                        enabled = !isCompleting
                     )
 
-                    LazyColumn(modifier = Modifier.weight(1f)) {
+                    Spacer(Modifier.height(16.dp))
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         items(currentLines) { line ->
-                            OrderLineItem(
+                            OrderLineItemCard(
                                 line = line,
                                 onUpdateQuantity = { viewModel.updateQuantity(line.lineId, it) },
                                 onChangePricingMode = { viewModel.changePricingMode(line.lineId, it) },
-                                onRemove = { viewModel.removeLine(line.lineId) }
+                                onRemove = { viewModel.removeLine(line.lineId) },
+                                enabled = !isCompleting
                             )
                         }
                     }
 
                     totals?.let { t ->
-                        Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                            HorizontalDivider()
-                            Spacer(Modifier.height(8.dp))
-                            TotalRow("Regular Subtotal", t.regularSubtotal.toString())
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    MaterialTheme.shapes.medium
+                                )
+                                .padding(16.dp)
+                        ) {
+                            TotalRow(stringResource(R.string.totals_regular_subtotal), t.regularSubtotal.toString())
                             if (t.cashDiscounts.amount > BigDecimal.ZERO) {
-                                TotalRow("Cash Discounts", "-${t.cashDiscounts}", color = Color.Red)
+                                TotalRow(
+                                    stringResource(R.string.totals_cash_discounts), 
+                                    "-${t.cashDiscounts}", 
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
-                            TotalRow("CASH Total", t.cashTotal.toString())
-                            TotalRow("TRANSFER Total", t.transferTotal.toString())
-                            Spacer(Modifier.height(8.dp))
-                            TotalRow("GRAND TOTAL", t.grandTotal.toString(), style = MaterialTheme.typography.titleLarge)
+                            TotalRow(stringResource(R.string.totals_cash_total), t.cashTotal.toString())
+                            TotalRow(stringResource(R.string.totals_transfer_total), t.transferTotal.toString())
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                            TotalRow(
+                                stringResource(R.string.totals_grand_total), 
+                                t.grandTotal.toString(), 
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                     
                     Button(
                         onClick = { showCompleteDialog = true },
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        enabled = currentLines.isNotEmpty() && !isCompleting
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = currentLines.isNotEmpty() && !isCompleting,
+                        shape = MaterialTheme.shapes.medium,
+                        contentPadding = PaddingValues(16.dp)
                     ) {
-                        Text("Complete Sale")
+                        Text(
+                            text = stringResource(R.string.orders_complete_sale),
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
 
-                    Button(
+                    TextButton(
                         onClick = { showDiscardDialog = true },
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                        enabled = !isCompleting
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        enabled = !isCompleting,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Text("Discard Order")
+                        Text(stringResource(R.string.orders_discard_order))
                     }
                 } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Select or create an order", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = stringResource(R.string.orders_select_order),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -292,90 +411,157 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
 }
 
 @Composable
-fun OrderLineItem(
+fun OrderLineItemCard(
     line: SaleLine,
     onUpdateQuantity: (BigDecimal) -> Unit,
     onChangePricingMode: (PricingMode) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    enabled: Boolean
 ) {
-    Column(modifier = Modifier.padding(8.dp).fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.Top) {
+    TerminalCard(
+        onClick = {},
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(line.itemNameSnapshot, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Text("Regular: ${line.regularUnitPriceSnapshot}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = line.itemNameSnapshot,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = line.regularUnitPriceSnapshot.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            IconButton(
+                onClick = onRemove,
+                enabled = enabled,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Delete, 
+                    contentDescription = stringResource(R.string.cd_remove), 
+                    tint = if (enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+                )
             }
         }
         
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(12.dp))
         
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onUpdateQuantity(line.quantity.subtract(BigDecimal.ONE)) }) {
-                Icon(Icons.Default.Remove, contentDescription = null)
-            }
-            Text(
-                line.quantity.stripTrailingZeros().toPlainString(),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            QuantityControl(
+                quantity = line.quantity,
+                onIncrease = { onUpdateQuantity(line.quantity.add(BigDecimal.ONE)) },
+                onDecrease = { onUpdateQuantity(line.quantity.subtract(BigDecimal.ONE)) },
+                enabled = enabled
             )
-            IconButton(onClick = { onUpdateQuantity(line.quantity.add(BigDecimal.ONE)) }) {
-                Icon(Icons.Default.Add, contentDescription = null)
-            }
-            
-            Spacer(Modifier.weight(1f))
             
             Text(
-                "${line.lineTotal}",
-                style = MaterialTheme.typography.titleMedium,
+                text = line.lineTotal.toString(),
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
         }
         
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            PricingModeToggle(
+        Spacer(Modifier.height(12.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PricingModeSelector(
                 selectedMode = line.pricingMode,
-                onModeSelected = onChangePricingMode
+                onModeSelected = onChangePricingMode,
+                enabled = enabled
             )
             
             if (line.pricingMode == PricingMode.CASH && line.cashDiscountApplied) {
+                Spacer(Modifier.weight(1f))
                 Text(
-                    "${line.cashDiscountPercent.stripTrailingZeros().toPlainString()}% disc",
+                    text = stringResource(
+                        R.string.pricing_mode_cash_discount, 
+                        line.cashDiscountPercent.stripTrailingZeros().toPlainString()
+                    ),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
 @Composable
-fun PricingModeToggle(
+fun PricingModeSelector(
     selectedMode: PricingMode,
-    onModeSelected: (PricingMode) -> Unit
+    onModeSelected: (PricingMode) -> Unit,
+    enabled: Boolean
 ) {
-    Row {
-        FilterChip(
-            selected = selectedMode == PricingMode.TRANSFER,
-            onClick = { onModeSelected(PricingMode.TRANSFER) },
-            label = { Text("TRANSFER") },
-            modifier = Modifier.padding(end = 4.dp)
-        )
-        FilterChip(
-            selected = selectedMode == PricingMode.CASH,
-            onClick = { onModeSelected(PricingMode.CASH) },
-            label = { Text("CASH") }
-        )
+    Row(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.extraLarge)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(4.dp)
+    ) {
+        val modes = listOf(PricingMode.CASH, PricingMode.TRANSFER)
+        modes.forEach { mode ->
+            val isSelected = selectedMode == mode
+            val label = when (mode) {
+                PricingMode.CASH -> stringResource(R.string.pricing_mode_cash)
+                PricingMode.TRANSFER -> stringResource(R.string.pricing_mode_transfer)
+            }
+            
+            Surface(
+                onClick = { if (enabled) onModeSelected(mode) },
+                selected = isSelected,
+                shape = MaterialTheme.shapes.extraLarge,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.height(32.dp)
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun TotalRow(label: String, value: String, style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium, color: Color = Color.Unspecified) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+fun TotalRow(
+    label: String, 
+    value: String, 
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge, 
+    color: Color = Color.Unspecified
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), 
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
         Text(label, style = style)
-        Text(value, style = style, color = color)
+        Text(value, style = style, color = color, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun SaleCompletionResult.toLocalizedMessage(): String {
+    return when (this) {
+        is SaleCompletionResult.Success -> stringResource(R.string.orders_sale_completed)
+        is SaleCompletionResult.Failure -> this.message
+        SaleCompletionResult.EmptySale -> stringResource(R.string.error_empty_sale)
+        SaleCompletionResult.InvalidQuantity -> stringResource(R.string.error_invalid_quantity)
+        SaleCompletionResult.NotFound -> stringResource(R.string.error_order_not_found)
+        SaleCompletionResult.NotOpen -> stringResource(R.string.error_order_not_open)
     }
 }

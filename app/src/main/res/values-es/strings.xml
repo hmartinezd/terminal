@@ -1,0 +1,105 @@
+<resources>
+    <string name="app_name">Terminal de Ventas</string>
+
+    <!-- Navigation -->
+    <string name="nav_orders">Órdenes</string>
+    <string name="nav_history">Historial</string>
+    <string name="nav_reports">Reportes</string>
+    <string name="nav_settings">Configuración</string>
+
+    <!-- Orders Screen -->
+    <string name="orders_open_orders">ÓRDENES ABIERTAS</string>
+    <string name="orders_new_order">Nueva orden</string>
+    <string name="orders_menu">MENÚ</string>
+    <string name="orders_category_all">Todos</string>
+    <string name="orders_table_label">Mesa / nombre de orden</string>
+    <string name="orders_complete_sale">Finalizar venta</string>
+    <string name="orders_discard_order">Descartar orden</string>
+    <string name="orders_select_order">Seleccione o cree una orden</string>
+    <string name="orders_empty_menu">No hay productos en esta categoría</string>
+    <string name="orders_sale_completed">Venta completada</string>
+
+    <!-- Totals -->
+    <string name="totals_regular_subtotal">Subtotal regular</string>
+    <string name="totals_cash_discounts">Descuentos en efectivo</string>
+    <string name="totals_cash_total">Total EFECTIVO</string>
+    <string name="totals_transfer_total">Total TRANSFERENCIA</string>
+    <string name="totals_grand_total">TOTAL GENERAL</string>
+
+    <!-- Pricing Mode -->
+    <string name="pricing_mode_cash">EFECTIVO</string>
+    <string name="pricing_mode_transfer">TRANSFERENCIA</string>
+    <string name="pricing_mode_cash_discount">%1$s%% descuento en efectivo</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_discard_title">¿Descartar orden?</string>
+    <string name="dialog_discard_message">Esto la eliminará de la lista de órdenes activas.</string>
+    <string name="dialog_discard_confirm">Descartar</string>
+    <string name="dialog_cancel">Cancelar</string>
+    <string name="dialog_complete_title">¿Finalizar venta?</string>
+    <string name="dialog_complete_message">Confirme que la venta está completa. Esta orden no podrá ser editada después de finalizar.</string>
+    <string name="dialog_complete_confirm">Finalizar venta</string>
+    <string name="dialog_error_title">Error al finalizar</string>
+    <string name="dialog_ok">Aceptar</string>
+
+    <!-- Error Messages -->
+    <string name="error_empty_sale">No se puede finalizar una venta vacía</string>
+    <string name="error_invalid_quantity">Uno o más productos tienen una cantidad inválida</string>
+    <string name="error_order_not_found">Orden no encontrada</string>
+    <string name="error_order_not_open">La orden no está abierta</string>
+    <string name="error_void_not_completed">Solo se pueden anular ventas completadas</string>
+
+    <!-- History Screen -->
+    <string name="history_status_completed">COMPLETADA</string>
+    <string name="history_status_voided">ANULADA</string>
+    <string name="history_void_sale">Anular venta</string>
+    <string name="history_sale_voided">Venta anulada</string>
+    <string name="history_empty_state">No se encontró historial</string>
+    <string name="history_select_sale">Seleccione una venta para ver los detalles</string>
+    <string name="history_business_date">Fecha de negocio</string>
+    <string name="history_timestamp">Registro de tiempo</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Configuración</string>
+    <string name="settings_section_terminal">TERMINAL</string>
+    <string name="settings_terminal_name">Nombre de terminal</string>
+    <string name="settings_terminal_id">ID de terminal</string>
+    <string name="settings_section_restaurant">RESTAURANTE</string>
+    <string name="settings_restaurant_name">Nombre</string>
+    <string name="settings_restaurant_id">ID de restaurante</string>
+    <string name="settings_currency">Moneda</string>
+    <string name="settings_timezone">Zona horaria</string>
+    <string name="settings_business_cutoff">Cierre de día de negocio</string>
+    <string name="settings_section_menu">MENÚ</string>
+    <string name="settings_menu_id">ID de menú</string>
+    <string name="settings_publication_revision">Revisión de publicación</string>
+    <string name="settings_published_at">Publicado el (UTC)</string>
+    <string name="settings_imported_at">Importado el</string>
+    <string name="settings_import_new_menu">Importar nuevo menú</string>
+    <string name="settings_import_success">Menú importado con éxito.</string>
+    <string name="settings_import_error_title">Error de importación</string>
+
+    <string name="settings_section_language">IDIOMA</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_default">Predeterminado del sistema</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_language_es">Español</string>
+
+    <!-- Provisioning -->
+    <string name="provisioning_title">Configuración de Terminal</string>
+    <string name="provisioning_terminal_name">Nombre de terminal (Opcional)</string>
+    <string name="provisioning_select_file">Seleccionar archivo MenuPackage JSON</string>
+    <string name="provisioning_restaurant">Restaurante</string>
+    <string name="provisioning_currency">Moneda</string>
+    <string name="provisioning_menu_revision">Revisión de menú</string>
+    <string name="provisioning_categories">Categorías</string>
+    <string name="provisioning_menu_items">Productos de menú</string>
+    <string name="provisioning_back">Atrás</string>
+    <string name="provisioning_confirm">Confirmar configuración</string>
+    <string name="provisioning_problem">Problema de configuración: %1$s</string>
+
+    <!-- Accessibility -->
+    <string name="cd_remove">Eliminar</string>
+    <string name="cd_increase">Aumentar</string>
+    <string name="cd_decrease">Disminuir</string>
+</resources>

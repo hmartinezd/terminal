@@ -1,41 +1,28 @@
 package com.venkoi.terminal.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.venkoi.terminal.ui.OrdersScreen
-import com.venkoi.terminal.ui.SettingsScreen
+import com.venkoi.terminal.R
 
-sealed class Screen(val title: String, val icon: ImageVector) {
-    object Orders : Screen("Orders", Icons.Default.ListAlt)
-    object History : Screen("History", Icons.Default.History)
-    object Reports : Screen("Reports", Icons.Default.BarChart)
-    object Settings : Screen("Settings", Icons.Default.Settings)
+sealed class Screen(@StringRes val titleRes: Int, val icon: ImageVector) {
+    object Orders : Screen(R.string.nav_orders, Icons.Default.ListAlt)
+    object History : Screen(R.string.nav_history, Icons.Default.History)
+    object Reports : Screen(R.string.nav_reports, Icons.Default.BarChart)
+    object Settings : Screen(R.string.nav_settings, Icons.Default.Settings)
 }
 
 @Composable
@@ -46,25 +33,54 @@ fun MainScreen() {
     Row(modifier = Modifier.fillMaxSize()) {
         // Navigation Rail for Tablet/Landscape
         NavigationRail(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            header = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 24.dp)
+                        .size(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "T",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            },
             modifier = Modifier.fillMaxHeight()
         ) {
-            Spacer(Modifier.weight(1f))
             screens.forEach { screen ->
+                val title = stringResource(screen.titleRes)
                 NavigationRailItem(
                     selected = currentScreen == screen,
                     onClick = { currentScreen = screen },
-                    icon = { Icon(screen.icon, contentDescription = screen.title) },
-                    label = { Text(screen.title) }
+                    icon = { Icon(screen.icon, contentDescription = title) },
+                    label = { 
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.labelMedium
+                        ) 
+                    },
+                    colors = NavigationRailItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
-            Spacer(Modifier.weight(1f))
         }
 
         // Main Content Area
         Box(
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.TopStart
         ) {
             when (currentScreen) {
@@ -78,12 +94,12 @@ fun MainScreen() {
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = currentScreen.title,
+                            text = stringResource(currentScreen.titleRes),
                             style = MaterialTheme.typography.headlineLarge
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Placeholder for ${currentScreen.title} functionality",
+                            text = "Placeholder",
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
