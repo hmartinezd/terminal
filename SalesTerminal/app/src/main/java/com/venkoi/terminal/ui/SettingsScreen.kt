@@ -47,6 +47,9 @@ fun SettingsScreen(
     val bookkeepingFailedMsg = stringResource(R.string.settings_export_bookkeeping_failed)
     val shareFailedMsg = stringResource(R.string.settings_share_failed)
     val shareReadyMsg = stringResource(R.string.settings_share_ready)
+    val activationShareFailedMsg = stringResource(R.string.activation_share_failed)
+    val activationShareReadyMsg = stringResource(R.string.activation_share_ready)
+    val activationSaveFailedMsg = stringResource(R.string.activation_save_failed)
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -65,9 +68,6 @@ fun SettingsScreen(
     ) { uri -> uri?.let(viewModel::onImportLicense) }
 
     LaunchedEffect(Unit) { viewModel.ensureDefaultBusinessDate() }
-    LaunchedEffect(viewModel.pendingActivationJson) {
-        if (viewModel.pendingActivationJson != null) activationLauncher.launch(viewModel.pendingActivationFileName ?: "sales_terminal_activation.json")
-    }
     val licenseImported = stringResource(R.string.license_imported_successfully)
     val licenseInvalid = stringResource(R.string.unable_to_verify_license)
     val licenseStale = stringResource(R.string.license_older)
@@ -94,6 +94,18 @@ fun SettingsScreen(
         if (message != null) {
             snackbarHostState.showSnackbar(message)
             viewModel.consumeExportMessage()
+        }
+    }
+    LaunchedEffect(viewModel.activationMessage) {
+        val message = when (viewModel.activationMessage) {
+            ActivationMessage.ShareReady -> activationShareReadyMsg
+            ActivationMessage.ShareFailed -> activationShareFailedMsg
+            ActivationMessage.SaveFailed -> activationSaveFailedMsg
+            null -> null
+        }
+        if (message != null) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeActivationMessage()
         }
     }
 
@@ -262,6 +274,26 @@ fun SettingsScreen(
                 TextButton(onClick = { exportLauncher.launch(prepared.suggestedFileName) }) {
                     Text(stringResource(R.string.settings_save_file))
                 }
+            }
+        )
+    }
+
+    if (viewModel.showActivationRequestMethods) {
+        val prepared = viewModel.pendingActivationRequest
+        if (prepared != null) AlertDialog(
+            onDismissRequest = viewModel::dismissActivationRequestMethods,
+            title = { Text(stringResource(R.string.activation_request_created)) },
+            text = { Text(stringResource(R.string.activation_choose_method)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::shareActivationRequest) {
+                    Text(stringResource(R.string.settings_share))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.saveActivationRequest()
+                    activationLauncher.launch(prepared.suggestedFileName)
+                }) { Text(stringResource(R.string.settings_save_file)) }
             }
         )
     }

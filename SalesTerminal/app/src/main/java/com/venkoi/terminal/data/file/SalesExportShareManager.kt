@@ -21,10 +21,15 @@ import javax.inject.Inject
 class SalesExportShareManager @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
-    suspend fun share(json: String, suggestedFileName: String): Boolean {
+    suspend fun share(
+        json: String,
+        suggestedFileName: String,
+        subjectResId: Int = R.string.settings_share_subject,
+        chooserTitleResId: Int = R.string.settings_share_title
+    ): Boolean {
         val uri = withContext(Dispatchers.IO) {
             val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
-            check(directory.isDirectory) { "Unable to create sales export share directory" }
+            check(directory.isDirectory) { "Unable to create JSON share directory" }
             cleanupExpiredFiles(directory)
             // Keep each handoff immutable even when two exports receive the same human filename.
             val operationDirectory = File(directory, System.nanoTime().toString()).apply { mkdirs() }
@@ -37,14 +42,14 @@ class SalesExportShareManager @Inject constructor(
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = JSON_MIME_TYPE
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.settings_share_subject))
+            putExtra(Intent.EXTRA_SUBJECT, context.getString(subjectResId))
             clipData = ClipData.newUri(context.contentResolver, suggestedFileName, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         if (sendIntent.resolveActivity(context.packageManager) == null) return false
         return try {
             context.startActivity(
-                Intent.createChooser(sendIntent, context.getString(R.string.settings_share_title))
+                Intent.createChooser(sendIntent, context.getString(chooserTitleResId))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
             true
@@ -67,7 +72,7 @@ class SalesExportShareManager @Inject constructor(
     }
 
     private companion object {
-        const val SHARE_DIRECTORY = "sales_exports"
+        const val SHARE_DIRECTORY = "json_shares"
         const val JSON_MIME_TYPE = "application/json"
         val MAX_CACHE_AGE_MILLIS = TimeUnit.DAYS.toMillis(1)
     }

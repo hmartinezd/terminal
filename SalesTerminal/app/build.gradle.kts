@@ -14,7 +14,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-fun org.gradle.api.provider.ProviderFactory.externalValue(property: String, environment: String) =
+fun ProviderFactory.externalValue(property: String, environment: String) =
     gradleProperty(property).orElse(environmentVariable(environment))
 
 val productionPilot = providers.externalValue("PRODUCTION_PILOT", "PRODUCTION_PILOT")
@@ -126,6 +126,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/compatibility/**"
+        }
     }
 }
 

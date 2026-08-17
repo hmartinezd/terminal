@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.net.Uri
+import com.venkoi.terminal.R
 import com.venkoi.terminal.core.DocumentReader
 import com.venkoi.terminal.core.ReadResult
 import com.venkoi.terminal.domain.repository.MenuRepository
@@ -30,6 +31,9 @@ import com.venkoi.terminal.core.IdGenerator
 import com.venkoi.terminal.data.file.DocumentWriteResult
 import com.venkoi.terminal.data.file.SalesBatchDocumentWriter
 import com.venkoi.terminal.data.file.SalesExportShareManager
+import com.venkoi.terminal.data.file.PreparedActivationRequest
+import com.venkoi.terminal.data.file.ActivationDeliveryResult
+import com.venkoi.terminal.data.file.ActivationRequestDeliveryCoordinator
 import com.venkoi.terminal.domain.model.ExportedSaleRevision
 import com.venkoi.terminal.domain.model.PreparedSalesExport
 import com.venkoi.terminal.domain.model.SaleExportSummary
@@ -58,6 +62,7 @@ class SettingsViewModel @Inject constructor(
     private val buildSalesBatch: BuildSalesBatch,
     private val documentWriter: SalesBatchDocumentWriter,
     private val shareManager: SalesExportShareManager,
+    private val activationDeliveryCoordinator: ActivationRequestDeliveryCoordinator,
     private val exportSalesCoordinator: ExportSalesCoordinator,
     private val resolveCurrentReportBusinessDate: ResolveCurrentReportBusinessDate,
     private val clock: Clock,
@@ -69,9 +74,11 @@ class SettingsViewModel @Inject constructor(
     val licenseSnapshot = licenseManager.snapshot
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LicenseSnapshot(com.venkoi.terminal.licensing.LicenseState.NOT_ACTIVATED))
     val deviceCode: String get() = licenseManager.deviceIdentity.deviceCode
-    var pendingActivationJson by mutableStateOf<String?>(null)
+    var pendingActivationRequest by mutableStateOf<PreparedActivationRequest?>(null)
         private set
-    var pendingActivationFileName by mutableStateOf<String?>(null)
+    var showActivationRequestMethods by mutableStateOf(false)
+        private set
+    var activationMessage by mutableStateOf<ActivationMessage?>(null)
         private set
     var licenseImportResult by mutableStateOf<LicenseImportResult?>(null)
         private set
@@ -268,21 +275,56 @@ class SettingsViewModel @Inject constructor(
     fun consumeExportMessage() { exportMessage = null }
 
     fun prepareActivationRequest() {
-        if (pendingActivationJson != null) return
+        if (pendingActivationRequest != null) {
+            showActivationRequestMethods = true
+            return
+        }
         viewModelScope.launch {
             runCatching { licenseManager.activationRequest() }.onSuccess {
-                pendingActivationJson = json.encodeToString(it)
-                pendingActivationFileName = "sales_terminal_activation_${deviceCode}.json"
+                pendingActivationRequest = PreparedActivationRequest(
+                    json = json.encodeToString(it),
+                    suggestedFileName = "sales_terminal_activation_${deviceCode}.json"
+                )
+                showActivationRequestMethods = true
             }
         }
     }
 
-    fun onActivationDocumentResult(uri: Uri?) {
-        val content = pendingActivationJson
-        pendingActivationJson = null
-        pendingActivationFileName = null
-        if (uri != null && content != null) viewModelScope.launch(Dispatchers.IO) { documentWriter.write(uri, content) }
+    fun saveActivationRequest() {
+        if (pendingActivationRequest != null) showActivationRequestMethods = false
     }
+
+    fun onActivationDocumentResult(uri: Uri?) {
+        val prepared = pendingActivationRequest ?: return
+        viewModelScope.launch {
+            val result = activationDeliveryCoordinator.save(uri, prepared) { destination, content ->
+                withContext(Dispatchers.IO) { documentWriter.write(destination, content) is DocumentWriteResult.Success }
+            }
+            if (result == ActivationDeliveryResult.Failed) activationMessage = ActivationMessage.SaveFailed
+        }
+    }
+
+    fun shareActivationRequest() {
+        val prepared = pendingActivationRequest ?: return
+        showActivationRequestMethods = false
+        viewModelScope.launch {
+            activationMessage = when (activationDeliveryCoordinator.share(prepared) { content, fileName ->
+                shareManager.share(
+                        content,
+                        fileName,
+                        R.string.activation_share_subject,
+                        R.string.activation_share_title
+                    )
+            }) {
+                ActivationDeliveryResult.Success -> ActivationMessage.ShareReady
+                else -> ActivationMessage.ShareFailed
+            }
+        }
+    }
+
+    fun dismissActivationRequestMethods() { showActivationRequestMethods = false }
+
+    fun consumeActivationMessage() { activationMessage = null }
 
     fun onImportLicense(uri: Uri) {
         if (isImportingLicense) return
@@ -297,6 +339,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun consumeLicenseImportResult() { licenseImportResult = null }
+}
+
+sealed interface ActivationMessage {
+    data object ShareReady : ActivationMessage
+    data object ShareFailed : ActivationMessage
+    data object SaveFailed : ActivationMessage
 }
 
 sealed interface ExportMessage {

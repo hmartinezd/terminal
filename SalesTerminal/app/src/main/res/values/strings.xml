@@ -182,6 +182,13 @@
     <string name="valid_until">Valid until</string>
     <string name="grace_until">Grace until</string>
     <string name="generate_activation_request">Generate Activation Request</string>
+    <string name="activation_request_created">Activation request created</string>
+    <string name="activation_choose_method">Choose activation request method</string>
+    <string name="activation_share_title">Share activation request</string>
+    <string name="activation_share_subject">Sales Terminal activation request</string>
+    <string name="activation_share_ready">Activation request ready to share</string>
+    <string name="activation_share_failed">Unable to share activation request. Please try again.</string>
+    <string name="activation_save_failed">Unable to save activation request. Please try again.</string>
     <string name="import_renew_license">Import / Renew License</string>
     <string name="subscription_expires_days">Subscription expires in %1$d days</string>
     <string name="subscription_renewal_required">Subscription renewal required</string>
