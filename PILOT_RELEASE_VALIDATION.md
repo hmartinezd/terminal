@@ -118,3 +118,35 @@ The enforced-license instrumentation APK was also run. Seven repository integrat
 ## Recommendation
 
 **READY FOR CONTROLLED PILOT.** No BLOCKER product defect, MAJOR product defect, or sale-data-loss defect was found. Production authority creation and Android production signing remain separate operational release tasks and were not fabricated for this validation.
+
+## R1 final polish validation — compact Current Order and Save/Share
+
+Date: 2026-08-16 (America/New_York)
+
+The latest debug APK was exercised on the Pixel Tablet at 2560×1600/320 dpi and at a representative 1280×800/160 dpi. A Spanish footer wrap found during runtime inspection was fixed with two compact equal-width mode columns; no totals or monetary logic changed.
+
+### Current Order
+
+| Scenario | Result | Evidence |
+|---|---|---|
+| Large landscape tablet | PASS | Spanish mixed-mode order remained readable; item list was the only scrolling region and totals, Grand Total, Complete, and Discard stayed fixed. |
+| 1280×800 effective landscape | PASS | One- and four-line states remained usable without clipping; fixed footer/actions stayed visible. |
+| Long order (8+ lines) | PASS | Last item was fully reachable by scrolling only the item list; no footer/list overlap. |
+| Long product name | NOT RUN | No dedicated long-name menu item was available in the installed immutable demo menu. Source constrains names to two lines, but this row is not claimed as runtime evidence. |
+| Spanish totals | PASS | `EFECTIVO` and `TRANSFERENCIA` rendered as equal-width label/value columns without clipping or value ellipsis after the presentation fix. |
+| Large amounts | NOT RUN | No large-value runtime fixture was injected; important totals are no longer ellipsized, but this row is not claimed as runtime evidence. |
+| Expired state | NOT RUN | The installed emulator license reported a license problem rather than a reproducible expired state; prior M11C expired-order evidence was not reused as proof of this new compact layout. |
+
+### Sales Share
+
+| Scenario | Result | Evidence |
+|---|---|---|
+| Pending Share | PASS | Android chooser opened with `application/json`, a `content://` attachment, and a sensible `.json` filename; exact prepared revision became non-pending after handoff. |
+| VOID revision-2 Share | PASS | Shared JSON retained sale ID `eee3e613-039f-4021-8302-e980b59bddcc`, contained revision `2`, status `VOIDED`, and the persisted revision-1 line snapshots. |
+| Day Share | PASS | Android chooser opened with the repeatable business-day SalesBatchV1 JSON attachment. |
+| Save regression | PASS | Day and Pending Save opened DocumentsUI; Pending cancellation left one revision pending, and retry wrote `sales_pending_2026-08-16_215722.json`. |
+| Airplane-mode chooser | PASS | Airplane mode remained enabled (`airplane_mode_on=1`) with no connected network while Pending, VOID, and Day share choosers opened. |
+| Expired-license Share | NOT RUN | A reproducible expired license could not be established on this emulator without replacing its installed licensing fixture. Static UI/coordinator review found no selling-authorization gate on historical export. |
+| Spanish UI | PASS | Runtime chooser showed `Elegir método de exportación`, `Guardar archivo`, and `Compartir`; no English leftover was visible in the exercised flow. |
+
+Save and Share both consumed the same `PreparedSalesExport.json`. SalesBatchV1 and receiver-side code/schema were unchanged. Sharing remained private-cache `FileProvider` transport with an unexported provider, `content://` URI, JSON MIME type, and temporary read permission.

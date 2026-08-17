@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.venkoi.terminal.R
 import com.venkoi.terminal.domain.model.SaleLine
@@ -406,14 +407,15 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = "${stringResource(R.string.pricing_mode_cash)} ${HistoryMoneyFormatter.format(t.cashTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale)}",
-                                    style = MaterialTheme.typography.bodyMedium
+                                CompactModeTotal(
+                                    label = stringResource(R.string.pricing_mode_cash),
+                                    value = HistoryMoneyFormatter.format(t.cashTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale),
+                                    modifier = Modifier.weight(1f)
                                 )
-                                Text("•", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(
-                                    text = "${stringResource(R.string.pricing_mode_transfer)} ${HistoryMoneyFormatter.format(t.transferTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale)}",
-                                    style = MaterialTheme.typography.bodyMedium
+                                CompactModeTotal(
+                                    label = stringResource(R.string.pricing_mode_transfer),
+                                    value = HistoryMoneyFormatter.format(t.transferTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale),
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
                             if (t.cashDiscounts.amount > BigDecimal.ZERO) {
@@ -581,7 +583,7 @@ fun PricingModeSelector(
                 Box(modifier = Modifier.padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
                     Text(
                         text = label,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -589,6 +591,24 @@ fun PricingModeSelector(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CompactModeTotal(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
     }
 }
 
