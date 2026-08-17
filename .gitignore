@@ -22,3 +22,7 @@ secrets/
 license-audit.jsonl
 *.private.key
 authority-private.pem
+*.jks
+*.keystore
+*signing*.properties
+*release*.properties

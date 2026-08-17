@@ -2,6 +2,7 @@ package com.venkoi.terminal.data.local.di
 
 import android.content.Context
 import androidx.room.Room
+import com.venkoi.terminal.BuildConfig
 import com.venkoi.terminal.data.local.database.AppDatabase
 import com.venkoi.terminal.data.local.database.MenuDao
 import com.venkoi.terminal.data.local.database.ReportDao
@@ -23,13 +24,15 @@ object DataModule {
     fun provideAppDatabase(
         @ApplicationContext context: Context
     ): AppDatabase {
-        return Room.databaseBuilder(
+        val builder = Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "sales_terminal.db"
         )
-            .fallbackToDestructiveMigration()
-            .build()
+        // Development installs predate the production baseline and may reset. A distributed
+        // release must fail instead of silently destroying restaurant data when a migration is absent.
+        if (BuildConfig.DEBUG) builder.fallbackToDestructiveMigration(dropAllTables = true)
+        return builder.build()
     }
 
     @Provides

@@ -1,3 +1,11 @@
+import java.io.File
+import java.security.KeyFactory
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.interfaces.ECPublicKey
+import java.security.spec.X509EncodedKeySpec
+import java.util.Base64
+
 plugins {
     alias(libs.plugins.agp.app)
     alias(libs.plugins.kgp.serialization)
@@ -5,6 +13,68 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
+
+fun org.gradle.api.provider.ProviderFactory.externalValue(property: String, environment: String) =
+    gradleProperty(property).orElse(environmentVariable(environment))
+
+val productionPilot = providers.externalValue("PRODUCTION_PILOT", "PRODUCTION_PILOT")
+    .orElse("false").get().toBooleanStrictOrNull() ?: error("PRODUCTION_PILOT must be true or false")
+
+val authorityKey = providers.externalValue("LICENSE_AUTHORITY_PUBLIC_KEY", "LICENSE_AUTHORITY_PUBLIC_KEY")
+    .orElse("").get().trim()
+val expectedCertificate = providers.externalValue("EXPECTED_RELEASE_CERT_SHA256", "EXPECTED_RELEASE_CERT_SHA256")
+    .orElse("").get().replace(":", "").uppercase()
+
+val pilotSigningMaterial = if (productionPilot) {
+    fun required(property: String, environment: String): String =
+        providers.externalValue(property, environment).orNull?.takeIf { it.isNotBlank() }
+            ?: error("Production pilot release requires $property (or $environment)")
+
+    require(authorityKey.isNotBlank()) { "Production pilot release requires LICENSE_AUTHORITY_PUBLIC_KEY" }
+    val decodedAuthority = runCatching { Base64.getDecoder().decode(authorityKey) }
+        .getOrElse { error("LICENSE_AUTHORITY_PUBLIC_KEY must be Base64 X.509 public-key data") }
+    val publicKey = runCatching {
+        KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(decodedAuthority))
+    }.getOrElse { error("LICENSE_AUTHORITY_PUBLIC_KEY must be an EC X.509 public key") }
+    require(publicKey is ECPublicKey && publicKey.params.curve.field.fieldSize == 256) {
+        "LICENSE_AUTHORITY_PUBLIC_KEY must be a P-256 EC public key"
+    }
+    require(expectedCertificate.matches(Regex("[0-9A-F]{64}")) && expectedCertificate.any { it != '0' }) {
+        "EXPECTED_RELEASE_CERT_SHA256 must be a non-zero SHA-256 certificate fingerprint"
+    }
+
+    val keystorePath = File(required("ANDROID_SIGNING_KEYSTORE", "ANDROID_SIGNING_KEYSTORE"))
+    require(keystorePath.isAbsolute) { "ANDROID_SIGNING_KEYSTORE must be an absolute external path" }
+    require(keystorePath.exists() && keystorePath.isFile) { "Android signing keystore does not exist" }
+    val repositoryRoot = rootProject.projectDir.canonicalFile.parentFile
+    require(!keystorePath.canonicalFile.toPath().startsWith(repositoryRoot.toPath())) {
+        "Android signing keystore must remain outside the product source directory"
+    }
+    val alias = required("ANDROID_SIGNING_ALIAS", "ANDROID_SIGNING_ALIAS")
+    val storePassword = required("ANDROID_SIGNING_STORE_PASSWORD", "ANDROID_SIGNING_STORE_PASSWORD")
+    val keyPassword = required("ANDROID_SIGNING_KEY_PASSWORD", "ANDROID_SIGNING_KEY_PASSWORD")
+    require(!gradle.startParameter.isConfigurationCacheRequested) {
+        "Production pilot release must use --no-configuration-cache so passwords are not cached"
+    }
+    val keyStore = sequenceOf("PKCS12", "JKS").mapNotNull { type ->
+        runCatching {
+            KeyStore.getInstance(type).apply {
+                keystorePath.inputStream().use { load(it, storePassword.toCharArray()) }
+            }
+        }.getOrNull()
+    }.firstOrNull() ?: error("Android signing keystore could not be opened")
+    require(keyStore.isKeyEntry(alias)) { "ANDROID_SIGNING_ALIAS is not a private-key entry in the keystore" }
+    requireNotNull(runCatching { keyStore.getKey(alias, keyPassword.toCharArray()) }.getOrNull()) {
+        "Android signing key password could not unlock the configured alias"
+    }
+    val actualCertificate = MessageDigest.getInstance("SHA-256")
+        .digest(requireNotNull(keyStore.getCertificate(alias)) { "Signing alias has no certificate" }.encoded)
+        .joinToString("") { "%02X".format(it) }
+    require(actualCertificate == expectedCertificate) {
+        "EXPECTED_RELEASE_CERT_SHA256 does not match the configured Android signing certificate"
+    }
+    arrayOf(keystorePath.path, alias, storePassword, keyPassword)
+} else null
 
 android {
     namespace = "com.venkoi.terminal"
@@ -15,7 +85,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0-pilot.1"
 
         testInstrumentationRunner = "com.venkoi.terminal.HiltTestRunner"
         buildConfigField("String", "LICENSE_AUTHORITY_PUBLIC_KEY", "\"\"")
@@ -30,10 +100,18 @@ android {
             buildConfigField("String", "LICENSE_AUTHORITY_PUBLIC_KEY", "\"${developmentKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         }
         release {
-            val authorityKey = providers.gradleProperty("LICENSE_AUTHORITY_PUBLIC_KEY").orElse("").get()
-            val certificate = providers.gradleProperty("EXPECTED_RELEASE_CERT_SHA256").orElse("").get()
             buildConfigField("String", "LICENSE_AUTHORITY_PUBLIC_KEY", "\"${authorityKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
-            buildConfigField("String", "EXPECTED_RELEASE_CERT_SHA256", "\"${certificate.replace("\"", "\\\"")}\"")
+            buildConfigField("String", "EXPECTED_RELEASE_CERT_SHA256", "\"${expectedCertificate.replace("\"", "\\\"")}\"")
+            pilotSigningMaterial?.let { material ->
+                signingConfig = signingConfigs.create("productionPilot") {
+                    storeFile = file(material[0])
+                    keyAlias = material[1]
+                    storePassword = material[2]
+                    keyPassword = material[3]
+                    enableV1Signing = true
+                    enableV2Signing = true
+                }
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "src/main/keepRules/rules.keep")
