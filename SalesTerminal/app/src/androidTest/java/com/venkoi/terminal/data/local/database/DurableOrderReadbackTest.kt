@@ -56,6 +56,7 @@ class DurableOrderReadbackTest {
                 commercialRevision = 20,
                 consumptionRevision = 5,
                 itemNameSnapshot = "Burger",
+                displayOrder = 7,
                 quantity = BigDecimal("2"),
                 regularUnitPriceSnapshot = Money("1500"),
                 cashDiscountModeSnapshot = CashDiscountMode.APPLY_DEFAULT,
@@ -91,6 +92,7 @@ class DurableOrderReadbackTest {
             assertEquals("item-1", line.menuItemId)
             assertEquals(20, line.commercialRevision)
             assertEquals("Burger", line.itemNameSnapshot)
+            assertEquals(7L, line.displayOrder)
             assertEquals(0, BigDecimal("2").compareTo(line.quantity))
             assertEquals(0, BigDecimal("1500").compareTo(line.regularUnitPriceSnapshot.amount))
             assertEquals(PricingMode.CASH, line.pricingMode)

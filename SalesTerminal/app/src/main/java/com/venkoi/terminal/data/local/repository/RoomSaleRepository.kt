@@ -104,6 +104,7 @@ class RoomSaleRepository @Inject constructor(
             currencyScale = saleEntity.currencyScaleSnapshot
         )
 
+        val existingLines = saleDao.getSaleLinesSync(saleId)
         val line = SaleLine(
             lineId = LineId(idGenerator.nextId()),
             saleId = saleId,
@@ -111,6 +112,7 @@ class RoomSaleRepository @Inject constructor(
             commercialRevision = item.commercialRevision,
             consumptionRevision = item.consumptionRevision,
             itemNameSnapshot = item.name,
+            displayOrder = (existingLines.maxOfOrNull { it.displayOrder } ?: -1L) + 1L,
             quantity = BigDecimal.ONE,
             regularUnitPriceSnapshot = item.regularPrice,
             cashDiscountModeSnapshot = item.cashDiscountMode,
@@ -123,7 +125,6 @@ class RoomSaleRepository @Inject constructor(
             lineTotal = pricing.lineTotal
         )
 
-        val existingLines = saleDao.getSaleLinesSync(saleId)
         val equivalentLine = existingLines.find {
             it.menuItemId == line.menuItemId &&
             it.commercialRevision == line.commercialRevision &&
@@ -230,6 +231,7 @@ class RoomSaleRepository @Inject constructor(
         if (otherEquivalent != null) {
             val mergedLine = otherEquivalent.toDomain().copy(
                 quantity = otherEquivalent.quantity.add(line.quantity),
+                displayOrder = minOf(otherEquivalent.displayOrder, line.displayOrder),
             )
             val mergedPricing = CalculateLinePricing.calculate(
                 regularUnitPrice = mergedLine.regularUnitPriceSnapshot,

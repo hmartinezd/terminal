@@ -46,7 +46,8 @@ data class SaleLine(
     val cashDiscountPercent: BigDecimal,
     val cashDiscountAmount: Money,
     val finalUnitPrice: Money,
-    val lineTotal: Money
+    val lineTotal: Money,
+    val displayOrder: Long = 0
 )
 
 data class SaleWithLines(

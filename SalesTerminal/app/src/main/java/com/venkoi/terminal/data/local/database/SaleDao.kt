@@ -25,10 +25,10 @@ interface SaleDao {
     @Query("SELECT * FROM sales WHERE saleId = :saleId")
     suspend fun getSaleSync(saleId: SaleId): SaleEntity?
 
-    @Query("SELECT * FROM sale_lines WHERE saleId = :saleId")
+    @Query("SELECT * FROM sale_lines WHERE saleId = :saleId ORDER BY displayOrder ASC, lineId ASC")
     fun observeSaleLines(saleId: SaleId): Flow<List<SaleLineEntity>>
 
-    @Query("SELECT * FROM sale_lines WHERE saleId = :saleId")
+    @Query("SELECT * FROM sale_lines WHERE saleId = :saleId ORDER BY displayOrder ASC, lineId ASC")
     suspend fun getSaleLinesSync(saleId: SaleId): List<SaleLineEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

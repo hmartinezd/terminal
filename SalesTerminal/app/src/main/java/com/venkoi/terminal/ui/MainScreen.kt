@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,13 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.venkoi.terminal.R
 import com.venkoi.terminal.licensing.LicenseState
 import com.venkoi.terminal.ui.theme.TerminalNavigation
 import com.venkoi.terminal.ui.theme.TerminalOnNavigation
+import kotlinx.coroutines.launch
 
 sealed class Screen(@StringRes val titleRes: Int, val icon: ImageVector) {
     object Orders : Screen(R.string.nav_orders, Icons.Default.ListAlt)
@@ -36,54 +37,48 @@ fun MainScreen() {
     val sellingAllowed by licenseViewModel.sellingAllowed.collectAsState()
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Orders) }
     val screens = listOf(Screen.Orders, Screen.History, Screen.Reports, Screen.Settings)
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Navigation Rail for Tablet/Landscape
-        NavigationRail(
-            containerColor = TerminalNavigation,
-            contentColor = TerminalOnNavigation,
-            header = {
-                Box(
-                    modifier = Modifier
-                        .padding(vertical = 24.dp)
-                        .size(48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "T",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Black
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = false,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = TerminalNavigation,
+                drawerContentColor = TerminalOnNavigation,
+                modifier = Modifier.width(280.dp)
+            ) {
+                Text(
+                    text = "VENKOI",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp)
+                )
+                screens.forEach { screen ->
+                    val title = stringResource(screen.titleRes)
+                    NavigationDrawerItem(
+                        selected = currentScreen == screen,
+                        onClick = {
+                            currentScreen = screen
+                            scope.launch { drawerState.close() }
+                        },
+                        icon = { Icon(screen.icon, contentDescription = title) },
+                        label = { Text(title) },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            unselectedIconColor = TerminalOnNavigation,
+                            selectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                        unselectedTextColor = TerminalOnNavigation,
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            unselectedContainerColor = TerminalNavigation
+                        ),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                     )
                 }
-            },
-            modifier = Modifier.fillMaxHeight()
-        ) {
-            screens.forEach { screen ->
-                val title = stringResource(screen.titleRes)
-                NavigationRailItem(
-                    selected = currentScreen == screen,
-                    onClick = { currentScreen = screen },
-                    icon = { Icon(screen.icon, contentDescription = title) },
-                    label = { 
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.labelMedium
-                        ) 
-                    },
-                    colors = NavigationRailItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                        unselectedIconColor = TerminalOnNavigation,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedTextColor = TerminalOnNavigation,
-                        indicatorColor = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
             }
         }
-
-        // Main Content Area
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
             val banner = when (license.state) {
                 LicenseState.EXPIRING_SOON -> stringResource(R.string.expires_soon)
@@ -96,11 +91,22 @@ fun MainScreen() {
                     Text(it, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }
-        Box(
-            modifier = Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.background),
-            contentAlignment = Alignment.TopStart
-        ) {
-            when (currentScreen) {
+            Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 1.dp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.cd_open_navigation))
+                    }
+                    Text(stringResource(currentScreen.titleRes), style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.TopStart
+            ) {
+                when (currentScreen) {
                 Screen.Orders -> OrdersScreen()
                 Screen.History -> HistoryScreen()
                 Screen.Settings -> SettingsScreen()
@@ -122,8 +128,8 @@ fun MainScreen() {
                         )
                     }
                 }
+                }
             }
-        }
         }
     }
 }

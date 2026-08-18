@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.*
@@ -31,7 +32,6 @@ import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.repository.SaleCompletionResult
 import com.venkoi.terminal.licensing.SellingAuthorizationResult
-import com.venkoi.terminal.ui.components.QuantityControl
 import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.components.CategoryPalette
 import com.venkoi.terminal.ui.components.MenuProductCard
@@ -360,22 +360,28 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         }
                     }
                     
-                    OutlinedTextField(
-                        value = tableLabel,
-                        onValueChange = { 
-                            if (!isCompleting) {
-                                if (it.length <= OrdersViewModel.MAX_ORDER_LABEL_LENGTH) {
-                                    tableLabel = it
-                                    viewModel.updateTableLabel(it)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = tableLabel,
+                            onValueChange = {
+                                if (!isCompleting && it.length <= OrdersViewModel.MAX_ORDER_LABEL_LENGTH) {
+                                        tableLabel = it
+                                        viewModel.updateTableLabel(it)
                                 }
-                            }
-                        },
-                        label = { Text(stringResource(R.string.orders_table_label)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        singleLine = true,
-                        enabled = sellingAllowed && !isCompleting
-                    )
+                            },
+                            label = { Text(stringResource(R.string.orders_table_label)) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            singleLine = true,
+                            enabled = sellingAllowed && !isCompleting
+                        )
+                        TextButton(
+                            onClick = { showDiscardDialog = true },
+                            enabled = !isCompleting,
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            contentPadding = PaddingValues(horizontal = 10.dp)
+                        ) { Text(stringResource(R.string.orders_cancel)) }
+                    }
 
                     Spacer(Modifier.height(8.dp))
 
@@ -384,7 +390,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         contentPadding = PaddingValues(bottom = 6.dp)
                     ) {
-                        items(currentLines) { line ->
+                        items(currentLines, key = { it.lineId.value }) { line ->
                             OrderLineItemCard(
                                 line = line,
                                 currencyCode = order.currencyCodeSnapshot,
@@ -428,37 +434,24 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                                     verticalPadding = 2.dp
                                 )
                             }
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                            TotalRow(
-                                stringResource(R.string.totals_grand_total), 
-                                HistoryMoneyFormatter.format(t.grandTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                verticalPadding = 2.dp
-                            )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 3.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.totals_grand_total), style = MaterialTheme.typography.labelLarge)
+                                    Text(
+                                        HistoryMoneyFormatter.format(t.grandTotal, order.currencyCodeSnapshot, order.currencyScaleSnapshot, locale),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Button(
+                                    onClick = { showCompleteDialog = true },
+                                    enabled = sellingAllowed && currentLines.isNotEmpty() && !isCompleting,
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                ) { Text(stringResource(R.string.orders_complete_sale)) }
+                            }
                         }
-                    }
-                    
-                    Button(
-                        onClick = { showCompleteDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = sellingAllowed && currentLines.isNotEmpty() && !isCompleting,
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = ButtonDefaults.ContentPadding
-                    ) {
-                        Text(
-                            text = stringResource(R.string.orders_complete_sale),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-
-                    TextButton(
-                        onClick = { showDiscardDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isCompleting,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text(stringResource(R.string.orders_discard_order))
                     }
                 } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
@@ -521,7 +514,7 @@ fun OrderLineItemCard(
                     enabled = enabled,
                 )
                 Spacer(Modifier.weight(1f))
-                QuantityControl(
+                CompactQuantityControl(
                     quantity = line.quantity,
                     onIncrease = { onUpdateQuantity(line.quantity.add(BigDecimal.ONE)) },
                     onDecrease = { onUpdateQuantity(line.quantity.subtract(BigDecimal.ONE)) },
@@ -561,9 +554,7 @@ fun PricingModeSelector(
 ) {
     Row(
         modifier = modifier
-            .clip(MaterialTheme.shapes.extraLarge)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(2.dp)
+            .width(96.dp)
     ) {
         val modes = listOf(PricingMode.CASH, PricingMode.TRANSFER)
         modes.forEach { mode ->
@@ -577,21 +568,56 @@ fun PricingModeSelector(
                 PricingMode.TRANSFER -> Icons.Outlined.AccountBalance
             }
             
-            Surface(
-                onClick = { if (enabled) onModeSelected(mode) },
-                selected = isSelected,
-                shape = MaterialTheme.shapes.extraLarge,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            IconButton(
+                onClick = { onModeSelected(mode) },
+                enabled = enabled,
                 modifier = Modifier.size(48.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.size(34.dp)
+                ) { Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = description,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(19.dp)
                     )
-                }
+                } }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactQuantityControl(
+    quantity: BigDecimal,
+    onIncrease: () -> Unit,
+    onDecrease: () -> Unit,
+    enabled: Boolean
+) {
+    Box(modifier = Modifier.size(width = 116.dp, height = 44.dp), contentAlignment = Alignment.Center) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.fillMaxWidth().height(36.dp)
+        ) {}
+        Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onDecrease, enabled = enabled && quantity > BigDecimal.ONE, modifier = Modifier.size(44.dp)) {
+                Icon(Icons.Default.Remove, stringResource(R.string.cd_decrease), modifier = Modifier.size(17.dp))
+            }
+            Text(
+                quantity.stripTrailingZeros().toPlainString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onIncrease, enabled = enabled, modifier = Modifier.size(44.dp)) {
+                Icon(Icons.Default.Add, stringResource(R.string.cd_increase), modifier = Modifier.size(17.dp))
             }
         }
     }

@@ -79,7 +79,8 @@ data class SaleLineEntity(
     val cashDiscountPercent: BigDecimal,
     val cashDiscountAmount: Money,
     val finalUnitPrice: Money,
-    val lineTotal: Money
+    val lineTotal: Money,
+    val displayOrder: Long = 0
 ) {
     fun toDomain() = SaleLine(
         lineId = lineId,
@@ -88,6 +89,7 @@ data class SaleLineEntity(
         commercialRevision = commercialRevision,
         consumptionRevision = consumptionRevision,
         itemNameSnapshot = itemNameSnapshot,
+        displayOrder = displayOrder,
         quantity = quantity,
         regularUnitPriceSnapshot = regularUnitPriceSnapshot,
         cashDiscountModeSnapshot = cashDiscountModeSnapshot,
@@ -108,6 +110,7 @@ data class SaleLineEntity(
             commercialRevision = line.commercialRevision,
             consumptionRevision = line.consumptionRevision,
             itemNameSnapshot = line.itemNameSnapshot,
+            displayOrder = line.displayOrder,
             quantity = line.quantity,
             regularUnitPriceSnapshot = line.regularUnitPriceSnapshot,
             cashDiscountModeSnapshot = line.cashDiscountModeSnapshot,

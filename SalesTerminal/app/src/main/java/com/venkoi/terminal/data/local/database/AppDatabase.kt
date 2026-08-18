@@ -15,7 +15,7 @@ import androidx.room.TypeConverters
         SaleLineEntity::class,
         SaleExportStateEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(TerminalTypeConverters::class)

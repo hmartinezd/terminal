@@ -6,6 +6,8 @@
     <string name="nav_history">History</string>
     <string name="nav_reports">Reports</string>
     <string name="nav_settings">Settings</string>
+    <string name="cd_open_navigation">Open main menu</string>
+    <string name="orders_cancel">Cancel</string>
 
     <!-- Orders Screen -->
     <string name="orders_open_orders">OPEN ORDERS</string>

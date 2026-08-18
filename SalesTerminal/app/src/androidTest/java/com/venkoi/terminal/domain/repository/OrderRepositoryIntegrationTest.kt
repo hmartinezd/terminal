@@ -54,7 +54,10 @@ class SaleRepositoryIntegrationTest {
       },
       "categories": [ { "id": "cat-1", "name": "C1", "displayOrder": 1 } ],
       "menuItems": [
-        { "id": "item-1", "categoryId": "cat-1", "name": "Burger", "active": true, "displayOrder": 1, "regularPrice": "1500", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 20, "consumptionRevision": 5 }
+        { "id": "item-1", "categoryId": "cat-1", "name": "Burger", "active": true, "displayOrder": 1, "regularPrice": "1500", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 20, "consumptionRevision": 5 },
+        { "id": "item-2", "categoryId": "cat-1", "name": "Chicken", "active": true, "displayOrder": 2, "regularPrice": "1200", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 20, "consumptionRevision": 5 },
+        { "id": "item-3", "categoryId": "cat-1", "name": "Fries", "active": true, "displayOrder": 3, "regularPrice": "500", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 20, "consumptionRevision": 5 },
+        { "id": "item-4", "categoryId": "cat-1", "name": "Flan", "active": true, "displayOrder": 4, "regularPrice": "400", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 20, "consumptionRevision": 5 }
       ]
     }
     """.trimIndent()
@@ -76,6 +79,38 @@ class SaleRepositoryIntegrationTest {
     private suspend fun provision() {
         val parseResult = importService.parseAndValidate(menuV1) as MenuPackageImportResult.Success
         importService.provisionTerminal("T1", parseResult)
+    }
+
+    @Test
+    fun stableLineOrderSurvivesUpdatesRemovalAdditionAndMerge() = runBlocking {
+        provision()
+        val saleId = saleRepository.createSale("Order")
+        listOf("item-1", "item-2", "item-3").forEach { saleRepository.addItem(saleId, it) }
+
+        suspend fun names() = saleRepository.observeSaleLines(saleId).first().map { it.itemNameSnapshot }
+        var lines = saleRepository.observeSaleLines(saleId).first()
+        assertEquals(listOf("Burger", "Chicken", "Fries"), names())
+
+        saleRepository.updateLineQuantity(saleId, lines[0].lineId, BigDecimal("2"))
+        lines = saleRepository.observeSaleLines(saleId).first()
+        saleRepository.changeLinePricingMode(saleId, lines[1].lineId, PricingMode.CASH)
+        assertEquals(listOf("Burger", "Chicken", "Fries"), names())
+
+        saleRepository.removeLine(saleId, lines[1].lineId)
+        saleRepository.addItem(saleId, "item-4")
+        assertEquals(listOf("Burger", "Fries", "Flan"), names())
+        assertEquals(listOf(0L, 2L, 3L), saleRepository.observeSaleLines(saleId).first().map { it.displayOrder })
+
+        // A second Burger starts at the end in TRANSFER mode, then merges into the
+        // earlier CASH Burger without surrendering the earlier visual position.
+        lines = saleRepository.observeSaleLines(saleId).first()
+        saleRepository.changeLinePricingMode(saleId, lines.first().lineId, PricingMode.CASH)
+        saleRepository.addItem(saleId, "item-1")
+        val laterBurger = saleRepository.observeSaleLines(saleId).first().last()
+        saleRepository.changeLinePricingMode(saleId, laterBurger.lineId, PricingMode.CASH)
+        val merged = saleRepository.observeSaleLines(saleId).first()
+        assertEquals(listOf("Burger", "Fries", "Flan"), merged.map { it.itemNameSnapshot })
+        assertEquals(0L, merged.first().displayOrder)
     }
 
     @Test
