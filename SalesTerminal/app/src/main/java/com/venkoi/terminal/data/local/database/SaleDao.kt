@@ -13,7 +13,7 @@ import java.time.LocalDate
 
 @Dao
 interface SaleDao {
-    @Query("SELECT * FROM sales WHERE status = 'OPEN' ORDER BY updatedAtUtc DESC")
+    @Query("SELECT * FROM sales WHERE status = 'OPEN' ORDER BY openedAtUtc ASC, saleId ASC")
     fun observeOpenSales(): Flow<List<SaleEntity>>
 
     @Query("SELECT * FROM sales WHERE status IN ('COMPLETED', 'VOIDED') ORDER BY completedAtUtc DESC")

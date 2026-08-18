@@ -323,6 +323,67 @@ class SaleDaoLifecycleTest {
     }
 
     @Test
+    fun openSalesRemainInCreationOrderAcrossMutationsAndReloadedCollections() = runBlocking {
+        val opened = Instant.parse("2026-01-01T00:00:00Z")
+        val ids = listOf(SaleId("A"), SaleId("B"), SaleId("C"))
+        ids.forEachIndexed { index, id ->
+            insertOpenSaleWithLine(id, opened.plusSeconds(index.toLong()))
+        }
+
+        suspend fun assertOpenOrder(expected: List<SaleId>) {
+            // Collect afresh to exercise the persisted Room query, not an in-memory UI sort.
+            assertEquals(expected, saleDao.observeOpenSales().first().map { it.saleId })
+        }
+
+        assertOpenOrder(ids)
+
+        val b = ids[1]
+        val bLine = saleDao.getSaleLinesSync(b).single()
+        saleDao.updateLinesAndSale(
+            b,
+            listOf(createLineEntity(b, BigDecimal.ONE).copy(lineId = LineId("b-added"))),
+            opened.plusSeconds(10)
+        )
+        assertOpenOrder(ids)
+
+        saleDao.updateLinesAndSale(
+            b,
+            listOf(bLine.copy(quantity = BigDecimal("2"))),
+            opened.plusSeconds(20)
+        )
+        assertOpenOrder(ids)
+
+        saleDao.updateLinesAndSale(
+            b,
+            listOf(bLine.copy(pricingMode = PricingMode.TRANSFER)),
+            opened.plusSeconds(30)
+        )
+        assertOpenOrder(ids)
+
+        saleDao.updateSaleLabelGuarded(b, "Table B", opened.plusSeconds(40))
+        assertOpenOrder(ids)
+
+        saleDao.updateSaleLabelGuarded(ids[0], "Table A", opened.plusSeconds(50))
+        assertOpenOrder(ids)
+
+        val d = SaleId("D")
+        insertOpenSaleWithLine(d, opened.plusSeconds(3))
+        assertOpenOrder(ids + d)
+    }
+
+    @Test
+    fun openSalesUseSaleIdAsDeterministicCreationTimestampTieBreaker() = runBlocking {
+        val sameOpenedAt = Instant.parse("2026-01-01T00:00:00Z")
+        insertOpenSaleWithLine(SaleId("B"), sameOpenedAt)
+        insertOpenSaleWithLine(SaleId("A"), sameOpenedAt)
+
+        assertEquals(
+            listOf(SaleId("A"), SaleId("B")),
+            saleDao.observeOpenSales().first().map { it.saleId }
+        )
+    }
+
+    @Test
     fun testHistoryFilterAndOrder() = runBlocking {
         val now = Instant.now()
         val businessDate = LocalDate.now()

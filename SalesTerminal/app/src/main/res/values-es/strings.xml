@@ -16,7 +16,7 @@
     <string name="orders_category_all">Todos</string>
     <string name="orders_table_label">Mesa / nombre de orden</string>
     <string name="orders_complete_sale">Finalizar venta</string>
-    <string name="orders_discard_order">Descartar orden</string>
+    <string name="orders_discard_order">Cancelar orden</string>
     <string name="orders_select_order">Seleccione o cree una orden</string>
     <string name="orders_empty_menu">No hay productos en esta categoría</string>
     <string name="orders_sale_completed">Venta completada</string>
@@ -26,7 +26,7 @@
     <string name="totals_cash_discounts">Descuentos en efectivo</string>
     <string name="totals_cash_total">Total EFECTIVO</string>
     <string name="totals_transfer_total">Total TRANSFERENCIA</string>
-    <string name="totals_grand_total">TOTAL GENERAL</string>
+    <string name="totals_grand_total">TOTAL</string>
 
     <!-- Pricing Mode -->
     <string name="pricing_mode_cash">EFECTIVO</string>
@@ -36,9 +36,10 @@
     <string name="cd_pricing_mode_transfer">Transferencia</string>
 
     <!-- Dialogs -->
-    <string name="dialog_discard_title">¿Descartar orden?</string>
-    <string name="dialog_discard_message">Esto la eliminará de la lista de órdenes activas.</string>
-    <string name="dialog_discard_confirm">Descartar</string>
+    <string name="dialog_discard_title">¿Cancelar esta orden?</string>
+    <string name="dialog_discard_message">Esta orden abierta se eliminará permanentemente y no se registrará como una venta completada. Esta acción no se puede deshacer.</string>
+    <string name="dialog_discard_confirm">Cancelar orden</string>
+    <string name="dialog_keep_order">Mantener orden</string>
     <string name="dialog_cancel">Cancelar</string>
     <string name="dialog_complete_title">¿Finalizar venta?</string>
     <string name="dialog_complete_message">Confirme que la venta está completa. Esta orden no podrá ser editada después de finalizar.</string>

@@ -16,7 +16,7 @@
     <string name="orders_category_all">All</string>
     <string name="orders_table_label">Table / Order Label</string>
     <string name="orders_complete_sale">Complete Sale</string>
-    <string name="orders_discard_order">Discard Order</string>
+    <string name="orders_discard_order">Cancel Order</string>
     <string name="orders_select_order">Select or create an order</string>
     <string name="orders_empty_menu">No menu items in this category</string>
     <string name="orders_sale_completed">Sale completed</string>
@@ -26,7 +26,7 @@
     <string name="totals_cash_discounts">Cash Discounts</string>
     <string name="totals_cash_total">CASH Total</string>
     <string name="totals_transfer_total">TRANSFER Total</string>
-    <string name="totals_grand_total">GRAND TOTAL</string>
+    <string name="totals_grand_total">TOTAL</string>
 
     <!-- Pricing Mode -->
     <string name="pricing_mode_cash">CASH</string>
@@ -36,9 +36,10 @@
     <string name="cd_pricing_mode_transfer">Transfer</string>
 
     <!-- Dialogs -->
-    <string name="dialog_discard_title">Discard Order?</string>
-    <string name="dialog_discard_message">This will remove it from the active orders list.</string>
-    <string name="dialog_discard_confirm">Discard</string>
+    <string name="dialog_discard_title">Cancel this order?</string>
+    <string name="dialog_discard_message">This open order will be permanently removed and will not be recorded as a completed sale. This action cannot be undone.</string>
+    <string name="dialog_discard_confirm">Cancel Order</string>
+    <string name="dialog_keep_order">Keep Order</string>
     <string name="dialog_cancel">Cancel</string>
     <string name="dialog_complete_title">Complete Sale?</string>
     <string name="dialog_complete_message">Confirm that the sale is complete. This order cannot be edited after completion.</string>

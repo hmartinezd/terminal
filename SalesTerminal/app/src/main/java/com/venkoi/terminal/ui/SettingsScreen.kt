@@ -117,6 +117,9 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+        ),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(

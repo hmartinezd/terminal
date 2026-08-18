@@ -42,7 +42,9 @@ fun MainScreen() {
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = false,
+        // Keep edge-swipe opening disabled while preserving normal scrim/back
+        // dismissal once the drawer was explicitly opened from the menu button.
+        gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             ModalDrawerSheet(
                 drawerContainerColor = TerminalNavigation,
@@ -79,18 +81,7 @@ fun MainScreen() {
             }
         }
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            val banner = when (license.state) {
-                LicenseState.EXPIRING_SOON -> stringResource(R.string.expires_soon)
-                LicenseState.GRACE_PERIOD -> stringResource(R.string.subscription_renewal_required)
-                LicenseState.CLOCK_ROLLBACK_DETECTED -> stringResource(R.string.device_time_changed)
-                else -> if (!sellingAllowed) stringResource(R.string.selling_disabled) else null
-            }
-            banner?.let {
-                Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
-                    Text(it, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                }
-            }
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 1.dp) {
                 Row(
                     modifier = Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 6.dp),
@@ -100,6 +91,17 @@ fun MainScreen() {
                         Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.cd_open_navigation))
                     }
                     Text(stringResource(currentScreen.titleRes), style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            val banner = when (license.state) {
+                LicenseState.EXPIRING_SOON -> stringResource(R.string.expires_soon)
+                LicenseState.GRACE_PERIOD -> stringResource(R.string.subscription_renewal_required)
+                LicenseState.CLOCK_ROLLBACK_DETECTED -> stringResource(R.string.device_time_changed)
+                else -> if (!sellingAllowed) stringResource(R.string.selling_disabled) else null
+            }
+            banner?.let {
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
+                    Text(it, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }
             Box(

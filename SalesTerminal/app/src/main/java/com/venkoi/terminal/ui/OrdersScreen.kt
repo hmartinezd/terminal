@@ -107,7 +107,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) {
-                    Text(stringResource(R.string.dialog_cancel))
+                    Text(stringResource(R.string.dialog_keep_order))
                 }
             }
         )
@@ -181,7 +181,10 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+        )
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
         if (!sellingAllowed) {
