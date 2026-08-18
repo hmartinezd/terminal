@@ -15,7 +15,7 @@
     <string name="orders_menu">MENÚ</string>
     <string name="orders_category_all">Todos</string>
     <string name="orders_table_label">Mesa / nombre de orden</string>
-    <string name="orders_complete_sale">Finalizar venta</string>
+    <string name="orders_complete_sale">Completar venta</string>
     <string name="orders_discard_order">Cancelar orden</string>
     <string name="orders_select_order">Seleccione o cree una orden</string>
     <string name="orders_empty_menu">No hay productos en esta categoría</string>
@@ -41,9 +41,9 @@
     <string name="dialog_discard_confirm">Cancelar orden</string>
     <string name="dialog_keep_order">Mantener orden</string>
     <string name="dialog_cancel">Cancelar</string>
-    <string name="dialog_complete_title">¿Finalizar venta?</string>
-    <string name="dialog_complete_message">Confirme que la venta está completa. Esta orden no podrá ser editada después de finalizar.</string>
-    <string name="dialog_complete_confirm">Finalizar venta</string>
+    <string name="dialog_complete_title">¿Completar venta?</string>
+    <string name="dialog_complete_message">Confirme que la venta está completa. Esta orden no podrá ser editada después de completarla.</string>
+    <string name="dialog_complete_confirm">Completar venta</string>
     <string name="dialog_error_title">Error al finalizar</string>
     <string name="dialog_ok">Aceptar</string>
 
