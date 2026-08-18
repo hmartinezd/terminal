@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.venkoi.terminal.R
 import com.venkoi.terminal.licensing.LicenseState
+import com.venkoi.terminal.ui.theme.TerminalNavigation
+import com.venkoi.terminal.ui.theme.TerminalOnNavigation
 
 sealed class Screen(@StringRes val titleRes: Int, val icon: ImageVector) {
     object Orders : Screen(R.string.nav_orders, Icons.Default.ListAlt)
@@ -38,8 +40,8 @@ fun MainScreen() {
     Row(modifier = Modifier.fillMaxSize()) {
         // Navigation Rail for Tablet/Landscape
         NavigationRail(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            containerColor = TerminalNavigation,
+            contentColor = TerminalOnNavigation,
             header = {
                 Box(
                     modifier = Modifier
@@ -70,11 +72,11 @@ fun MainScreen() {
                         ) 
                     },
                     colors = NavigationRailItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                        unselectedIconColor = TerminalOnNavigation,
                         selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                        unselectedTextColor = TerminalOnNavigation,
+                        indicatorColor = MaterialTheme.colorScheme.primary
                     ),
                     modifier = Modifier.padding(vertical = 4.dp)
                 )

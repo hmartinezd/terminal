@@ -16,6 +16,8 @@ private val TerminalColorScheme = lightColorScheme(
     onSurface = TerminalOnSurface,
     surfaceVariant = TerminalSurfaceVariant,
     onSurfaceVariant = TerminalOnSurfaceVariant,
+    outline = TerminalOutline,
+    outlineVariant = TerminalOutlineVariant,
     error = TerminalError,
     onError = TerminalOnError
 )

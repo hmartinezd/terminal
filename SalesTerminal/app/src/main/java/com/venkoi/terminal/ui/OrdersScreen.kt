@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,7 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.venkoi.terminal.R
 import com.venkoi.terminal.domain.model.SaleLine
@@ -518,8 +519,8 @@ fun OrderLineItemCard(
                     selectedMode = line.pricingMode,
                     onModeSelected = onChangePricingMode,
                     enabled = enabled,
-                    modifier = Modifier.weight(1f)
                 )
+                Spacer(Modifier.weight(1f))
                 QuantityControl(
                     quantity = line.quantity,
                     onIncrease = { onUpdateQuantity(line.quantity.add(BigDecimal.ONE)) },
@@ -567,9 +568,13 @@ fun PricingModeSelector(
         val modes = listOf(PricingMode.CASH, PricingMode.TRANSFER)
         modes.forEach { mode ->
             val isSelected = selectedMode == mode
-            val label = when (mode) {
-                PricingMode.CASH -> stringResource(R.string.pricing_mode_cash)
-                PricingMode.TRANSFER -> stringResource(R.string.pricing_mode_transfer)
+            val description = when (mode) {
+                PricingMode.CASH -> stringResource(R.string.cd_pricing_mode_cash)
+                PricingMode.TRANSFER -> stringResource(R.string.cd_pricing_mode_transfer)
+            }
+            val icon = when (mode) {
+                PricingMode.CASH -> Icons.Outlined.Payments
+                PricingMode.TRANSFER -> Icons.Outlined.AccountBalance
             }
             
             Surface(
@@ -578,15 +583,13 @@ fun PricingModeSelector(
                 shape = MaterialTheme.shapes.extraLarge,
                 color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                 contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.height(36.dp).weight(1f)
+                modifier = Modifier.size(48.dp)
             ) {
-                Box(modifier = Modifier.padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = description,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }

@@ -30,6 +30,8 @@
     <string name="pricing_mode_cash">CASH</string>
     <string name="pricing_mode_transfer">TRANSFER</string>
     <string name="pricing_mode_cash_discount">%1$s%% cash discount</string>
+    <string name="cd_pricing_mode_cash">Cash</string>
+    <string name="cd_pricing_mode_transfer">Transfer</string>
 
     <!-- Dialogs -->
     <string name="dialog_discard_title">Discard Order?</string>

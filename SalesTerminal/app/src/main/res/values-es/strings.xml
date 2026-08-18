@@ -30,6 +30,8 @@
     <string name="pricing_mode_cash">EFECTIVO</string>
     <string name="pricing_mode_transfer">TRANSFERENCIA</string>
     <string name="pricing_mode_cash_discount">%1$s%% descuento en efectivo</string>
+    <string name="cd_pricing_mode_cash">Efectivo</string>
+    <string name="cd_pricing_mode_transfer">Transferencia</string>
 
     <!-- Dialogs -->
     <string name="dialog_discard_title">¿Descartar orden?</string>
