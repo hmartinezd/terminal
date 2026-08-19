@@ -175,6 +175,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun resolveCurrentBusinessDate(configuration: com.venkoi.terminal.domain.model.RestaurantConfiguration): LocalDate =
+        resolveCurrentReportBusinessDate.resolve(configuration)
+
     fun preparePendingExport() = prepareExport(pending = true)
 
     fun prepareDayExport() = prepareExport(pending = false)

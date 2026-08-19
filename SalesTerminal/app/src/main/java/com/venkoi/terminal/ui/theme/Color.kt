@@ -31,3 +31,6 @@ val TerminalOnError = Color(0xFFFFFFFF)
 val TerminalStatusCompleted = Color(0xFF2E7D32)
 val TerminalStatusVoided = Color(0xFFD32F2F)
 val TerminalStatusOpen = TerminalPrimary
+
+// Component-specific semantic surfaces
+val TerminalOrderSummaryContainer = Color(0xFFFFF7F3)

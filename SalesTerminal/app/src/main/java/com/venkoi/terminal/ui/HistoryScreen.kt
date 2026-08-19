@@ -23,8 +23,7 @@ import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.theme.TerminalStatusCompleted
 import com.venkoi.terminal.ui.theme.TerminalStatusVoided
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import com.venkoi.terminal.ui.util.TerminalDateFormatter
 import com.venkoi.terminal.ui.print.SalePrintContentBuilder
 import com.venkoi.terminal.ui.print.TerminalPrintManager
 import com.venkoi.terminal.ui.print.terminalPrintLabels
@@ -129,10 +128,6 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
 @Composable
 fun SaleHistoryItemCard(item: SaleWithTotal, isSelected: Boolean, timezone: ZoneId?, locale: java.util.Locale, onClick: () -> Unit) {
     val sale = item.sale
-    val formatter = remember(timezone) {
-        timezone?.let { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(locale).withZone(it) }
-    }
-    
     TerminalCard(
         onClick = onClick,
         selected = isSelected,
@@ -150,7 +145,7 @@ fun SaleHistoryItemCard(item: SaleWithTotal, isSelected: Boolean, timezone: Zone
                 
                 sale.completedAtUtc?.let { 
                     Text(
-                        text = formatter?.format(it) ?: "...",
+                        text = timezone?.let { zone -> TerminalDateFormatter.formatDateTime(it, zone, locale) } ?: "...",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

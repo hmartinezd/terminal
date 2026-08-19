@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -30,12 +31,20 @@ sealed class Screen(@StringRes val titleRes: Int, val icon: ImageVector) {
     object Settings : Screen(R.string.nav_settings, Icons.Default.Settings)
 }
 
+private enum class MainDestination { ORDERS, HISTORY, REPORTS, SETTINGS }
+
 @Composable
 fun MainScreen() {
     val licenseViewModel: LicenseStatusViewModel = hiltViewModel()
     val license by licenseViewModel.snapshot.collectAsState()
     val sellingAllowed by licenseViewModel.sellingAllowed.collectAsState()
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Orders) }
+    var destination by rememberSaveable { mutableStateOf(MainDestination.ORDERS) }
+    val currentScreen = when (destination) {
+        MainDestination.ORDERS -> Screen.Orders
+        MainDestination.HISTORY -> Screen.History
+        MainDestination.REPORTS -> Screen.Reports
+        MainDestination.SETTINGS -> Screen.Settings
+    }
     val screens = listOf(Screen.Orders, Screen.History, Screen.Reports, Screen.Settings)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -62,7 +71,12 @@ fun MainScreen() {
                     NavigationDrawerItem(
                         selected = currentScreen == screen,
                         onClick = {
-                            currentScreen = screen
+                            destination = when (screen) {
+                                Screen.Orders -> MainDestination.ORDERS
+                                Screen.History -> MainDestination.HISTORY
+                                Screen.Reports -> MainDestination.REPORTS
+                                Screen.Settings -> MainDestination.SETTINGS
+                            }
                             scope.launch { drawerState.close() }
                         },
                         icon = { Icon(screen.icon, contentDescription = title) },

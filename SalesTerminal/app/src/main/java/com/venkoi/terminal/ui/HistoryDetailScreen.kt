@@ -24,8 +24,7 @@ import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.theme.TerminalStatusCompleted
 import com.venkoi.terminal.ui.theme.TerminalStatusVoided
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import com.venkoi.terminal.ui.util.TerminalDateFormatter
 
 @Composable
 fun HistoryDetailScreen(
@@ -124,13 +123,15 @@ fun HistoryDetailScreen(
         
         Spacer(Modifier.height(24.dp))
         
-        val dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(timezone)
-        
         TerminalCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    InfoLabelValue(stringResource(R.string.history_business_date), sale.businessDate.toString())
-                    InfoLabelValue(stringResource(R.string.history_timestamp), dateTimeFormatter.format(sale.completedAtUtc ?: sale.openedAtUtc))
+                    InfoLabelValue(
+                        stringResource(R.string.history_business_date),
+                        sale.businessDate?.let { TerminalDateFormatter.formatDate(it, locale) }
+                            ?: stringResource(R.string.common_not_available)
+                    )
+                    InfoLabelValue(stringResource(R.string.history_timestamp), TerminalDateFormatter.formatDateTime(sale.completedAtUtc ?: sale.openedAtUtc, timezone, locale))
                 }
             }
         }

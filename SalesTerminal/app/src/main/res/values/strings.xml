@@ -91,14 +91,19 @@
     <string name="settings_section_app">APP INFORMATION</string>
     <string name="settings_app_version">App Version</string>
     <string name="settings_section_sales_export">SALES EXPORT</string>
-    <string name="settings_pending_changes">Pending Changes</string>
+    <string name="settings_pending_changes">Unexported Sales</string>
+    <plurals name="settings_unexported_count"><item quantity="one">%d sale waiting to export</item><item quantity="other">%d sales waiting to export</item></plurals>
     <string name="settings_last_successful_export">Last Successful Export</string>
     <string name="settings_never">Never</string>
-    <string name="settings_export_pending">Export Pending Changes</string>
-    <string name="settings_export_day">Export Sales for Day</string>
+    <string name="settings_export_pending">Export New Sales</string>
+    <string name="settings_export_by_date">Export by Date</string>
+    <string name="settings_export_day">Export Selected Date</string>
+    <string name="settings_change_date">Change</string>
+    <string name="settings_today">Today</string>
     <string name="settings_business_date">Business Date</string>
     <string name="settings_choose_business_date">Choose business date</string>
-    <string name="settings_export_nothing_pending">All sales changes have been exported.</string>
+    <string name="settings_export_nothing_pending">No new sales to export.</string>
+    <string name="settings_no_sales_for_date">No sales found for the selected date.</string>
     <string name="settings_export_failed">Sales export failed. Please try again.</string>
     <string name="settings_export_bookkeeping_failed">The file was created, but export tracking could not be updated. It is safe to export again.</string>
     <string name="settings_choose_export_method">Choose export method</string>

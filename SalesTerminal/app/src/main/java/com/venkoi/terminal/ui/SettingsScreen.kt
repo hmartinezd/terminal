@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -21,7 +22,7 @@ import com.venkoi.terminal.ui.components.TerminalCard
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import com.venkoi.terminal.ui.util.TerminalDateFormatter
 import com.venkoi.terminal.licensing.LicenseImportResult
 import com.venkoi.terminal.licensing.LicenseState
 
@@ -34,6 +35,7 @@ fun SettingsScreen(
     val publishedMenu by viewModel.publishedMenu.collectAsState()
     val currentLanguageCode by viewModel.currentLanguageCode.collectAsState()
     val resources = LocalContext.current.resources
+    val locale = LocalConfiguration.current.locales[0]
     val exportSummary by viewModel.exportSummary.collectAsState()
     val license by viewModel.licenseSnapshot.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
@@ -42,7 +44,7 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val importSuccessMsg = stringResource(R.string.settings_import_success)
     val nothingPendingMsg = stringResource(R.string.settings_export_nothing_pending)
-    val noSalesMsg = stringResource(R.string.reports_no_sales)
+    val noSalesMsg = stringResource(R.string.settings_no_sales_for_date)
     val exportFailedMsg = stringResource(R.string.settings_export_failed)
     val bookkeepingFailedMsg = stringResource(R.string.settings_export_bookkeeping_failed)
     val shareFailedMsg = stringResource(R.string.settings_share_failed)
@@ -67,7 +69,7 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> uri?.let(viewModel::onImportLicense) }
 
-    LaunchedEffect(Unit) { viewModel.ensureDefaultBusinessDate() }
+    LaunchedEffect(restaurantConfig) { viewModel.ensureDefaultBusinessDate() }
     val licenseImported = stringResource(R.string.license_imported_successfully)
     val licenseInvalid = stringResource(R.string.unable_to_verify_license)
     val licenseStale = stringResource(R.string.license_older)
@@ -153,8 +155,8 @@ fun SettingsScreen(
                 InfoRow(stringResource(R.string.plan), license.payload?.planCode ?: na)
                 InfoRow(stringResource(R.string.device_code), viewModel.deviceCode)
                 license.payload?.let {
-                    InfoRow(stringResource(R.string.valid_until), it.expiresAtUtc)
-                    InfoRow(stringResource(R.string.grace_until), it.graceUntilUtc)
+                    InfoRow(stringResource(R.string.valid_until), formatProtocolDate(it.expiresAtUtc, locale))
+                    InfoRow(stringResource(R.string.grace_until), formatProtocolDate(it.graceUntilUtc, locale))
                 }
                 Button(onClick = viewModel::prepareActivationRequest, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.generate_activation_request))
@@ -185,8 +187,9 @@ fun SettingsScreen(
             SettingsSection(title = stringResource(R.string.settings_section_menu)) {
                 InfoRow(stringResource(R.string.settings_menu_id), publishedMenu?.menuId ?: na)
                 InfoRow(stringResource(R.string.settings_publication_revision), publishedMenu?.publicationRevision?.toString() ?: na)
-                InfoRow(stringResource(R.string.settings_published_at), publishedMenu?.publishedAtUtc?.toString() ?: na)
-                InfoRow(stringResource(R.string.settings_imported_at), publishedMenu?.importTimestamp?.toString() ?: na)
+                val menuZone = restaurantConfig?.timezone ?: ZoneOffset.UTC
+                InfoRow(stringResource(R.string.settings_published_at), publishedMenu?.publishedAtUtc?.let { TerminalDateFormatter.formatDateTime(it, menuZone, locale) } ?: na)
+                InfoRow(stringResource(R.string.settings_imported_at), publishedMenu?.importTimestamp?.let { TerminalDateFormatter.formatDateTime(it, menuZone, locale) } ?: na)
                 
                 Spacer(Modifier.height(8.dp))
                 
@@ -205,12 +208,13 @@ fun SettingsScreen(
             }
 
             SettingsSection(title = stringResource(R.string.settings_section_sales_export)) {
-                InfoRow(stringResource(R.string.settings_pending_changes), exportSummary.pendingCount.toString())
+                Text(stringResource(R.string.settings_pending_changes), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(resources.getQuantityString(R.plurals.settings_unexported_count, exportSummary.pendingCount, exportSummary.pendingCount))
                 InfoRow(
                     stringResource(R.string.settings_last_successful_export),
                     exportSummary.lastSuccessfulExportAtUtc?.let {
                         val zone = restaurantConfig?.timezone ?: ZoneOffset.UTC
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(zone).format(it)
+                        TerminalDateFormatter.formatDateTime(it, zone, locale)
                     } ?: stringResource(R.string.settings_never)
                 )
                 Button(
@@ -219,11 +223,27 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(stringResource(R.string.settings_export_pending)) }
                 HorizontalDivider()
-                Text(stringResource(R.string.settings_business_date), style = MaterialTheme.typography.labelMedium)
-                OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(viewModel.selectedBusinessDate?.toString() ?: stringResource(R.string.settings_choose_business_date))
+                Text(stringResource(R.string.settings_export_by_date), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = viewModel.selectedBusinessDate?.let { selected ->
+                            restaurantConfig?.let { config ->
+                                TerminalDateFormatter.formatDateWithToday(
+                                    selected,
+                                    viewModel.resolveCurrentBusinessDate(config),
+                                    locale,
+                                    stringResource(R.string.settings_today)
+                                )
+                            } ?: TerminalDateFormatter.formatDate(selected, locale)
+                        } ?: stringResource(R.string.settings_choose_business_date),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    TextButton(onClick = { showDatePicker = true }) {
+                        Text(stringResource(R.string.settings_change_date))
+                    }
                 }
-                Button(
+                OutlinedButton(
                     onClick = viewModel::prepareDayExport,
                     enabled = !viewModel.isExporting,
                     modifier = Modifier.fillMaxWidth()
@@ -301,6 +321,10 @@ fun SettingsScreen(
         )
     }
 }
+
+private fun formatProtocolDate(value: String, locale: java.util.Locale): String =
+    runCatching { TerminalDateFormatter.formatDate(Instant.parse(value).atZone(ZoneOffset.UTC).toLocalDate(), locale) }
+        .getOrElse { value }
 
 @Composable
 private fun licenseStatusText(state: LicenseState): String = stringResource(when (state) {

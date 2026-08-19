@@ -34,8 +34,9 @@ import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.repository.SaleCompletionResult
 import com.venkoi.terminal.licensing.SellingAuthorizationResult
 import com.venkoi.terminal.ui.components.TerminalCard
-import com.venkoi.terminal.ui.components.CategoryPalette
 import com.venkoi.terminal.ui.components.MenuProductCard
+import com.venkoi.terminal.ui.theme.CategoryPalette
+import com.venkoi.terminal.ui.theme.TerminalOrderSummaryContainer
 import java.math.BigDecimal
 import com.venkoi.terminal.ui.util.HistoryMoneyFormatter
 
@@ -302,7 +303,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                             colors = FilterChipDefaults.filterChipColors(
                                 containerColor = categoryStyle.background,
                                 selectedContainerColor = categoryStyle.accent,
-                                selectedLabelColor = Color.White
+                                selectedLabelColor = categoryStyle.selectedContent
                             ),
                             border = FilterChipDefaults.filterChipBorder(
                                 enabled = true,
@@ -414,7 +415,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                                .background(Color(0xFFFFF7F3))
+                                .background(TerminalOrderSummaryContainer)
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Row(

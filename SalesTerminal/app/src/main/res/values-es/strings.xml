@@ -91,14 +91,19 @@
     <string name="settings_section_app">INFORMACIÓN DE LA APLICACIÓN</string>
     <string name="settings_app_version">Versión de la aplicación</string>
     <string name="settings_section_sales_export">EXPORTACIÓN DE VENTAS</string>
-    <string name="settings_pending_changes">Cambios pendientes</string>
+    <string name="settings_pending_changes">Ventas sin exportar</string>
+    <plurals name="settings_unexported_count"><item quantity="one">%d venta sin exportar</item><item quantity="other">%d ventas sin exportar</item></plurals>
     <string name="settings_last_successful_export">Última exportación correcta</string>
     <string name="settings_never">Nunca</string>
-    <string name="settings_export_pending">Exportar cambios pendientes</string>
-    <string name="settings_export_day">Exportar ventas del día</string>
+    <string name="settings_export_pending">Exportar ventas nuevas</string>
+    <string name="settings_export_by_date">Exportar por fecha</string>
+    <string name="settings_export_day">Exportar fecha seleccionada</string>
+    <string name="settings_change_date">Cambiar</string>
+    <string name="settings_today">Hoy</string>
     <string name="settings_business_date">Fecha de negocio</string>
     <string name="settings_choose_business_date">Seleccionar fecha de negocio</string>
-    <string name="settings_export_nothing_pending">Todos los cambios de ventas han sido exportados.</string>
+    <string name="settings_export_nothing_pending">No hay ventas nuevas para exportar.</string>
+    <string name="settings_no_sales_for_date">No se encontraron ventas para la fecha seleccionada.</string>
     <string name="settings_export_failed">Error al exportar ventas. Inténtelo de nuevo.</string>
     <string name="settings_export_bookkeeping_failed">El archivo fue creado, pero no se pudo actualizar el seguimiento. Es seguro exportar de nuevo.</string>
     <string name="settings_choose_export_method">Elegir método de exportación</string>
