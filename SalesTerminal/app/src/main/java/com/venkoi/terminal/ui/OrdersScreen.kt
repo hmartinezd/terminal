@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -29,6 +30,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.venkoi.terminal.R
+import com.venkoi.terminal.core.SaleId
+import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.repository.SaleCompletionResult
@@ -39,6 +42,7 @@ import com.venkoi.terminal.ui.theme.CategoryPalette
 import com.venkoi.terminal.ui.theme.TerminalOrderSummaryContainer
 import java.math.BigDecimal
 import com.venkoi.terminal.ui.util.HistoryMoneyFormatter
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
@@ -194,78 +198,17 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 Text(stringResource(R.string.selling_disabled), modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer)
             }
         }
-        Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            // Left Panel: Open Orders
-            Column(
-                modifier = Modifier
-                    .width(280.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.orders_open_orders),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                
-                if (openOrders.isEmpty()) {
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(R.string.orders_select_order),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(openOrders) { order ->
-                            val isSelected = selectedOrderId == order.saleId
-                            TerminalCard(
-                                onClick = { viewModel.selectOrder(order.saleId) },
-                                selected = isSelected,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                val label = order.tableLabel?.ifBlank { null } ?: order.saleId.value.takeLast(6).uppercase()
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                if (!order.tableLabel.isNullOrBlank()) {
-                                    Text(
-                                        text = "#${order.saleId.value.takeLast(6).uppercase()}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                Spacer(Modifier.height(16.dp))
-                
-                Button(
-                    onClick = { viewModel.createOrder() },
-                    enabled = sellingAllowed && !isCreating && !isCompleting,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.orders_new_order))
-                }
-            }
+        OpenOrdersStrip(
+            openOrders = openOrders,
+            selectedOrderId = selectedOrderId,
+            newOrderEnabled = sellingAllowed && !isCreating && !isCompleting,
+            onNewOrder = viewModel::createOrder,
+            onSelectOrder = viewModel::selectOrder
+        )
 
-            VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
 
             // Center Panel: Menu
             Column(
@@ -471,6 +414,87 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
                 }
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun OpenOrdersStrip(
+    openOrders: List<Sale>,
+    selectedOrderId: SaleId?,
+    newOrderEnabled: Boolean,
+    onNewOrder: () -> Unit,
+    onSelectOrder: (SaleId) -> Unit
+) {
+    val listState = rememberLazyListState()
+    val selectedIndex = openOrders.indexOfFirst { it.saleId == selectedOrderId }
+
+    LaunchedEffect(selectedOrderId, openOrders.size) {
+        if (selectedIndex >= 0) {
+            // New Order occupies index zero, so an order's strip index is offset by one.
+            val targetIndex = selectedIndex + 1
+            val visibleIndices = snapshotFlow {
+                listState.layoutInfo.visibleItemsInfo.map { it.index }
+            }.first { it.isNotEmpty() }
+            if (targetIndex !in visibleIndices) {
+                listState.animateScrollToItem(targetIndex)
+            }
+        }
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth().height(80.dp)
+    ) {
+        LazyRow(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            item(key = "new-order") {
+                Button(
+                    onClick = onNewOrder,
+                    enabled = newOrderEnabled,
+                    modifier = Modifier.width(144.dp).fillMaxHeight(),
+                    shape = MaterialTheme.shapes.medium,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.orders_new_order),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            items(openOrders, key = { it.saleId.value }) { order ->
+                val isSelected = selectedOrderId == order.saleId
+                TerminalCard(
+                    onClick = { onSelectOrder(order.saleId) },
+                    selected = isSelected,
+                    modifier = Modifier.width(148.dp).fillMaxHeight()
+                ) {
+                    val label = order.tableLabel?.ifBlank { null }
+                        ?: order.saleId.value.takeLast(6).uppercase()
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (!order.tableLabel.isNullOrBlank()) {
+                        Text(
+                            text = "#${order.saleId.value.takeLast(6).uppercase()}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
         }
     }
 }
