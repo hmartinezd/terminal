@@ -7,6 +7,7 @@ import com.venkoi.terminal.domain.model.ProductReport
 import com.venkoi.terminal.domain.model.ProductReportCurrencySection
 import com.venkoi.terminal.domain.model.ProductReportRow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -34,5 +35,26 @@ class PrintContentBuildersTest {
         val document = ProductReportPrintContentBuilder.build(report, "Cafe", "Front", Instant.EPOCH, ZoneOffset.UTC, Locale.US, labels)
         assertEquals(120, document.lines.count { it.text.matches(Regex("Product \\d+.*")) })
         assertTrue(document.lines.any { it.text.contains("Product 120") })
+    }
+
+    @Test fun `report business dates and titles are localized without raw ISO`() {
+        val report = DailyMoneyReport(LocalDate.parse("2026-08-19"), emptyList())
+
+        val english = MoneyReportPrintContentBuilder.build(
+            report, "Cafe", "Front", Instant.parse("2026-08-19T00:00:00Z"),
+            ZoneOffset.UTC, Locale.US, labels
+        )
+        val spanish = MoneyReportPrintContentBuilder.build(
+            report, "Cafe", "Front", Instant.parse("2026-08-19T00:00:00Z"),
+            ZoneOffset.UTC, Locale.forLanguageTag("es"), labels
+        )
+
+        assertTrue(english.jobName.contains("Aug 19, 2026"))
+        assertTrue(english.lines.any { it.text == "Business Date: Aug 19, 2026" })
+        assertTrue(spanish.jobName.contains("19 ago 2026"))
+        assertTrue(spanish.lines.any { it.text == "Business Date: 19 ago 2026" })
+        assertFalse(english.jobName.contains("2026-08-19"))
+        assertFalse(english.lines.any { it.text.contains("2026-08-19") })
+        assertFalse(spanish.jobName.contains("2026-08-19"))
     }
 }

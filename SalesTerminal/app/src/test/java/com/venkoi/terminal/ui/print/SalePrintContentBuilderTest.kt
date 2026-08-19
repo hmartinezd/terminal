@@ -17,6 +17,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.ZoneId
 import java.util.Locale
 
 class SalePrintContentBuilderTest {
@@ -26,7 +27,7 @@ class SalePrintContentBuilderTest {
         val lines = listOf(line(1, PricingMode.CASH, "Burger", "9.00", "1.00"), line(2, PricingMode.TRANSFER, "Juice", "5.00"))
         val document = build(sale(SaleStatus.COMPLETED), lines)
         val text = document.lines.joinToString("\n") { it.text }
-        listOf("Cafe", "Terminal: Front", "Table: Patio 4", "Business Date: 2026-08-10", "Completed At:",
+        listOf("Cafe", "Terminal: Front", "Table: Patio 4", "Business Date: Aug 10, 2026", "Completed At:",
             "Status: COMPLETED", "Burger  x1", "Juice  x1", "Pricing Mode: Cash", "Pricing Mode: Transfer",
             "Unit Price:", "Cash Discounts: 1.00 USD", "Line Total:", "Cash: 9.00 USD", "Transfer: 5.00 USD",
             "Grand Total: 14.00 USD", "Currency: USD").forEach { assertTrue("missing $it", text.contains(it)) }
@@ -57,6 +58,22 @@ class SalePrintContentBuilderTest {
         assertTrue(text.contains("Cafe"))
         (1..80).forEach { assertTrue(text.contains("Item $it  x1")) }
         assertTrue(text.contains("Grand Total: 80.00 USD"))
+    }
+
+    @Test fun `sale timestamps use restaurant timezone across calendar boundary`() {
+        val boundary = Instant.parse("2026-08-19T00:00:00Z")
+        val sale = sale(SaleStatus.VOIDED).copy(completedAtUtc = boundary, voidedAtUtc = boundary)
+        val lines = listOf(line(1, PricingMode.CASH, "Burger", "9.00"))
+        val document = SalePrintContentBuilder.build(
+            sale, lines, CalculateOrderTotals.calculate(lines), "Cafe", "Front",
+            ZoneId.of("America/New_York"), Locale.US, labels
+        )
+        val text = document.lines.joinToString("\n") { it.text }
+
+        assertTrue(text.contains("Completed At: Aug 18, 2026"))
+        assertTrue(text.contains("Voided At: Aug 18, 2026"))
+        assertFalse(text.contains("Completed At: 2026-08-19"))
+        assertFalse(text.contains("Voided At: 2026-08-19"))
     }
 
     private fun build(sale: Sale, lines: List<SaleLine>) = SalePrintContentBuilder.build(

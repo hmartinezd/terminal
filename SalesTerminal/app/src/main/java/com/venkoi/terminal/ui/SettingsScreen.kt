@@ -151,12 +151,13 @@ fun SettingsScreen(
             }
 
             SettingsSection(title = stringResource(R.string.subscription)) {
+                val licenseZone = restaurantConfig?.timezone ?: ZoneOffset.UTC
                 InfoRow(stringResource(R.string.status), licenseStatusText(license.state))
                 InfoRow(stringResource(R.string.plan), license.payload?.planCode ?: na)
                 InfoRow(stringResource(R.string.device_code), viewModel.deviceCode)
                 license.payload?.let {
-                    InfoRow(stringResource(R.string.valid_until), formatProtocolDate(it.expiresAtUtc, locale))
-                    InfoRow(stringResource(R.string.grace_until), formatProtocolDate(it.graceUntilUtc, locale))
+                    InfoRow(stringResource(R.string.valid_until), TerminalDateFormatter.formatProtocolDateTime(it.expiresAtUtc, licenseZone, locale))
+                    InfoRow(stringResource(R.string.grace_until), TerminalDateFormatter.formatProtocolDateTime(it.graceUntilUtc, licenseZone, locale))
                 }
                 Button(onClick = viewModel::prepareActivationRequest, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.generate_activation_request))
@@ -321,10 +322,6 @@ fun SettingsScreen(
         )
     }
 }
-
-private fun formatProtocolDate(value: String, locale: java.util.Locale): String =
-    runCatching { TerminalDateFormatter.formatDate(Instant.parse(value).atZone(ZoneOffset.UTC).toLocalDate(), locale) }
-        .getOrElse { value }
 
 @Composable
 private fun licenseStatusText(state: LicenseState): String = stringResource(when (state) {

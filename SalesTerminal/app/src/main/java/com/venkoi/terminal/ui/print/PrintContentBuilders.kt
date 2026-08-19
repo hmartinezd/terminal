@@ -8,11 +8,10 @@ import com.venkoi.terminal.domain.model.SaleStatus
 import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.service.OrderTotals
 import com.venkoi.terminal.ui.util.HistoryMoneyFormatter
+import com.venkoi.terminal.ui.util.TerminalDateFormatter
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.Locale
 
 object MoneyReportPrintContentBuilder {
@@ -37,7 +36,10 @@ object MoneyReportPrintContentBuilder {
             lines += moneyLine(labels.voidedAmount, section.voidedAmount, section.currencyCode, section.currencyScale, PrintEmphasis.VOIDED, locale)
             lines += PrintLine("")
         }
-        return PrintDocumentModel("${labels.dailySalesReport} ${report.businessDate}", lines)
+        return PrintDocumentModel(
+            "${labels.dailySalesReport} ${TerminalDateFormatter.formatDate(report.businessDate, locale)}",
+            lines
+        )
     }
 }
 
@@ -61,7 +63,10 @@ object ProductReportPrintContentBuilder {
             }
             lines += PrintLine("")
         }
-        return PrintDocumentModel("${labels.productReport} ${report.businessDate}", lines)
+        return PrintDocumentModel(
+            "${labels.productReport} ${TerminalDateFormatter.formatDate(report.businessDate, locale)}",
+            lines
+        )
     }
 }
 
@@ -76,15 +81,16 @@ object SalePrintContentBuilder {
         locale: Locale,
         labels: PrintLabels
     ): PrintDocumentModel {
-        val dateTime = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(timezone)
         val code = sale.currencyCodeSnapshot
         val scale = sale.currencyScaleSnapshot
         val lines = mutableListOf(PrintLine(restaurantName, PrintEmphasis.HEADING), PrintLine("${labels.terminal}: $terminalName"))
         if (sale.status == SaleStatus.VOIDED) lines += PrintLine(labels.voided, PrintEmphasis.VOIDED)
         sale.tableLabel?.takeIf(String::isNotBlank)?.let { lines += PrintLine("${labels.table}: $it") }
-        lines += PrintLine("${labels.businessDate}: ${sale.businessDate}")
-        sale.completedAtUtc?.let { lines += PrintLine("${labels.completedAt}: ${dateTime.format(it)}") }
-        sale.voidedAtUtc?.let { lines += PrintLine("${labels.voidedAt}: ${dateTime.format(it)}", PrintEmphasis.VOIDED) }
+        val businessDate = sale.businessDate?.let { TerminalDateFormatter.formatDate(it, locale) }
+            ?: labels.notAvailable
+        lines += PrintLine("${labels.businessDate}: $businessDate")
+        sale.completedAtUtc?.let { lines += PrintLine("${labels.completedAt}: ${TerminalDateFormatter.formatDateTime(it, timezone, locale)}") }
+        sale.voidedAtUtc?.let { lines += PrintLine("${labels.voidedAt}: ${TerminalDateFormatter.formatDateTime(it, timezone, locale)}", PrintEmphasis.VOIDED) }
         lines += PrintLine("${labels.status}: ${if (sale.status == SaleStatus.VOIDED) labels.voided else labels.completed}")
         lines += PrintLine("${labels.currency}: $code")
         lines += PrintLine("")
@@ -101,7 +107,10 @@ object SalePrintContentBuilder {
         lines += PrintLine("${labels.cash}: ${HistoryMoneyFormatter.format(totals.cashTotal, code, scale, locale)}")
         lines += PrintLine("${labels.transfer}: ${HistoryMoneyFormatter.format(totals.transferTotal, code, scale, locale)}")
         lines += PrintLine("${labels.grandTotal}: ${HistoryMoneyFormatter.format(totals.grandTotal, code, scale, locale)}", PrintEmphasis.STRONG)
-        return PrintDocumentModel("${labels.sale} ${sale.businessDate}", lines)
+        return PrintDocumentModel(
+            "${labels.sale} $businessDate",
+            lines
+        )
     }
 }
 
@@ -114,12 +123,11 @@ private fun header(
     locale: Locale,
     labels: PrintLabels
 ): MutableList<PrintLine> {
-    val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(timezone)
     return mutableListOf(
         PrintLine(restaurantName, PrintEmphasis.HEADING),
         PrintLine("${labels.terminal}: $terminalName"),
-        PrintLine("${labels.businessDate}: $businessDate"),
-        PrintLine("${labels.generatedAt}: ${formatter.format(generatedAt)}"),
+        PrintLine("${labels.businessDate}: ${TerminalDateFormatter.formatDate(businessDate, locale)}"),
+        PrintLine("${labels.generatedAt}: ${TerminalDateFormatter.formatDateTime(generatedAt, timezone, locale)}"),
         PrintLine("")
     )
 }
