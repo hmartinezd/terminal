@@ -1,8 +1,11 @@
 package com.venkoi.terminal.ui.util
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 
 class TerminalDateFormatterTest {
@@ -28,5 +31,16 @@ class TerminalDateFormatterTest {
             "Jan 6, 2026",
             TerminalDateFormatter.formatDateWithToday(date, date.plusDays(1), Locale.ENGLISH, "Today")
         )
+    }
+
+    @Test
+    fun `date time uses restaurant timezone rather than UTC date`() {
+        val formatted = TerminalDateFormatter.formatDateTime(
+            Instant.parse("2026-08-19T00:00:00Z"),
+            ZoneId.of("America/New_York"),
+            Locale.US
+        )
+        assertTrue(formatted.startsWith("Aug 18, 2026, 8:00"))
+        assertTrue(formatted.endsWith("PM"))
     }
 }

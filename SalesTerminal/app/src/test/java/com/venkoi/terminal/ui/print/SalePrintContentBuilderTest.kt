@@ -26,7 +26,7 @@ class SalePrintContentBuilderTest {
         val lines = listOf(line(1, PricingMode.CASH, "Burger", "9.00", "1.00"), line(2, PricingMode.TRANSFER, "Juice", "5.00"))
         val document = build(sale(SaleStatus.COMPLETED), lines)
         val text = document.lines.joinToString("\n") { it.text }
-        listOf("Cafe", "Terminal: Front", "Table: Patio 4", "Business Date: 2026-08-10", "Completed At:",
+        listOf("Cafe", "Terminal: Front", "Table: Patio 4", "Business Date: Aug 10, 2026", "Completed At:",
             "Status: COMPLETED", "Burger  x1", "Juice  x1", "Pricing Mode: Cash", "Pricing Mode: Transfer",
             "Unit Price:", "Cash Discounts: 1.00 USD", "Line Total:", "Cash: 9.00 USD", "Transfer: 5.00 USD",
             "Grand Total: 14.00 USD", "Currency: USD").forEach { assertTrue("missing $it", text.contains(it)) }
@@ -45,6 +45,30 @@ class SalePrintContentBuilderTest {
         assertTrue(text.contains("Original Burger"))
         assertTrue(text.contains("Grand Total: 9.00 USD"))
         assertTrue(original == before)
+    }
+
+    @Test fun `sale dates and title are localized in restaurant timezone`() {
+        val document = SalePrintContentBuilder.build(
+            sale(SaleStatus.VOIDED).copy(
+                completedAtUtc = Instant.parse("2026-08-19T00:00:00Z"),
+                voidedAtUtc = Instant.parse("2026-08-19T01:00:00Z"),
+                businessDate = LocalDate.parse("2026-08-18")
+            ),
+            listOf(line(1, PricingMode.CASH, "Burger", "9.00")),
+            CalculateOrderTotals.calculate(listOf(line(1, PricingMode.CASH, "Burger", "9.00"))),
+            "Cafe",
+            "Front",
+            java.time.ZoneId.of("America/New_York"),
+            Locale.US,
+            labels
+        )
+
+        val text = document.lines.joinToString("\n") { it.text }
+        assertTrue(text.contains("Business Date: Aug 18, 2026"))
+        assertTrue(text.contains("Completed At: Aug 18, 2026, 8:00"))
+        assertTrue(text.contains("Voided At: Aug 18, 2026, 9:00"))
+        assertTrue(document.jobName == "Sale Aug 18, 2026")
+        assertFalse(text.contains("2026-08-18"))
     }
 
     @Test fun `long sale layout retains header every item and totals`() {

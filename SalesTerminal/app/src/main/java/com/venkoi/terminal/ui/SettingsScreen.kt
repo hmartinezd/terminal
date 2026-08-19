@@ -155,8 +155,9 @@ fun SettingsScreen(
                 InfoRow(stringResource(R.string.plan), license.payload?.planCode ?: na)
                 InfoRow(stringResource(R.string.device_code), viewModel.deviceCode)
                 license.payload?.let {
-                    InfoRow(stringResource(R.string.valid_until), formatProtocolDate(it.expiresAtUtc, locale))
-                    InfoRow(stringResource(R.string.grace_until), formatProtocolDate(it.graceUntilUtc, locale))
+                    val zone = restaurantConfig?.timezone ?: ZoneOffset.UTC
+                    InfoRow(stringResource(R.string.valid_until), formatProtocolDateTime(it.expiresAtUtc, zone, locale))
+                    InfoRow(stringResource(R.string.grace_until), formatProtocolDateTime(it.graceUntilUtc, zone, locale))
                 }
                 Button(onClick = viewModel::prepareActivationRequest, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.generate_activation_request))
@@ -322,8 +323,12 @@ fun SettingsScreen(
     }
 }
 
-private fun formatProtocolDate(value: String, locale: java.util.Locale): String =
-    runCatching { TerminalDateFormatter.formatDate(Instant.parse(value).atZone(ZoneOffset.UTC).toLocalDate(), locale) }
+private fun formatProtocolDateTime(
+    value: String,
+    zoneId: java.time.ZoneId,
+    locale: java.util.Locale
+): String =
+    runCatching { TerminalDateFormatter.formatDateTime(Instant.parse(value), zoneId, locale) }
         .getOrElse { value }
 
 @Composable

@@ -13,6 +13,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.ZoneId
 import java.util.Locale
 
 class PrintContentBuildersTest {
@@ -34,5 +35,34 @@ class PrintContentBuildersTest {
         val document = ProductReportPrintContentBuilder.build(report, "Cafe", "Front", Instant.EPOCH, ZoneOffset.UTC, Locale.US, labels)
         assertEquals(120, document.lines.count { it.text.matches(Regex("Product \\d+.*")) })
         assertTrue(document.lines.any { it.text.contains("Product 120") })
+    }
+
+    @Test fun `report dates and titles are localized without ISO output`() {
+        val report = DailyMoneyReport(LocalDate.parse("2026-08-19"), emptyList())
+        val english = MoneyReportPrintContentBuilder.build(
+            report,
+            "Cafe",
+            "Front",
+            Instant.parse("2026-08-19T00:00:00Z"),
+            ZoneId.of("America/New_York"),
+            Locale.US,
+            labels
+        )
+        val spanish = MoneyReportPrintContentBuilder.build(
+            report,
+            "Cafe",
+            "Front",
+            Instant.parse("2026-08-19T00:00:00Z"),
+            ZoneId.of("America/New_York"),
+            Locale.forLanguageTag("es"),
+            labels
+        )
+
+        assertEquals("Daily Sales Report Aug 19, 2026", english.jobName)
+        assertTrue(english.lines.any { it.text == "Business Date: Aug 19, 2026" })
+        assertTrue(english.lines.any { it.text.startsWith("Generated At: Aug 18, 2026, 8:00") })
+        assertEquals("Daily Sales Report 19 ago 2026", spanish.jobName)
+        assertTrue(spanish.lines.any { it.text.startsWith("Generated At: 18 ago 2026,") })
+        assertTrue(english.lines.none { it.text.contains("2026-08-19") })
     }
 }
