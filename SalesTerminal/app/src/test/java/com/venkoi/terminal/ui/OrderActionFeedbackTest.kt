@@ -1,6 +1,7 @@
 package com.venkoi.terminal.ui
 
 import com.venkoi.terminal.R
+import com.venkoi.terminal.licensing.LicenseState
 import com.venkoi.terminal.licensing.SellingAuthorizationResult
 import com.venkoi.terminal.licensing.SellingNotAuthorizedException
 import kotlinx.coroutines.runBlocking
@@ -11,7 +12,7 @@ import org.junit.Test
 
 class OrderActionFeedbackTest {
 
-    @Test fun denialAndBannerMessagesDistinguishClockExpirationAndSecurity() {
+    @Test fun denialMessagesDistinguishClockExpirationAndSecurity() {
         assertEquals(R.string.device_time_correction_required,
             sellingDenialMessage(SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK))
         assertEquals(R.string.selling_disabled,
@@ -22,12 +23,28 @@ class OrderActionFeedbackTest {
             SellingAuthorizationResult.DENIED_APP_INTEGRITY,
             SellingAuthorizationResult.DENIED_NOT_ACTIVATED
         ).forEach { assertEquals(R.string.license_security_verification_failed, sellingDenialMessage(it)) }
+    }
+
+    @Test fun persistentBannerMessagesCoverEveryLicenseStateSemantically() {
+        assertEquals(null, restrictedBannerMessage(LicenseState.VALID))
+        assertEquals(R.string.expires_soon, restrictedBannerMessage(LicenseState.EXPIRING_SOON))
+        assertEquals(R.string.subscription_renewal_required, restrictedBannerMessage(LicenseState.GRACE_PERIOD))
+        assertEquals(R.string.activation_required, restrictedBannerMessage(LicenseState.NOT_ACTIVATED))
+        assertEquals(R.string.selling_disabled, restrictedBannerMessage(LicenseState.EXPIRED))
         assertEquals(R.string.device_time_correction_required,
-            restrictedBannerMessage(com.venkoi.terminal.licensing.LicenseState.CLOCK_ROLLBACK_DETECTED))
-        assertEquals(R.string.selling_disabled,
-            restrictedBannerMessage(com.venkoi.terminal.licensing.LicenseState.EXPIRED))
-        assertEquals(R.string.license_security_verification_failed,
-            restrictedBannerMessage(com.venkoi.terminal.licensing.LicenseState.LOCAL_SECURITY_STATE_INVALID))
+            restrictedBannerMessage(LicenseState.CLOCK_ROLLBACK_DETECTED))
+
+        listOf(
+            LicenseState.LOCAL_SECURITY_STATE_INVALID,
+            LicenseState.INVALID_SIGNATURE,
+            LicenseState.WRONG_PRODUCT,
+            LicenseState.RESTAURANT_MISMATCH,
+            LicenseState.TERMINAL_MISMATCH,
+            LicenseState.DEVICE_MISMATCH,
+            LicenseState.APP_INTEGRITY_INVALID
+        ).forEach {
+            assertEquals(R.string.license_security_verification_failed, restrictedBannerMessage(it))
+        }
     }
     @Test
     fun `authorization denial becomes controlled feedback and stops the action`() = runBlocking {

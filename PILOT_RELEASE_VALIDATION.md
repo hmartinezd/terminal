@@ -161,7 +161,7 @@ This addendum describes the candidate being prepared for the final production ar
 
 - Application identity: `com.venkoi.terminal`, version `1.0.0-pilot.1`, version code `1`.
 - Database: Room schema `5`, the intended first distributed production baseline. No distributed schema-4 upgrade origin exists. All later schema changes require explicit, tested, non-destructive migrations; release has no destructive fallback.
-- Orders: overlay application drawer, compact top bar, horizontal stable OPEN-order strip with New Order first, approximately 400dp Current Order, compact line controls, header Cancel Order, and fixed totals/completion footer.
+- Orders: branded 256dp overlay application drawer, compact top bar, pinned New Order control beside an independently scrolling stable OPEN-order strip, approximately 400dp Current Order, compact line controls, header Cancel Order, and fixed totals/completion footer. License restrictions use one persistent application-level banner; Orders retains disabled controls and state-specific denied-action snackbar feedback without a duplicate banner.
 - History: approximately 400dp dense master pane, Business Date grouping, time-only transaction rows, Order/Closed/Amount/Status columns, persistent sale detail, dense ITEM/QTY/MODE/AMOUNT ledger, Sale Ref, Print/Save PDF, and historical VOID.
 - Reports: compact Business Date navigation with always-actionable Today/Hoy, Money/Products segmented selection, Net Sales/Cash/Transfer primary summary, compact audit metrics, and dense lazy Products table.
 - Settings: 260dp master/detail subsection pane for Language, Subscription, Sales Export, Restaurant, Terminal, Menu, and App Information.

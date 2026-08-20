@@ -36,7 +36,6 @@ class OrdersViewModel @Inject constructor(
 ) : ViewModel() {
 
     val sellingAllowed = licenseManager.sellingAllowed
-    val licenseSnapshot = licenseManager.snapshot
 
     companion object {
         const val MAX_ORDER_LABEL_LENGTH = 100

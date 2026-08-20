@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.venkoi.terminal.R
-import com.venkoi.terminal.licensing.LicenseState
 import com.venkoi.terminal.ui.theme.TerminalNavigation
 import com.venkoi.terminal.ui.theme.TerminalOnNavigation
 import kotlinx.coroutines.launch
@@ -39,7 +38,6 @@ private enum class MainDestination { ORDERS, HISTORY, REPORTS, SETTINGS }
 fun MainScreen() {
     val licenseViewModel: LicenseStatusViewModel = hiltViewModel()
     val license by licenseViewModel.snapshot.collectAsState()
-    val sellingAllowed by licenseViewModel.sellingAllowed.collectAsState()
     var destination by rememberSaveable { mutableStateOf(MainDestination.ORDERS) }
     val currentScreen = when (destination) {
         MainDestination.ORDERS -> Screen.Orders
@@ -153,15 +151,10 @@ fun MainScreen() {
                     Text(stringResource(currentScreen.titleRes), style = MaterialTheme.typography.titleMedium)
                 }
             }
-            val banner = when (license.state) {
-                LicenseState.EXPIRING_SOON -> stringResource(R.string.expires_soon)
-                LicenseState.GRACE_PERIOD -> stringResource(R.string.subscription_renewal_required)
-                LicenseState.CLOCK_ROLLBACK_DETECTED -> stringResource(R.string.device_time_changed)
-                else -> if (!sellingAllowed) stringResource(R.string.selling_disabled) else null
-            }
-            banner?.let {
+            val bannerMessage = restrictedBannerMessage(license.state)
+            bannerMessage?.let {
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
-                    Text(it, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Text(stringResource(it), modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }
             Box(

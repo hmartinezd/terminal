@@ -23,7 +23,11 @@ internal fun sellingDenialMessage(reason: SellingAuthorizationResult): Int = whe
 }
 
 @StringRes
-internal fun restrictedBannerMessage(state: LicenseState): Int = when (state) {
+internal fun restrictedBannerMessage(state: LicenseState): Int? = when (state) {
+    LicenseState.VALID -> null
+    LicenseState.EXPIRING_SOON -> R.string.expires_soon
+    LicenseState.GRACE_PERIOD -> R.string.subscription_renewal_required
+    LicenseState.NOT_ACTIVATED -> R.string.activation_required
     LicenseState.CLOCK_ROLLBACK_DETECTED -> R.string.device_time_correction_required
     LicenseState.EXPIRED -> R.string.selling_disabled
     else -> R.string.license_security_verification_failed

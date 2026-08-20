@@ -60,7 +60,6 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val isCreating by viewModel.isCreating.collectAsState()
     val discardingOrderIds by viewModel.discardingOrderIds.collectAsState()
     val sellingAllowed by viewModel.sellingAllowed.collectAsState()
-    val licenseSnapshot by viewModel.licenseSnapshot.collectAsState()
     val actionFeedback by viewModel.actionFeedback.collectAsState()
     val locale = LocalConfiguration.current.locales[0]
     val resources = LocalContext.current.resources
@@ -189,15 +188,6 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
         )
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-        if (!sellingAllowed) {
-            Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    stringResource(restrictedBannerMessage(licenseSnapshot.state)),
-                    modifier = Modifier.padding(12.dp),
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-        }
         OpenOrdersStrip(
             openOrders = openOrders,
             selectedOrderId = selectedOrderId,
