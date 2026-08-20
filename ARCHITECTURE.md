@@ -1,6 +1,6 @@
 # Product boundaries
 
-This repository contains three independent project roots:
+This project is a unified Gradle workspace containing three modules:
 
 - **SalesTerminal** — the customer-facing Android product. It creates activation requests and verifies signed licenses offline. Production application code is verifier-only and contains no authority private-key loading, issuance, renewal generation, or audit capability.
 - **LicenseContract** — the versioned, public, non-secret Kotlin/JVM compatibility artifact `com.venkoi:license-contract:1.0.0`. It owns only the schema-version-1 wire models, product code, canonical encoder, and public compatibility fixtures.
