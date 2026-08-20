@@ -28,8 +28,8 @@ object LicensePolicy {
         LicenseState.GRACE_PERIOD -> SellingAuthorizationResult.AUTHORIZED_GRACE
         LicenseState.NOT_ACTIVATED -> SellingAuthorizationResult.DENIED_NOT_ACTIVATED
         LicenseState.EXPIRED -> SellingAuthorizationResult.DENIED_EXPIRED
-        LicenseState.CLOCK_ROLLBACK_DETECTED, LicenseState.LOCAL_SECURITY_STATE_INVALID ->
-            SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK
+        LicenseState.CLOCK_ROLLBACK_DETECTED -> SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK
+        LicenseState.LOCAL_SECURITY_STATE_INVALID -> SellingAuthorizationResult.DENIED_INVALID_LICENSE
         LicenseState.DEVICE_MISMATCH -> SellingAuthorizationResult.DENIED_DEVICE_MISMATCH
         LicenseState.APP_INTEGRITY_INVALID -> SellingAuthorizationResult.DENIED_APP_INTEGRITY
         else -> SellingAuthorizationResult.DENIED_INVALID_LICENSE

@@ -36,6 +36,7 @@ import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.repository.SaleCompletionResult
 import com.venkoi.terminal.licensing.SellingAuthorizationResult
+import com.venkoi.terminal.licensing.LicenseState
 import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.components.MenuProductCard
 import com.venkoi.terminal.ui.theme.CategoryPalette
@@ -60,6 +61,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val isCreating by viewModel.isCreating.collectAsState()
     val discardingOrderIds by viewModel.discardingOrderIds.collectAsState()
     val sellingAllowed by viewModel.sellingAllowed.collectAsState()
+    val licenseSnapshot by viewModel.licenseSnapshot.collectAsState()
     val actionFeedback by viewModel.actionFeedback.collectAsState()
     val locale = LocalConfiguration.current.locales[0]
     val categoryStyles = remember(categories) {
@@ -195,7 +197,15 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
         if (!sellingAllowed) {
             Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.selling_disabled), modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                Text(
+                    stringResource(if (licenseSnapshot.state == LicenseState.CLOCK_ROLLBACK_DETECTED) {
+                        R.string.device_time_correction_required
+                    } else {
+                        R.string.selling_disabled
+                    }),
+                    modifier = Modifier.padding(12.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
             }
         }
         OpenOrdersStrip(

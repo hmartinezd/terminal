@@ -58,6 +58,25 @@ class TrustedTimeStoreTest {
         assertEquals(Instant.parse("2026-01-01T12:00:00Z"), result.now)
     }
 
+    @Test fun `rollback tolerance accepts five minutes and rejects anything beyond it`() {
+        val time = MutableTime(Instant.parse("2026-01-01T12:00:00Z"), 1_000)
+        val (store) = store(time)
+        store.observe()
+        time.wall = Instant.parse("2026-01-01T11:55:00Z")
+        assertNull(store.observe().error)
+        time.wall = Instant.parse("2026-01-01T11:54:59Z")
+        assertEquals(LicenseState.CLOCK_ROLLBACK_DETECTED, store.observe().error)
+    }
+
+    @Test fun `normal license acceptance cannot lower trusted floor`() {
+        val time = MutableTime(Instant.parse("2030-01-01T00:00:00Z"), 1_000)
+        val (store) = store(time)
+        store.observe()
+        store.acceptLicense(Instant.parse("2026-08-20T00:00:00Z"), 2)
+        assertEquals(time.wall, store.securityState()!!.lastTrustedUtc)
+        assertEquals(2, store.securityState()!!.highestAcceptedLicenseSequence)
+    }
+
     @Test fun `monotonic session estimate detects wall rollback`() {
         val time = MutableTime(Instant.parse("2026-01-01T12:00:00Z"), 1_000)
         val (store) = store(time)
@@ -121,9 +140,14 @@ class TrustedTimeStoreTest {
         time.wall = Instant.parse("2026-08-20T00:00:00Z")
         val oldFloor = store.securityState()!!.lastTrustedUtc
         assertEquals(false, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall, 1))
-        assertEquals(false, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall.plusSeconds(301), 2))
+        assertEquals(true, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall.plusSeconds(300), 2))
+        // Restore the future floor to test the first instant outside the same tolerance.
+        time.wall = Instant.parse("2030-01-01T00:00:00Z")
+        store.advanceFloor(time.wall)
+        time.wall = Instant.parse("2026-08-20T00:00:00Z")
+        assertEquals(false, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall.plusSeconds(301), 3))
         assertEquals(oldFloor, store.securityState()!!.lastTrustedUtc)
-        persistence.storedPayload = persistence.storedPayload!!.replace("\n1", "\n2")
+        persistence.storedPayload = persistence.storedPayload!! + "x"
         assertEquals(false, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall, 2))
         assertEquals(LicenseState.LOCAL_SECURITY_STATE_INVALID, store.securityStateError())
     }

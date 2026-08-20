@@ -131,6 +131,27 @@ class OfflineLicensingTest {
             LicenseImportRules.compare(sign(payload(4), pair.private), verifiedCurrent, 5))
     }
 
+    @Test fun `interrupted recovery continuation is exact clock-only and authenticated-floor gated`() {
+        val pair = KeyPairGenerator.getInstance("EC").apply { initialize(256) }.generateKeyPair()
+        val installed = sign(payload(2), pair.private)
+        val samePayload = sign(payload(2), pair.private)
+
+        assertTrue(LicenseImportRules.canResumeInterruptedRecovery(true, samePayload, installed, 1))
+        assertFalse(LicenseImportRules.canResumeInterruptedRecovery(false, samePayload, installed, 1))
+        assertFalse(LicenseImportRules.canResumeInterruptedRecovery(true, samePayload, installed, 2))
+        assertFalse(LicenseImportRules.canResumeInterruptedRecovery(
+            true, sign(payload(2).copy(planCode = "OTHER"), pair.private), installed, 1))
+        assertFalse(LicenseImportRules.canResumeInterruptedRecovery(
+            true, sign(payload(1), pair.private), installed, 0))
+    }
+
+    @Test fun `local security failure is denied generically while rollback stays clock specific`() {
+        assertEquals(SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK,
+            LicensePolicy.sellingAuthorization(LicenseState.CLOCK_ROLLBACK_DETECTED))
+        assertEquals(SellingAuthorizationResult.DENIED_INVALID_LICENSE,
+            LicensePolicy.sellingAuthorization(LicenseState.LOCAL_SECURITY_STATE_INVALID))
+    }
+
     private fun sign(payload: LicensePayloadV1, key: java.security.PrivateKey): SignedLicenseV1 {
         val bytes = Signature.getInstance("SHA256withECDSA").run {
             initSign(key); update(CanonicalLicenseEncoder.encode(payload)); sign()

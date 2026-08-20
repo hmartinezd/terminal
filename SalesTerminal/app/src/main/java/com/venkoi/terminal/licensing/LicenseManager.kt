@@ -134,23 +134,30 @@ class LicenseManager @Inject constructor(
         }
         val current = storedLicense()?.takeIf(verifier::verify)
         val authenticatedHighest = trustedTime.securityState()?.highestAcceptedLicenseSequence ?: 0
+        val resumesInterruptedRecovery = LicenseImportRules.canResumeInterruptedRecovery(
+            recoveringClock, candidate, current, authenticatedHighest
+        )
         val highest = maxOf(authenticatedHighest, current?.payload?.licenseSequence ?: 0)
-        when (LicenseImportRules.compare(candidate, current, highest)) {
-            LicenseImportDecision.STALE -> return LicenseImportResult.Stale
-            LicenseImportDecision.DUPLICATE -> return LicenseImportResult.Duplicate
-            LicenseImportDecision.SEQUENCE_CONFLICT -> return LicenseImportResult.SequenceConflict
-            LicenseImportDecision.LOCAL_STATE_INVALID ->
-                return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
-            LicenseImportDecision.ACCEPT -> Unit
+        if (!resumesInterruptedRecovery) {
+            when (LicenseImportRules.compare(candidate, current, highest)) {
+                LicenseImportDecision.STALE -> return LicenseImportResult.Stale
+                LicenseImportDecision.DUPLICATE -> return LicenseImportResult.Duplicate
+                LicenseImportDecision.SEQUENCE_CONFLICT -> return LicenseImportResult.SequenceConflict
+                LicenseImportDecision.LOCAL_STATE_INVALID ->
+                    return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
+                LicenseImportDecision.ACCEPT -> Unit
+            }
         }
         if (recoveringClock && wallNow.plus(Duration.ofMinutes(5)).isBefore(candidate.payload.issuedAt())) {
             return LicenseImportResult.Rejected(LicenseState.CLOCK_ROLLBACK_DETECTED)
         }
         val previousEnvelope = preferences.getString("envelope", null)
         val previousImportedAt = preferences.getLong("imported_at", Long.MIN_VALUE)
-        val stored = preferences.edit().putString("envelope", json.encodeToString(candidate))
-            .putLong("imported_at", wallNow.toEpochMilli()).commit()
-        if (!stored) return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
+        if (!resumesInterruptedRecovery) {
+            val stored = preferences.edit().putString("envelope", json.encodeToString(candidate))
+                .putLong("imported_at", wallNow.toEpochMilli()).commit()
+            if (!stored) return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
+        }
         val timeAccepted = if (recoveringClock) {
             trustedTime.reanchorAfterAuthorizedClockCorrection(
                 wallNow, candidate.payload.issuedAt(), candidate.payload.licenseSequence
@@ -159,10 +166,12 @@ class LicenseManager @Inject constructor(
             trustedTime.acceptLicense(candidate.payload.issuedAt(), candidate.payload.licenseSequence)
         }.isSuccess
         if (!timeAccepted) {
-            preferences.edit().apply {
-                if (previousEnvelope == null) remove("envelope") else putString("envelope", previousEnvelope)
-                if (previousImportedAt == Long.MIN_VALUE) remove("imported_at") else putLong("imported_at", previousImportedAt)
-            }.commit()
+            if (!resumesInterruptedRecovery) {
+                preferences.edit().apply {
+                    if (previousEnvelope == null) remove("envelope") else putString("envelope", previousEnvelope)
+                    if (previousImportedAt == Long.MIN_VALUE) remove("imported_at") else putLong("imported_at", previousImportedAt)
+                }.commit()
+            }
             return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
         }
         refresh()
@@ -177,13 +186,26 @@ class LicenseManager @Inject constructor(
 internal enum class LicenseImportDecision { ACCEPT, STALE, DUPLICATE, SEQUENCE_CONFLICT, LOCAL_STATE_INVALID }
 
 internal object LicenseImportRules {
+    fun isExactPayload(first: SignedLicenseV1, second: SignedLicenseV1): Boolean =
+        CanonicalLicenseEncoder.encode(first.payload)
+            .contentEquals(CanonicalLicenseEncoder.encode(second.payload))
+
+    fun canResumeInterruptedRecovery(
+        recoveringClock: Boolean,
+        candidate: SignedLicenseV1,
+        verifiedCurrent: SignedLicenseV1?,
+        authenticatedHighest: Long
+    ): Boolean = recoveringClock && verifiedCurrent != null &&
+        isExactPayload(candidate, verifiedCurrent) &&
+        candidate.payload.licenseSequence == verifiedCurrent.payload.licenseSequence &&
+        candidate.payload.licenseSequence > authenticatedHighest
+
     fun compare(candidate: SignedLicenseV1, verifiedCurrent: SignedLicenseV1?, highestAccepted: Long): LicenseImportDecision {
         val sequence = candidate.payload.licenseSequence
         if (sequence < highestAccepted) return LicenseImportDecision.STALE
         if (sequence > highestAccepted) return LicenseImportDecision.ACCEPT
         if (verifiedCurrent == null) return LicenseImportDecision.LOCAL_STATE_INVALID
-        return if (CanonicalLicenseEncoder.encode(candidate.payload)
-                .contentEquals(CanonicalLicenseEncoder.encode(verifiedCurrent.payload))) {
+        return if (isExactPayload(candidate, verifiedCurrent)) {
             LicenseImportDecision.DUPLICATE
         } else {
             LicenseImportDecision.SEQUENCE_CONFLICT
