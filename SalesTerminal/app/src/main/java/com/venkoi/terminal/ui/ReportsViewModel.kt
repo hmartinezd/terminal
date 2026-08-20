@@ -44,6 +44,9 @@ class ReportsViewModel @Inject constructor(
     private val _selectedTab = MutableStateFlow(ReportTab.MONEY)
     val selectedTab: StateFlow<ReportTab> = _selectedTab.asStateFlow()
 
+    private val _currentBusinessDate = MutableStateFlow<LocalDate?>(null)
+    val currentBusinessDate: StateFlow<LocalDate?> = _currentBusinessDate.asStateFlow()
+
     val restaurantConfiguration: StateFlow<RestaurantConfiguration?> = menuRepository.observeRestaurantConfiguration()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -54,8 +57,10 @@ class ReportsViewModel @Inject constructor(
 
     init {
         restaurantConfiguration.onEach { config ->
-            if (config != null && _selectedDate.value == null) {
-                _selectedDate.value = resolveCurrentReportBusinessDate.resolve(config)
+            if (config != null) {
+                val businessDate = resolveCurrentReportBusinessDate.resolve(config)
+                _currentBusinessDate.value = businessDate
+                if (_selectedDate.value == null) _selectedDate.value = businessDate
             }
         }.launchIn(viewModelScope)
     }
