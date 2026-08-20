@@ -2,7 +2,7 @@
 
 License Admin is a standalone Kotlin/JVM command-line product for a trusted administrator computer. It is not Android and has no server, payment, or cloud dependency. Its signing core is separate from CLI parsing so it can later sit behind a secured service and HSM/KMS without changing `SignedLicenseV1`.
 
-Run `./gradlew test` for independent verification and `./gradlew run --args='help'` for commands. The build consumes the published `com.venkoi:license-contract:1.0.0` artifact and has no path dependency on Sales Terminal or a contract checkout. For local development, publish LicenseContract with `./gradlew publishToMavenLocal` first. Contract schema version 1 and its canonical encoding are immutable; incompatible changes require schema version 2.
+From the top-level workspace, run `./gradlew :LicenseAdmin:test` for verification and `./gradlew :LicenseAdmin:run --args='--help'` for commands. The module consumes `:LicenseContract` directly, so local development does not require Maven Local publication. Contract schema version 1 and its canonical encoding are immutable; incompatible changes require schema version 2.
 
 ## Initial activation
 

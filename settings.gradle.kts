@@ -1,3 +1,5 @@
+import org.gradle.api.initialization.resolve.RepositoriesMode
+
 pluginManagement {
     repositories {
         google {
@@ -21,9 +23,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        mavenLocal()
     }
 }
 
 rootProject.name = "Terminal"
-include(":app")
+
+include(":SalesTerminal", ":LicenseContract", ":LicenseAdmin")
+
+project(":SalesTerminal").projectDir = file("SalesTerminal/app")
+project(":LicenseContract").projectDir = file("LicenseContract")
+project(":LicenseAdmin").projectDir = file("LicenseAdmin")

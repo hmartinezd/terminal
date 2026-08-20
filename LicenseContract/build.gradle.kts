@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm")
-    kotlin("plugin.serialization")
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kgp.serialization)
     `maven-publish`
 }
 
@@ -9,8 +9,8 @@ version = "1.0.0"
 kotlin { jvmToolchain(17) }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-    testImplementation("junit:junit:4.13.2")
+    implementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.junit)
 }
 tasks.test { useJUnit() }
 publishing { publications { create<MavenPublication>("contract") { from(components["java"]) } } }

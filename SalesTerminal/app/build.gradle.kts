@@ -46,7 +46,7 @@ val pilotSigningMaterial = if (productionPilot) {
     val keystorePath = File(required("ANDROID_SIGNING_KEYSTORE", "ANDROID_SIGNING_KEYSTORE"))
     require(keystorePath.isAbsolute) { "ANDROID_SIGNING_KEYSTORE must be an absolute external path" }
     require(keystorePath.exists() && keystorePath.isFile) { "Android signing keystore does not exist" }
-    val repositoryRoot = rootProject.projectDir.canonicalFile.parentFile
+    val repositoryRoot = rootProject.projectDir.canonicalFile
     require(!keystorePath.canonicalFile.toPath().startsWith(repositoryRoot.toPath())) {
         "Android signing keystore must remain outside the product source directory"
     }
@@ -147,7 +147,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(libs.license.contract)
+    implementation(project(":LicenseContract"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
