@@ -39,5 +39,6 @@ data class PrintLabels(
     val voided: String,
     val dailySalesReport: String,
     val productReport: String,
-    val sale: String
+    val sale: String,
+    val notAvailable: String
 )

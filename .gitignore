@@ -3,12 +3,8 @@
 **/.gradle/
 **/.kotlin/
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+/.idea/
+/.idea
 .DS_Store
 **/build/
 **/*.class
@@ -26,3 +22,6 @@ authority-private.pem
 *.keystore
 *signing*.properties
 *release*.properties
+.idea/AndroidProjectSystem.xml
+.idea/appInsightsSettings.xml
+.gitignore

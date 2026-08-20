@@ -17,7 +17,7 @@ import java.time.ZoneId
 import java.util.Locale
 
 class PrintContentBuildersTest {
-    private val labels = PrintLabels("Business Date", "Generated At", "Terminal", "Currency", "Valid Sales", "Voided Sales", "Cash", "Transfer", "Net Sales", "Cash Discounts", "Voided Amount", "Product", "Quantity", "Amount", "Status", "Completed At", "Voided At", "Table", "Pricing Mode", "Unit Price", "Line Total", "Grand Total", "COMPLETED", "VOIDED", "Daily Sales Report", "Product Report", "Sale")
+    private val labels = PrintLabels("Business Date", "Generated At", "Terminal", "Currency", "Valid Sales", "Voided Sales", "Cash", "Transfer", "Net Sales", "Cash Discounts", "Voided Amount", "Product", "Quantity", "Amount", "Status", "Completed At", "Voided At", "Table", "Pricing Mode", "Unit Price", "Line Total", "Grand Total", "COMPLETED", "VOIDED", "Daily Sales Report", "Product Report", "Sale", "N/A")
 
     @Test fun `money content uses report totals directly`() {
         val report = DailyMoneyReport(LocalDate.parse("2026-08-10"), listOf(

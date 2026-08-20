@@ -19,6 +19,10 @@ object TerminalDateFormatter {
         return "${formatDate(zoned.toLocalDate(), locale)}, $time"
     }
 
+    fun formatProtocolDateTime(value: String, zoneId: ZoneId, locale: Locale): String =
+        runCatching { formatDateTime(Instant.parse(value), zoneId, locale) }
+            .getOrElse { value }
+
     fun formatDateWithToday(
         date: LocalDate,
         currentBusinessDate: LocalDate,

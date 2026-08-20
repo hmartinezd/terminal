@@ -43,4 +43,28 @@ class TerminalDateFormatterTest {
         assertTrue(formatted.startsWith("Aug 18, 2026, 8:00"))
         assertTrue(formatted.endsWith("PM"))
     }
+
+    @Test
+    fun `protocol date time uses restaurant timezone and locale`() {
+        assertEquals(
+            "18 ago 2026, 20:00",
+            TerminalDateFormatter.formatProtocolDateTime(
+                "2026-08-19T00:00:00Z",
+                ZoneId.of("America/New_York"),
+                Locale.forLanguageTag("es")
+            )
+        )
+    }
+
+    @Test
+    fun `invalid protocol date time falls back to raw value`() {
+        assertEquals(
+            "not-an-instant",
+            TerminalDateFormatter.formatProtocolDateTime(
+                "not-an-instant",
+                ZoneId.of("America/New_York"),
+                Locale.US
+            )
+        )
+    }
 }

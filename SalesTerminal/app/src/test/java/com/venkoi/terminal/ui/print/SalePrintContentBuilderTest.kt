@@ -20,7 +20,7 @@ import java.time.ZoneOffset
 import java.util.Locale
 
 class SalePrintContentBuilderTest {
-    private val labels = PrintLabels("Business Date", "Generated At", "Terminal", "Currency", "Valid Sales", "Voided Sales", "Cash", "Transfer", "Net Sales", "Cash Discounts", "Voided Amount", "Product", "Quantity", "Amount", "Status", "Completed At", "Voided At", "Table", "Pricing Mode", "Unit Price", "Line Total", "Grand Total", "COMPLETED", "VOIDED", "Daily Sales Report", "Product Report", "Sale")
+    private val labels = PrintLabels("Business Date", "Generated At", "Terminal", "Currency", "Valid Sales", "Voided Sales", "Cash", "Transfer", "Net Sales", "Cash Discounts", "Voided Amount", "Product", "Quantity", "Amount", "Status", "Completed At", "Voided At", "Table", "Pricing Mode", "Unit Price", "Line Total", "Grand Total", "COMPLETED", "VOIDED", "Daily Sales Report", "Product Report", "Sale", "N/A")
 
     @Test fun `completed sale content contains immutable commercial detail without internals`() {
         val lines = listOf(line(1, PricingMode.CASH, "Burger", "9.00", "1.00"), line(2, PricingMode.TRANSFER, "Juice", "5.00"))
@@ -69,6 +69,15 @@ class SalePrintContentBuilderTest {
         assertTrue(text.contains("Voided At: Aug 18, 2026, 9:00"))
         assertTrue(document.jobName == "Sale Aug 18, 2026")
         assertFalse(text.contains("2026-08-18"))
+    }
+
+    @Test fun `missing business date uses localized not available in body and title`() {
+        val document = build(sale(SaleStatus.COMPLETED).copy(businessDate = null), listOf(line(1, PricingMode.CASH, "Burger", "9.00")))
+        val text = document.lines.joinToString("\n") { it.text }
+
+        assertTrue(text.contains("Business Date: N/A"))
+        assertTrue(document.jobName == "Sale N/A")
+        assertFalse(text.contains("Business Date: \n"))
     }
 
     @Test fun `long sale layout retains header every item and totals`() {

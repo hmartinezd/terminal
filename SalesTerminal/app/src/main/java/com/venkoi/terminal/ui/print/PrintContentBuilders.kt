@@ -83,12 +83,13 @@ object SalePrintContentBuilder {
     ): PrintDocumentModel {
         val code = sale.currencyCodeSnapshot
         val scale = sale.currencyScaleSnapshot
+        val displayBusinessDate = sale.businessDate
+            ?.let { TerminalDateFormatter.formatDate(it, locale) }
+            ?: labels.notAvailable
         val lines = mutableListOf(PrintLine(restaurantName, PrintEmphasis.HEADING), PrintLine("${labels.terminal}: $terminalName"))
         if (sale.status == SaleStatus.VOIDED) lines += PrintLine(labels.voided, PrintEmphasis.VOIDED)
         sale.tableLabel?.takeIf(String::isNotBlank)?.let { lines += PrintLine("${labels.table}: $it") }
-        lines += PrintLine(
-            "${labels.businessDate}: ${sale.businessDate?.let { TerminalDateFormatter.formatDate(it, locale) } ?: ""}"
-        )
+        lines += PrintLine("${labels.businessDate}: $displayBusinessDate")
         sale.completedAtUtc?.let {
             lines += PrintLine("${labels.completedAt}: ${TerminalDateFormatter.formatDateTime(it, timezone, locale)}")
         }
@@ -115,7 +116,7 @@ object SalePrintContentBuilder {
         lines += PrintLine("${labels.transfer}: ${HistoryMoneyFormatter.format(totals.transferTotal, code, scale, locale)}")
         lines += PrintLine("${labels.grandTotal}: ${HistoryMoneyFormatter.format(totals.grandTotal, code, scale, locale)}", PrintEmphasis.STRONG)
         return PrintDocumentModel(
-            "${labels.sale} ${sale.businessDate?.let { TerminalDateFormatter.formatDate(it, locale) } ?: ""}".trimEnd(),
+            "${labels.sale} $displayBusinessDate",
             lines
         )
     }

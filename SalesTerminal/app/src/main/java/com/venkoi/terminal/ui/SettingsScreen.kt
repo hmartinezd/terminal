@@ -173,8 +173,8 @@ fun SettingsScreen(
                             InfoRow(stringResource(R.string.device_code), viewModel.deviceCode)
                             license.payload?.let {
                                 val zone = restaurantConfig?.timezone ?: ZoneOffset.UTC
-                                InfoRow(stringResource(R.string.valid_until), formatProtocolDateTime(it.expiresAtUtc, zone, locale))
-                                InfoRow(stringResource(R.string.grace_until), formatProtocolDateTime(it.graceUntilUtc, zone, locale))
+                                InfoRow(stringResource(R.string.valid_until), TerminalDateFormatter.formatProtocolDateTime(it.expiresAtUtc, zone, locale))
+                                InfoRow(stringResource(R.string.grace_until), TerminalDateFormatter.formatProtocolDateTime(it.graceUntilUtc, zone, locale))
                             }
                         }
                         ActionColumn {
@@ -333,14 +333,6 @@ fun SettingsScreen(
         )
     }
 }
-
-private fun formatProtocolDateTime(
-    value: String,
-    zoneId: java.time.ZoneId,
-    locale: java.util.Locale
-): String =
-    runCatching { TerminalDateFormatter.formatDateTime(Instant.parse(value), zoneId, locale) }
-        .getOrElse { value }
 
 @Composable
 private fun licenseStatusText(state: LicenseState): String = stringResource(when (state) {
