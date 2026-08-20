@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -92,16 +93,30 @@ class ReportsViewModel @Inject constructor(
     }
 
     fun onPreviousDay() {
+        refreshCurrentBusinessDate()
         _selectedDate.value = _selectedDate.value?.minusDays(1)
     }
 
     fun onNextDay() {
+        refreshCurrentBusinessDate()
         _selectedDate.value = _selectedDate.value?.plusDays(1)
     }
 
     fun onToday() {
-        restaurantConfiguration.value?.let { config ->
-            _selectedDate.value = resolveCurrentReportBusinessDate.resolve(config)
+        viewModelScope.launch {
+            menuRepository.getRestaurantConfiguration()?.let { config ->
+                val businessDate = resolveCurrentReportBusinessDate.resolve(config)
+                _currentBusinessDate.value = businessDate
+                _selectedDate.value = businessDate
+            }
+        }
+    }
+
+    fun refreshCurrentBusinessDate() {
+        viewModelScope.launch {
+            menuRepository.getRestaurantConfiguration()?.let { config ->
+                _currentBusinessDate.value = resolveCurrentReportBusinessDate.resolve(config)
+            }
         }
     }
 

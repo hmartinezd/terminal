@@ -1,10 +1,11 @@
 package com.venkoi.terminal.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -19,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +46,10 @@ fun ReportsScreen(viewModel: ReportsViewModel) {
     val terminal by viewModel.terminalConfiguration.collectAsState()
     val context = LocalContext.current
     val locale = LocalConfiguration.current.locales[0]
+
+    LaunchedEffect(viewModel) {
+        viewModel.refreshCurrentBusinessDate()
+    }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
         ReportsHeader(selectedDate, currentBusinessDate, locale, viewModel::onPreviousDay,
@@ -92,7 +99,7 @@ private fun ReportsHeader(selectedDate: LocalDate?, currentBusinessDate: LocalDa
 @Composable
 private fun ReportModeSelector(selected: ReportTab, onSelected: (ReportTab) -> Unit) {
     Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-        Row(Modifier.width(300.dp).padding(3.dp)) {
+        Row(Modifier.width(300.dp).padding(3.dp).selectableGroup()) {
             ReportModeOption(stringResource(R.string.reports_money), selected == ReportTab.MONEY, Modifier.weight(1f)) { onSelected(ReportTab.MONEY) }
             ReportModeOption(stringResource(R.string.reports_products), selected == ReportTab.PRODUCTS, Modifier.weight(1f)) { onSelected(ReportTab.PRODUCTS) }
         }
@@ -101,7 +108,7 @@ private fun ReportModeSelector(selected: ReportTab, onSelected: (ReportTab) -> U
 
 @Composable
 private fun ReportModeOption(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Surface(modifier.clickable(onClick = onClick), RoundedCornerShape(6.dp),
+    Surface(modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick), RoundedCornerShape(6.dp),
         color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = if (selected) 2.dp else 0.dp) {
         Text(label, Modifier.padding(vertical = 9.dp), textAlign = TextAlign.Center,
