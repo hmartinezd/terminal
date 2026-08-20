@@ -215,6 +215,7 @@
     <string name="selling_disabled">Selling is disabled until the subscription is renewed</string>
     <string name="device_time_changed">Device date/time appears to have been changed</string>
     <string name="device_time_correction_required">Device date/time must be corrected before selling can continue.</string>
+    <string name="license_security_verification_failed">License security could not be verified. Selling is disabled.</string>
     <string name="unable_to_verify_license">Unable to verify license</string>
     <string name="license_imported_successfully">License imported successfully</string>
     <string name="license_wrong_terminal">This license belongs to another terminal</string>

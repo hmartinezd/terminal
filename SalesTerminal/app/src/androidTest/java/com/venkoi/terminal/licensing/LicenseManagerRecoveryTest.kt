@@ -31,6 +31,7 @@ import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -97,10 +98,99 @@ class LicenseManagerRecoveryTest {
         assertEquals(oldState, trustedTime.securityState())
     }
 
+    @Test fun recoveryRejectionsPreserveTrustedStateAndInstalledEnvelope() = runBlocking {
+        val cases = listOf(
+            LicenseState.INVALID_SIGNATURE to signed(sequence = 2).copy(signatureBase64Url = "invalid"),
+            LicenseState.WRONG_PRODUCT to signed(sequence = 2, productCode = "OTHER_PRODUCT"),
+            LicenseState.RESTAURANT_MISMATCH to signed(sequence = 2, restaurantId = "other-restaurant"),
+            LicenseState.TERMINAL_MISMATCH to signed(sequence = 2, terminalId = "other-terminal"),
+            LicenseState.DEVICE_MISMATCH to signed(sequence = 2, deviceKeyId = "other-device"),
+            LicenseState.EXPIRED to signed(sequence = 2, issuedAt = "2026-07-01T00:00:00Z",
+                expiresAt = "2026-08-01T00:00:00Z", graceUntil = "2026-08-10T00:00:00Z")
+        )
+        cases.forEach { (expected, candidate) ->
+            resetFixture()
+            val installed = signed(sequence = 1)
+            install(installed)
+            time.wall = CORRECTED_NOW
+            val oldState = trustedTime.securityState()
+            val oldEnvelope = installedEnvelope()
+
+            assertEquals(LicenseImportResult.Rejected(expected), manager().import(json.encodeToString(candidate)))
+            assertEquals(oldState, trustedTime.securityState())
+            assertEquals(oldEnvelope, installedEnvelope())
+            val exception = assertThrows(SellingNotAuthorizedException::class.java) {
+                runBlocking { manager().requireSelling() }
+            }
+            assertEquals(SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK, exception.result)
+        }
+    }
+
+    @Test fun futureIssuedRecoveryHonorsFiveMinuteBoundary() = runBlocking {
+        resetFixture()
+        install(signed(sequence = 1))
+        time.wall = CORRECTED_NOW
+        val within = signed(sequence = 2, issuedAt = CORRECTED_NOW.plusSeconds(300).toString())
+        assertEquals(LicenseImportResult.Accepted, manager().import(json.encodeToString(within)))
+
+        resetFixture()
+        val installed = signed(sequence = 1)
+        install(installed)
+        time.wall = CORRECTED_NOW
+        val oldState = trustedTime.securityState()
+        val oldEnvelope = installedEnvelope()
+        val beyond = signed(sequence = 2, issuedAt = CORRECTED_NOW.plusSeconds(301).toString())
+        assertEquals(LicenseImportResult.Rejected(LicenseState.CLOCK_ROLLBACK_DETECTED),
+            manager().import(json.encodeToString(beyond)))
+        assertEquals(oldState, trustedTime.securityState())
+        assertEquals(oldEnvelope, installedEnvelope())
+    }
+
+    @Test fun invalidAuthenticatedLocalStateCannotBeRecoveredByNewLicense() = runBlocking {
+        initializeFutureFloor()
+        val installed = signed(sequence = 1)
+        install(installed)
+        time.wall = CORRECTED_NOW
+        persistence.mac = "tampered"
+        val oldEnvelope = installedEnvelope()
+
+        assertEquals(LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID),
+            manager().import(json.encodeToString(signed(sequence = 2))))
+        assertEquals(oldEnvelope, installedEnvelope())
+        assertEquals(LicenseState.LOCAL_SECURITY_STATE_INVALID, manager().evaluateCurrentLicense().state)
+    }
+
+    @Test fun staleCandidateCannotRecoverOrMutateState() = runBlocking {
+        initializeFutureFloor()
+        trustedTime.acceptLicense(time.wall, 3)
+        val installed = signed(sequence = 3)
+        install(installed)
+        time.wall = CORRECTED_NOW
+        val oldState = trustedTime.securityState()
+        val oldEnvelope = installedEnvelope()
+
+        assertEquals(LicenseImportResult.Stale, manager().import(json.encodeToString(signed(sequence = 2))))
+        assertEquals(oldState, trustedTime.securityState())
+        assertEquals(oldEnvelope, installedEnvelope())
+    }
+
     private fun initializeFutureFloor() {
         assertNull(trustedTime.observe().error)
         trustedTime.acceptLicense(time.wall, 1)
     }
+
+    private fun resetFixture() {
+        clearInstalledLicense()
+        persistence.payload = null
+        persistence.mac = null
+        authenticator.exists = false
+        time.wall = Instant.parse("2030-01-01T00:00:00Z")
+        time.elapsed += 1_000
+        initializeFutureFloor()
+    }
+
+    private fun installedEnvelope() = context.getSharedPreferences("installed_license_v1", Context.MODE_PRIVATE)
+        .getString("envelope", null)
 
     private fun manager() = LicenseManager(
         context = context,
@@ -118,18 +208,28 @@ class LicenseManagerRecoveryTest {
         json = json
     )
 
-    private fun signed(sequence: Long, plan: String = "PILOT"): SignedLicenseV1 {
+    private fun signed(
+        sequence: Long,
+        plan: String = "PILOT",
+        productCode: String = LICENSE_PRODUCT_CODE,
+        restaurantId: String = RESTAURANT_ID,
+        terminalId: String = TERMINAL_ID,
+        deviceKeyId: String = identityProvider.get().deviceKeyId,
+        issuedAt: String = "2026-08-19T23:59:00Z",
+        expiresAt: String = "2026-09-20T00:00:00Z",
+        graceUntil: String = "2026-09-27T00:00:00Z"
+    ): SignedLicenseV1 {
         val payload = LicensePayloadV1(
-            productCode = LICENSE_PRODUCT_CODE,
+            productCode = productCode,
             licenseId = "license-$sequence-$plan",
             licenseSequence = sequence,
-            restaurantId = RESTAURANT_ID,
-            terminalId = TERMINAL_ID,
-            deviceKeyId = identityProvider.get().deviceKeyId,
+            restaurantId = restaurantId,
+            terminalId = terminalId,
+            deviceKeyId = deviceKeyId,
             planCode = plan,
-            issuedAtUtc = "2026-08-19T23:59:00Z",
-            expiresAtUtc = "2026-09-20T00:00:00Z",
-            graceUntilUtc = "2026-09-27T00:00:00Z"
+            issuedAtUtc = issuedAt,
+            expiresAtUtc = expiresAt,
+            graceUntilUtc = graceUntil
         )
         val signature = Signature.getInstance("SHA256withECDSA").run {
             initSign(authority.private)

@@ -215,6 +215,7 @@
     <string name="selling_disabled">Las ventas están deshabilitadas hasta renovar la suscripción</string>
     <string name="device_time_changed">Parece que se cambió la fecha/hora del dispositivo</string>
     <string name="device_time_correction_required">Debe corregir la fecha/hora del dispositivo antes de continuar vendiendo.</string>
+    <string name="license_security_verification_failed">No se pudo verificar la seguridad de la licencia. Las ventas están deshabilitadas.</string>
     <string name="unable_to_verify_license">No se pudo verificar la licencia</string>
     <string name="license_imported_successfully">Licencia importada correctamente</string>
     <string name="license_wrong_terminal">Esta licencia pertenece a otra terminal</string>

@@ -1,5 +1,8 @@
 package com.venkoi.terminal.ui
 
+import androidx.annotation.StringRes
+import com.venkoi.terminal.R
+import com.venkoi.terminal.licensing.LicenseState
 import com.venkoi.terminal.licensing.SellingAuthorizationResult
 import com.venkoi.terminal.licensing.SellingNotAuthorizedException
 import kotlinx.coroutines.CancellationException
@@ -10,6 +13,20 @@ sealed interface OrderActionFeedback {
     ) : OrderActionFeedback
 
     data object OperationFailed : OrderActionFeedback
+}
+
+@StringRes
+internal fun sellingDenialMessage(reason: SellingAuthorizationResult): Int = when (reason) {
+    SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK -> R.string.device_time_correction_required
+    SellingAuthorizationResult.DENIED_EXPIRED -> R.string.selling_disabled
+    else -> R.string.license_security_verification_failed
+}
+
+@StringRes
+internal fun restrictedBannerMessage(state: LicenseState): Int = when (state) {
+    LicenseState.CLOCK_ROLLBACK_DETECTED -> R.string.device_time_correction_required
+    LicenseState.EXPIRED -> R.string.selling_disabled
+    else -> R.string.license_security_verification_failed
 }
 
 internal sealed interface SellingActionResult<out T> {

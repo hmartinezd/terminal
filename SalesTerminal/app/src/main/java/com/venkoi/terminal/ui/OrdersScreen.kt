@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
@@ -35,8 +36,6 @@ import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.PricingMode
 import com.venkoi.terminal.domain.repository.SaleCompletionResult
-import com.venkoi.terminal.licensing.SellingAuthorizationResult
-import com.venkoi.terminal.licensing.LicenseState
 import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.components.MenuProductCard
 import com.venkoi.terminal.ui.theme.CategoryPalette
@@ -64,25 +63,20 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
     val licenseSnapshot by viewModel.licenseSnapshot.collectAsState()
     val actionFeedback by viewModel.actionFeedback.collectAsState()
     val locale = LocalConfiguration.current.locales[0]
+    val resources = LocalContext.current.resources
     val categoryStyles = remember(categories) {
         CategoryPalette.resolve(categories.sortedWith(compareBy({ it.displayOrder }, { it.id })).map { it.id })
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val localizedCompletionSuccess = stringResource(R.string.orders_sale_completed)
-    val localizedSellingDisabled = stringResource(R.string.selling_disabled)
-    val localizedClockCorrection = stringResource(R.string.device_time_correction_required)
     val localizedOperationFailed = stringResource(R.string.error_order_action_failed)
 
     LaunchedEffect(actionFeedback) {
         val feedback = actionFeedback ?: return@LaunchedEffect
         val message = when (feedback) {
             is OrderActionFeedback.SellingNotAuthorized -> {
-                if (feedback.reason == SellingAuthorizationResult.DENIED_CLOCK_ROLLBACK) {
-                    localizedClockCorrection
-                } else {
-                    localizedSellingDisabled
-                }
+                resources.getString(sellingDenialMessage(feedback.reason))
             }
             OrderActionFeedback.OperationFailed -> localizedOperationFailed
         }
@@ -198,11 +192,7 @@ fun OrdersScreen(viewModel: OrdersViewModel = hiltViewModel()) {
         if (!sellingAllowed) {
             Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    stringResource(if (licenseSnapshot.state == LicenseState.CLOCK_ROLLBACK_DETECTED) {
-                        R.string.device_time_correction_required
-                    } else {
-                        R.string.selling_disabled
-                    }),
+                    stringResource(restrictedBannerMessage(licenseSnapshot.state)),
                     modifier = Modifier.padding(12.dp),
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
