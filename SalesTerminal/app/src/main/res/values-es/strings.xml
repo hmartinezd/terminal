@@ -65,8 +65,9 @@
     <string name="history_empty_state">No se encontró historial</string>
     <string name="history_select_sale">Seleccione una venta para ver los detalles</string>
     <string name="history_business_date">Fecha de negocio</string>
+    <string name="history_business_date_header">Fecha de negocio · %1$s</string>
     <string name="history_timestamp">Registro de tiempo</string>
-    <string name="history_sale_id">ID de venta</string>
+    <string name="history_sale_reference">Referencia</string>
     <string name="history_column_order">ORDEN</string>
     <string name="history_column_closed">CIERRE</string>
     <string name="history_column_amount">IMPORTE</string>

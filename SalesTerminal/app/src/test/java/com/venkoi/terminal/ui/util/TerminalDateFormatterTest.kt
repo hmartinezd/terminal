@@ -22,6 +22,13 @@ class TerminalDateFormatterTest {
     }
 
     @Test
+    fun `formats cross-day History dates in English and Spanish`() {
+        val historyDate = LocalDate.of(2026, 8, 19)
+        assertEquals("Aug 19, 2026", TerminalDateFormatter.formatDate(historyDate, Locale.ENGLISH))
+        assertEquals("19 ago 2026", TerminalDateFormatter.formatDate(historyDate, Locale.forLanguageTag("es")))
+    }
+
+    @Test
     fun `today decoration depends on supplied business date`() {
         assertEquals(
             "Jan 6, 2026 (Today)",

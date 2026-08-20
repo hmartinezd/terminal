@@ -54,7 +54,7 @@ fun HistoryDetailScreen(sale: Sale, timezone: ZoneId, locale: java.util.Locale, 
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
             InfoLabelValue(stringResource(R.string.history_business_date), sale.businessDate?.let { TerminalDateFormatter.formatDate(it, locale) } ?: stringResource(R.string.common_not_available))
-            InfoLabelValue(stringResource(R.string.history_sale_id), sale.saleId.value.takeLast(8).uppercase())
+            InfoLabelValue(stringResource(R.string.history_sale_reference), sale.saleId.value.takeLast(8).uppercase())
         }
         voidResult?.let { result ->
             if (result !is VoidResult.Success && result !is VoidResult.AlreadyVoided) Text(result.toLocalizedMessage(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
@@ -109,7 +109,7 @@ private fun HistoryLineHeader() {
         HeaderText(R.string.history_column_item, 2.6f)
         HeaderText(R.string.history_column_qty, .55f)
         HeaderText(R.string.history_column_mode, .9f)
-        HeaderText(R.string.totals_grand_total, 1f)
+        HeaderText(R.string.history_column_amount, 1f)
     }
     HorizontalDivider()
 }

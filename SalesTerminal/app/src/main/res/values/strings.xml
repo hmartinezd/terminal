@@ -65,8 +65,9 @@
     <string name="history_empty_state">No history found</string>
     <string name="history_select_sale">Select a sale to view details</string>
     <string name="history_business_date">Business Date</string>
+    <string name="history_business_date_header">Business Date · %1$s</string>
     <string name="history_timestamp">Timestamp</string>
-    <string name="history_sale_id">Sale ID</string>
+    <string name="history_sale_reference">Sale Ref</string>
     <string name="history_column_order">ORDER</string>
     <string name="history_column_closed">CLOSED</string>
     <string name="history_column_amount">AMOUNT</string>

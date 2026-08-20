@@ -26,6 +26,7 @@ import com.venkoi.terminal.ui.components.TerminalCard
 import com.venkoi.terminal.ui.theme.TerminalStatusCompleted
 import com.venkoi.terminal.ui.theme.TerminalStatusVoided
 import java.time.ZoneId
+import java.time.LocalDate
 import com.venkoi.terminal.ui.util.TerminalDateFormatter
 import com.venkoi.terminal.ui.print.SalePrintContentBuilder
 import com.venkoi.terminal.ui.print.TerminalPrintManager
@@ -72,15 +73,24 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                 ) {
-                    items(sales, key = { it.sale.saleId.value }) { item ->
-                        val isSelected = selectedSaleId == item.sale.saleId
-                        SaleHistoryItemCard(
-                            item = item,
-                            isSelected = isSelected,
-                            timezone = timezone,
-                            locale = locale,
-                            onClick = { viewModel.selectSale(item.sale.saleId) }
-                        )
+                    items(historyPresentationEntries(sales), key = { it.key }) { entry ->
+                        when (entry) {
+                            is HistoryPresentationEntry.BusinessDateHeader -> BusinessDateHeader(
+                                businessDate = entry.businessDate,
+                                locale = locale
+                            )
+                            is HistoryPresentationEntry.SaleRow -> {
+                                val item = entry.item
+                                val isSelected = selectedSaleId == item.sale.saleId
+                                SaleHistoryItemCard(
+                                    item = item,
+                                    isSelected = isSelected,
+                                    timezone = timezone,
+                                    locale = locale,
+                                    onClick = { viewModel.selectSale(item.sale.saleId) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -124,6 +134,54 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                     textAlign = TextAlign.Center
                 )
             }
+        }
+    }
+}
+
+internal sealed interface HistoryPresentationEntry {
+    val key: String
+
+    data class BusinessDateHeader(
+        val businessDate: LocalDate?,
+        private val sourceIndex: Int
+    ) : HistoryPresentationEntry {
+        override val key: String = "business-date-$sourceIndex"
+    }
+
+    data class SaleRow(val item: SaleWithTotal) : HistoryPresentationEntry {
+        override val key: String = "sale-${item.sale.saleId.value}"
+    }
+}
+
+internal fun historyPresentationEntries(sales: List<SaleWithTotal>): List<HistoryPresentationEntry> = buildList {
+    var previousBusinessDate: LocalDate? = null
+    var hasPreviousSale = false
+    sales.forEachIndexed { index, item ->
+        val businessDate = item.sale.businessDate
+        if (!hasPreviousSale || businessDate != previousBusinessDate) {
+            add(HistoryPresentationEntry.BusinessDateHeader(businessDate, index))
+        }
+        add(HistoryPresentationEntry.SaleRow(item))
+        previousBusinessDate = businessDate
+        hasPreviousSale = true
+    }
+}
+
+@Composable
+private fun BusinessDateHeader(businessDate: LocalDate?, locale: java.util.Locale) {
+    val formattedDate = businessDate?.let { TerminalDateFormatter.formatDate(it, locale) }
+        ?: stringResource(R.string.common_not_available)
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 32.dp)
+    ) {
+        Box(contentAlignment = Alignment.CenterStart, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+            Text(
+                text = stringResource(R.string.history_business_date_header, formattedDate),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
