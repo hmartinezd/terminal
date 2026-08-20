@@ -13,11 +13,14 @@ object TerminalDateFormatter {
 
     fun formatDateTime(instant: Instant, zoneId: ZoneId, locale: Locale): String {
         val zoned = instant.atZone(zoneId)
-        val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-            .withLocale(locale)
-            .format(zoned)
+        val time = formatTime(instant, zoneId, locale)
         return "${formatDate(zoned.toLocalDate(), locale)}, $time"
     }
+
+    fun formatTime(instant: Instant, zoneId: ZoneId, locale: Locale): String =
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+            .withLocale(locale)
+            .format(instant.atZone(zoneId))
 
     fun formatProtocolDateTime(value: String, zoneId: ZoneId, locale: Locale): String =
         runCatching { formatDateTime(Instant.parse(value), zoneId, locale) }

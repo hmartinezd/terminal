@@ -66,6 +66,14 @@
     <string name="history_select_sale">Seleccione una venta para ver los detalles</string>
     <string name="history_business_date">Fecha de negocio</string>
     <string name="history_timestamp">Registro de tiempo</string>
+    <string name="history_sale_id">ID de venta</string>
+    <string name="history_column_order">ORDEN</string>
+    <string name="history_column_closed">CIERRE</string>
+    <string name="history_column_amount">IMPORTE</string>
+    <string name="history_column_status">ESTADO</string>
+    <string name="history_column_item">ARTÍCULO</string>
+    <string name="history_column_qty">CANT.</string>
+    <string name="history_column_mode">MODO</string>
     <string name="history_void_message">La venta original permanecerá en el historial como ANULADA. Esta acción no se puede deshacer.</string>
 
     <!-- Settings Screen -->

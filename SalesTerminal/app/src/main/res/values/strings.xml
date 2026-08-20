@@ -66,6 +66,14 @@
     <string name="history_select_sale">Select a sale to view details</string>
     <string name="history_business_date">Business Date</string>
     <string name="history_timestamp">Timestamp</string>
+    <string name="history_sale_id">Sale ID</string>
+    <string name="history_column_order">ORDER</string>
+    <string name="history_column_closed">CLOSED</string>
+    <string name="history_column_amount">AMOUNT</string>
+    <string name="history_column_status">STATUS</string>
+    <string name="history_column_item">ITEM</string>
+    <string name="history_column_qty">QTY</string>
+    <string name="history_column_mode">MODE</string>
     <string name="history_void_message">The original sale will remain in History as VOIDED. This action cannot be undone.</string>
 
     <!-- Settings Screen -->
