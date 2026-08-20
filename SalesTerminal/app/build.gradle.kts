@@ -147,7 +147,7 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.venkoi:license-contract:1.0.0")
+    implementation(libs.license.contract)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)

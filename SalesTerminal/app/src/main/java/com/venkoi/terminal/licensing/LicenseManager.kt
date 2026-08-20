@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.Duration
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -55,6 +56,7 @@ class LicenseManager @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _snapshot = MutableStateFlow(LicenseSnapshot(LicenseState.NOT_ACTIVATED))
     private val evaluationMutex = Mutex()
+    private val importMutex = Mutex()
     val snapshot: StateFlow<LicenseSnapshot> = _snapshot
     val sellingAllowed: StateFlow<Boolean> = _snapshot.map {
         runtimePolicy.developerAuthorization || LicensePolicy.sellingAuthorization(it.state) in
@@ -109,17 +111,22 @@ class LicenseManager @Inject constructor(
         )
     }
 
-    suspend fun import(raw: String): LicenseImportResult {
+    suspend fun import(raw: String): LicenseImportResult = importMutex.withLock {
         val candidate = runCatching { json.decodeFromString<SignedLicenseV1>(raw) }.getOrNull()
             ?: return LicenseImportResult.Malformed
         val terminal = terminalRepository.getConfiguration() ?: return LicenseImportResult.Malformed
         val restaurant = menuRepository.getRestaurantConfiguration() ?: return LicenseImportResult.Malformed
+        val wallNow = clock.now()
+        val timeObservation = trustedTime.observe(wallNow)
+        val recoveringClock = timeObservation.error == LicenseState.CLOCK_ROLLBACK_DETECTED
         val evaluation = EvaluateLicense.evaluate(
             candidate, verifier.verify(candidate), restaurant.restaurantId, terminal.terminalId.value,
-            deviceIdentity.deviceKeyId, trustedTime.observe(clock.now()).now,
+            deviceIdentity.deviceKeyId, if (recoveringClock) wallNow else timeObservation.now,
             appIntegrityValid = true // import validates license identity; runtime integrity is evaluated separately
         )
-        if (evaluation.state !in setOf(LicenseState.VALID, LicenseState.EXPIRING_SOON, LicenseState.GRACE_PERIOD, LicenseState.EXPIRED)) {
+        val normallyImportable = setOf(LicenseState.VALID, LicenseState.EXPIRING_SOON, LicenseState.GRACE_PERIOD, LicenseState.EXPIRED)
+        val recoveryCapable = setOf(LicenseState.VALID, LicenseState.EXPIRING_SOON, LicenseState.GRACE_PERIOD)
+        if (evaluation.state !in if (recoveringClock) recoveryCapable else normallyImportable) {
             return LicenseImportResult.Rejected(evaluation.state)
         }
         if (trustedTime.securityStateError() != null) {
@@ -136,10 +143,28 @@ class LicenseManager @Inject constructor(
                 return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
             LicenseImportDecision.ACCEPT -> Unit
         }
+        if (recoveringClock && wallNow.plus(Duration.ofMinutes(5)).isBefore(candidate.payload.issuedAt())) {
+            return LicenseImportResult.Rejected(LicenseState.CLOCK_ROLLBACK_DETECTED)
+        }
+        val previousEnvelope = preferences.getString("envelope", null)
+        val previousImportedAt = preferences.getLong("imported_at", Long.MIN_VALUE)
         val stored = preferences.edit().putString("envelope", json.encodeToString(candidate))
-            .putLong("imported_at", clock.now().toEpochMilli()).commit()
+            .putLong("imported_at", wallNow.toEpochMilli()).commit()
         if (!stored) return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
-        trustedTime.acceptLicense(candidate.payload.issuedAt(), candidate.payload.licenseSequence)
+        val timeAccepted = if (recoveringClock) {
+            trustedTime.reanchorAfterAuthorizedClockCorrection(
+                wallNow, candidate.payload.issuedAt(), candidate.payload.licenseSequence
+            )
+        } else runCatching {
+            trustedTime.acceptLicense(candidate.payload.issuedAt(), candidate.payload.licenseSequence)
+        }.isSuccess
+        if (!timeAccepted) {
+            preferences.edit().apply {
+                if (previousEnvelope == null) remove("envelope") else putString("envelope", previousEnvelope)
+                if (previousImportedAt == Long.MIN_VALUE) remove("imported_at") else putLong("imported_at", previousImportedAt)
+            }.commit()
+            return LicenseImportResult.Rejected(LicenseState.LOCAL_SECURITY_STATE_INVALID)
+        }
         refresh()
         return LicenseImportResult.Accepted
     }

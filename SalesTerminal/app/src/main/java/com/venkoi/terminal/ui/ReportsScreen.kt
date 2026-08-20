@@ -88,7 +88,7 @@ private fun ReportsHeader(selectedDate: LocalDate?, currentBusinessDate: LocalDa
             Text(selectedDate?.let { TerminalDateFormatter.formatDateWithToday(it, currentBusinessDate ?: LocalDate.MIN, locale, stringResource(R.string.reports_today)) }.orEmpty(),
                 Modifier.width(210.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             IconButton(onClick = onNextDay) { Icon(Icons.Default.ChevronRight, stringResource(R.string.reports_next_day)) }
-            OutlinedButton(onClick = onToday, enabled = selectedDate != currentBusinessDate) { Text(stringResource(R.string.reports_today)) }
+            OutlinedButton(onClick = onToday) { Text(stringResource(R.string.reports_today)) }
         }
         Button(onClick = onPrint, enabled = printEnabled) {
             Icon(Icons.Default.Print, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.reports_print_pdf))

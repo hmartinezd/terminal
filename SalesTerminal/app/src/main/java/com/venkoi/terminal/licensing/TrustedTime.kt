@@ -96,8 +96,8 @@ class TrustedTimeStore private constructor(
     ) : this(persistence, authenticator, wallTimeSource, elapsedRealtimeSource)
 
     private val tolerance = Duration.ofMinutes(5)
-    private val sessionWall = wallTimeSource.now()
-    private val sessionElapsed = elapsedRealtimeSource.nowMillis()
+    private var sessionWall = wallTimeSource.now()
+    private var sessionElapsed = elapsedRealtimeSource.nowMillis()
 
     @Synchronized
     fun observe(wallNow: Instant = wallTimeSource.now(), elapsedNow: Long = elapsedRealtimeSource.nowMillis()): TrustedTimeResult {
@@ -126,6 +126,38 @@ class TrustedTimeStore private constructor(
             lastTrustedUtc = maxOf(current?.lastTrustedUtc ?: issuedAt, issuedAt),
             highestAcceptedLicenseSequence = maxOf(current?.highestAcceptedLicenseSequence ?: 0, sequence)
         ), read == Read.Fresh)
+    }
+
+    /** The sole operation allowed to lower the authenticated time floor. */
+    @Synchronized
+    fun reanchorAfterAuthorizedClockCorrection(
+        correctedWallNow: Instant,
+        candidateIssuedAt: Instant,
+        candidateSequence: Long,
+        elapsedNow: Long = elapsedRealtimeSource.nowMillis()
+    ): Boolean {
+        val read = readAuthenticated()
+        val current = (read as? Read.Valid)?.state ?: return false
+        val sessionFloor = sessionWall.plusMillis((elapsedNow - sessionElapsed).coerceAtLeast(0))
+        val trustedFloor = maxOf(current.lastTrustedUtc, sessionFloor)
+        if (!correctedWallNow.plus(tolerance).isBefore(trustedFloor)) return false
+        if (candidateSequence <= current.highestAcceptedLicenseSequence) return false
+        if (correctedWallNow.plus(tolerance).isBefore(candidateIssuedAt)) return false
+
+        val recovered = LicenseSecurityStateV1(
+            lastTrustedUtc = maxOf(correctedWallNow, candidateIssuedAt),
+            highestAcceptedLicenseSequence = candidateSequence
+        )
+        return try {
+            persist(recovered, initialize = false)
+            sessionWall = recovered.lastTrustedUtc
+            sessionElapsed = elapsedNow
+            true
+        } catch (_: Throwable) {
+            // Best-effort rollback if a persistence implementation failed after a partial write.
+            runCatching { persist(current, initialize = false) }
+            false
+        }
     }
 
     @Synchronized

@@ -95,6 +95,39 @@ class TrustedTimeStoreTest {
         assertEquals(true, auth.exists)
     }
 
+    @Test fun `authorized clock correction reanchors downward and survives restart`() {
+        val time = MutableTime(Instant.parse("2030-01-01T00:00:00Z"), 1_000)
+        val (_, persistence, auth) = store(time)
+        val original = TrustedTimeStore(persistence, auth, time, time)
+        original.observe(); original.acceptLicense(time.wall, 1)
+        time.wall = Instant.parse("2026-08-20T00:00:00Z")
+        assertEquals(LicenseState.CLOCK_ROLLBACK_DETECTED, original.observe().error)
+
+        assertEquals(true, original.reanchorAfterAuthorizedClockCorrection(
+            time.wall, Instant.parse("2026-08-19T23:59:00Z"), 2, time.elapsed))
+        assertEquals(time.wall, original.securityState()!!.lastTrustedUtc)
+        assertEquals(2, original.securityState()!!.highestAcceptedLicenseSequence)
+
+        val restarted = TrustedTimeStore(persistence, auth, time, time)
+        assertNull(restarted.observe().error)
+        time.wall = Instant.parse("2026-08-19T23:00:00Z")
+        assertEquals(LicenseState.CLOCK_ROLLBACK_DETECTED, restarted.observe().error)
+    }
+
+    @Test fun `clock correction rejects replay future issuance and invalid local state`() {
+        val time = MutableTime(Instant.parse("2030-01-01T00:00:00Z"), 1_000)
+        val (store, persistence) = store(time)
+        store.observe(); store.acceptLicense(time.wall, 1)
+        time.wall = Instant.parse("2026-08-20T00:00:00Z")
+        val oldFloor = store.securityState()!!.lastTrustedUtc
+        assertEquals(false, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall, 1))
+        assertEquals(false, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall.plusSeconds(301), 2))
+        assertEquals(oldFloor, store.securityState()!!.lastTrustedUtc)
+        persistence.storedPayload = persistence.storedPayload!!.replace("\n1", "\n2")
+        assertEquals(false, store.reanchorAfterAuthorizedClockCorrection(time.wall, time.wall, 2))
+        assertEquals(LicenseState.LOCAL_SECURITY_STATE_INVALID, store.securityStateError())
+    }
+
     @Test fun `live selling guard does not use cached valid snapshot`() {
         runBlocking {
             var now = Instant.parse("2026-01-01T09:00:00Z")
