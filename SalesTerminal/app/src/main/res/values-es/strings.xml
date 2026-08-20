@@ -70,27 +70,28 @@
 
     <!-- Settings Screen -->
     <string name="settings_title">Configuración</string>
-    <string name="settings_section_terminal">TERMINAL</string>
+    <string name="settings_section_subscription">Suscripción</string>
+    <string name="settings_section_terminal">Terminal</string>
     <string name="settings_terminal_name">Nombre de terminal</string>
     <string name="settings_terminal_id">ID de terminal</string>
-    <string name="settings_section_restaurant">RESTAURANTE</string>
+    <string name="settings_section_restaurant">Restaurante</string>
     <string name="settings_restaurant_name">Nombre</string>
     <string name="settings_restaurant_id">ID de restaurante</string>
     <string name="settings_currency">Moneda</string>
     <string name="settings_timezone">Zona horaria</string>
     <string name="settings_business_cutoff">Cierre de día de negocio</string>
-    <string name="settings_section_menu">MENÚ</string>
+    <string name="settings_section_menu">Menú</string>
     <string name="settings_menu_id">ID de menú</string>
     <string name="settings_publication_revision">Revisión de publicación</string>
-    <string name="settings_published_at">Publicado el (UTC)</string>
+    <string name="settings_published_at">Publicado el</string>
     <string name="settings_imported_at">Importado el</string>
     <string name="settings_import_new_menu">Importar nuevo menú</string>
     <string name="settings_import_success">Menú importado con éxito.</string>
     <string name="settings_import_error_title">Error de importación</string>
     <string name="settings_import_failed">No se pudo importar el menú. Revise el archivo e inténtelo de nuevo.</string>
-    <string name="settings_section_app">INFORMACIÓN DE LA APLICACIÓN</string>
+    <string name="settings_section_app">Información de la aplicación</string>
     <string name="settings_app_version">Versión de la aplicación</string>
-    <string name="settings_section_sales_export">EXPORTACIÓN DE VENTAS</string>
+    <string name="settings_section_sales_export">Exportación de ventas</string>
     <string name="settings_pending_changes">Ventas sin exportar</string>
     <plurals name="settings_unexported_count"><item quantity="one">%d venta sin exportar</item><item quantity="other">%d ventas sin exportar</item></plurals>
     <string name="settings_last_successful_export">Última exportación correcta</string>
@@ -116,7 +117,7 @@
     <string name="settings_share_failed">No se pudo compartir la exportación de ventas. Inténtelo de nuevo.</string>
     <plurals name="settings_export_success"><item quantity="one">Se exportó %d venta.</item><item quantity="other">Se exportaron %d ventas.</item></plurals>
 
-    <string name="settings_section_language">IDIOMA</string>
+    <string name="settings_section_language">Idioma</string>
     <string name="settings_language">Idioma</string>
     <string name="settings_language_default">Predeterminado del sistema</string>
     <string name="settings_language_en">English</string>
