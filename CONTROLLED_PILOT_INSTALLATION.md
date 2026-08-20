@@ -21,7 +21,7 @@ Perform this on the authorized administrator/release machines. Secret paths must
 3. Generate `ActivationRequestV1` and transfer it to the administrator.
 4. Inspect the exact request. Issue sequence `1`, a deliberately short PILOT lease, and an explicit grace deadline using the production authority. Record `expiresAtUtc` and `graceUntilUtc` in the secure operational record. Every terminal receives its own restaurant/terminal/device-bound lease.
 5. Return only the signed license and import it. Confirm **Active** and that offline selling is enabled.
-6. Create and complete a small order. Verify History, Reports, Android print entry, Save export, Share export (`content://`, `application/json`, standard chooser), restart, and English ↔ Español once.
+6. Open the application drawer and verify the compact tablet baseline: horizontal Open Orders with New Order first, dense Current Order, grouped History with persistent detail, compact Reports, and Settings master/detail. Create and complete a small order. Verify History, Reports, Android print entry, Save export, Share export (`content://`, `application/json`, standard chooser), restart, and English ↔ Español once.
 7. Optionally discard/reset test operational data before restaurant use.
 
 ## Upgrade and data-preservation test
@@ -29,7 +29,23 @@ Perform this on the authorized administrator/release machines. Secret paths must
 1. Keep build N installed with terminal identity, restaurant/menu configuration, an active license, an OPEN order, History, and export bookkeeping.
 2. Build N+1 with the same application ID (`com.venkoi.terminal`), same Android signing key, and a higher `versionCode`; no feature change is required.
 3. Install it as an update without clearing application data. Confirm Android accepts it and every item above remains.
-4. From pilot version `1.0.0-pilot.1` / version code `1` / Room schema `4` onward, destructive release migration fallback is disabled. Add and test explicit Room migrations for future schema changes.
+4. Pilot version `1.0.0-pilot.1` / version code `1` / Room schema `5` is the **first distributed production baseline**. No distributed schema-4 production origin exists, so no migration 4 → 5 is required for this baseline. From the first distributed schema-5 build onward, every schema change requires an explicit, tested, non-destructive Room migration. Destructive release migration fallback remains disabled.
+5. A normal signed application update preserves the installed license and device identity when application data and the Android Keystore identity remain intact. Never clear app data, uninstall the app, or replace the device as part of a routine update unless reprovisioning and relicensing are intended.
+
+## Restricted operation and recovery guidance
+
+An `EXPIRED` or `CLOCK_ROLLBACK_DETECTED` terminal remains available for selecting/viewing and cancelling existing OPEN orders, History and policy-permitted historical VOID, Reports, Print/Save PDF, sales export, Settings/language, activation-request generation, and license import/renewal. New Order, order-label edits, item/quantity/pricing/removal mutations, and Complete Sale are blocked.
+
+Correcting Android date/time alone does not clear `CLOCK_ROLLBACK_DETECTED`. Use this procedure:
+
+1. Correct the Android device date/time.
+2. Open Settings and generate an Activation Request if the administrator needs one.
+3. Have the administrator issue a newly signed, device-bound license with a higher sequence.
+4. Import that license. The application validates it against the corrected wall time and securely re-anchors trusted time; normal monotonic anti-rollback operation then resumes.
+
+If persistence of that signed license succeeded but trusted-time re-anchoring was interrupted, re-importing the exact same signed license may safely finish recovery when it still matches the installed verified license and passes recovery validation. Do not demand another higher sequence solely because of this interruption.
+
+`LOCAL_SECURITY_STATE_INVALID` is a separate fail-closed security-state failure. It blocks selling, is not ordinary expiration, and is not repaired by changing the device clock. Do not attempt an unsupported manual reset or bypass; escalate through the controlled support/reprovisioning process.
 
 ## Restaurant package
 

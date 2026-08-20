@@ -431,13 +431,11 @@ private fun OpenOrdersStrip(
 
     LaunchedEffect(selectedOrderId, openOrders.size) {
         if (selectedIndex >= 0) {
-            // New Order occupies index zero, so an order's strip index is offset by one.
-            val targetIndex = selectedIndex + 1
             val visibleIndices = snapshotFlow {
                 listState.layoutInfo.visibleItemsInfo.map { it.index }
             }.first { it.isNotEmpty() }
-            if (targetIndex !in visibleIndices) {
-                listState.animateScrollToItem(targetIndex)
+            if (selectedIndex !in visibleIndices) {
+                listState.animateScrollToItem(selectedIndex)
             }
         }
     }
@@ -446,52 +444,55 @@ private fun OpenOrdersStrip(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth().height(80.dp)
     ) {
-        LazyRow(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            item(key = "new-order") {
-                Button(
-                    onClick = onNewOrder,
-                    enabled = newOrderEnabled,
-                    modifier = Modifier.width(144.dp).fillMaxHeight(),
-                    shape = MaterialTheme.shapes.medium,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.orders_new_order),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+            Button(
+                onClick = onNewOrder,
+                enabled = newOrderEnabled,
+                modifier = Modifier.width(144.dp).fillMaxHeight(),
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.orders_new_order),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            items(openOrders, key = { it.saleId.value }) { order ->
-                val isSelected = selectedOrderId == order.saleId
-                TerminalCard(
-                    onClick = { onSelectOrder(order.saleId) },
-                    selected = isSelected,
-                    modifier = Modifier.width(148.dp).fillMaxHeight()
-                ) {
-                    val label = order.tableLabel?.ifBlank { null }
-                        ?: order.saleId.value.takeLast(6).uppercase()
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (!order.tableLabel.isNullOrBlank()) {
+            Spacer(Modifier.width(8.dp))
+            LazyRow(
+                state = listState,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(openOrders, key = { it.saleId.value }) { order ->
+                    val isSelected = selectedOrderId == order.saleId
+                    TerminalCard(
+                        onClick = { onSelectOrder(order.saleId) },
+                        selected = isSelected,
+                        modifier = Modifier.width(148.dp).fillMaxHeight()
+                    ) {
+                        val label = order.tableLabel?.ifBlank { null }
+                            ?: order.saleId.value.takeLast(6).uppercase()
                         Text(
-                            text = "#${order.saleId.value.takeLast(6).uppercase()}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            text = label,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        if (!order.tableLabel.isNullOrBlank()) {
+                            Text(
+                                text = "#${order.saleId.value.takeLast(6).uppercase()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }

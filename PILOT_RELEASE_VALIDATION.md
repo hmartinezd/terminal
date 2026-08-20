@@ -1,7 +1,7 @@
-# M11C Final Device-Binding Validation / Pilot Readiness Closure
+# Historical M11C Device-Binding Validation / Pilot Readiness Evidence
 
 Date: 2026-08-16 (America/New_York)  
-Overall status: **READY FOR CONTROLLED PILOT** — all automated gates and executed tablet-first critical runtime paths passed, including real rejection of Device A's unchanged signed license on an independently created Device B. No BLOCKER or MAJOR product defect is known.
+Historical status at execution: **READY FOR CONTROLLED PILOT** — all then-current automated gates and executed tablet-first critical runtime paths passed, including real rejection of Device A's unchanged signed license on an independently created Device B. This section records the application and security behavior that existed on 2026-08-16; it is not evidence that the later tablet redesign or authenticated clock-recovery closeout had already been exercised.
 Validation build: debug with `ENFORCE_LICENSE_IN_DEBUG=true` and a temporary DEVELOPMENT P-256 authority. No production credentials were created.
 
 ## Automated verification
@@ -17,7 +17,7 @@ The enforced-license instrumentation APK was also run. Seven repository integrat
 ## Runtime target and evidence
 
 - PASS — Pixel Tablet AVD, 2560×1600 landscape: clean install, cold start, menu setup, navigation rail, three-panel Orders layout, Subscription UI, disabled selling before activation, activation, restart, one completed sale, History, renewal, and stale rejection.
-- PASS — Clock rollback fail-closed behavior: a stale AVD snapshot placed the guest clock eight minutes behind the issuer; the accepted license remained unauthorized with a localized clock warning. A no-snapshot cold boot synchronized guest/host time and the same persisted license enabled selling.
+- HISTORICAL PASS — Clock rollback fail-closed behavior at M11C: a stale AVD snapshot placed the guest clock eight minutes behind the issuer; the accepted license remained unauthorized with a localized clock warning. The then-observed cold-boot recovery predates authenticated trusted-time recovery and is not current operational guidance. Current behavior requires corrected Android time plus a valid signed higher-sequence recovery license, as documented in the current addendum below.
 - PASS — representative 1280×800 effective landscape tablet: NavigationRail, Open Orders, dominant Menu, Current Order, product cards, totals, and completion action were all visible and usable without clipping. A preliminary 1280×800-pixel/320-dpi run was correctly discarded because it represented only 640×400 dp.
 - NOT RUN — portrait phone smoke. A personal Pixel 7 was connected, but the validation APK was not installed on that device and a phone AVD was not run.
 
@@ -99,7 +99,7 @@ The enforced-license instrumentation APK was also run. Seven repository integrat
 ### MINOR
 
 - The on-device instrumentation suite assumes the normal debug developer authorization; running that suite unchanged in an enforced-license APK produces seven expected authorization failures. A dedicated licensed-test fixture would be needed if enforced instrumentation is made a formal gate.
-- The saved Medium Tablet quick-boot snapshot had a stale guest clock. Rollback protection correctly failed closed; cold boot without the snapshot synchronized time and restored authorization.
+- Historical M11C observation only: the saved Medium Tablet quick-boot snapshot had a stale guest clock and the then-current implementation recovered after a cold boot synchronized time. Authenticated trusted-time behavior supersedes this; cold boot or simple clock correction is not sufficient current recovery.
 - Portrait phone optimization, dedicated long-text data, and large-volume soak matrices remain future hardening; no failure was observed in these secondary areas.
 - Production authority creation and Android production signing remain separate operational release tasks: **NOT YET CREATED / CONFIGURED** and **NOT YET CONFIGURED**, respectively.
 
@@ -150,3 +150,48 @@ The latest debug APK was exercised on the Pixel Tablet at 2560×1600/320 dpi and
 | Spanish UI | PASS | Runtime chooser showed `Elegir método de exportación`, `Guardar archivo`, and `Compartir`; no English leftover was visible in the exercised flow. |
 
 Save and Share both consumed the same `PreparedSalesExport.json`. SalesBatchV1 and receiver-side code/schema were unchanged. Sharing remained private-cache `FileProvider` transport with an unexported provider, `content://` URI, JSON MIME type, and temporary read permission.
+
+## Current R1 post-redesign and security-closeout addendum
+
+Date: 2026-08-20 (America/New_York)
+
+This addendum describes the candidate being prepared for the final production artifact ceremony. Historical M11/M11B/M11C runtime statements above remain historical and must not be read as post-redesign execution evidence.
+
+### Current controlled-pilot baseline
+
+- Application identity: `com.venkoi.terminal`, version `1.0.0-pilot.1`, version code `1`.
+- Database: Room schema `5`, the intended first distributed production baseline. No distributed schema-4 upgrade origin exists. All later schema changes require explicit, tested, non-destructive migrations; release has no destructive fallback.
+- Orders: overlay application drawer, compact top bar, horizontal stable OPEN-order strip with New Order first, approximately 400dp Current Order, compact line controls, header Cancel Order, and fixed totals/completion footer.
+- History: approximately 400dp dense master pane, Business Date grouping, time-only transaction rows, Order/Closed/Amount/Status columns, persistent sale detail, dense ITEM/QTY/MODE/AMOUNT ledger, Sale Ref, Print/Save PDF, and historical VOID.
+- Reports: compact Business Date navigation with always-actionable Today/Hoy, Money/Products segmented selection, Net Sales/Cash/Transfer primary summary, compact audit metrics, and dense lazy Products table.
+- Settings: 260dp master/detail subsection pane for Language, Subscription, Sales Export, Restaurant, Terminal, Menu, and App Information.
+
+The architecture statements above were reconciled against current source. They do not manufacture new screenshot evidence. Earlier runtime evidence for compact Current Order and Save/Share remains recorded in its dated section; older NavigationRail, vertical Open Orders, card-layout, and scrolling-Settings observations describe only the historical build exercised at that time.
+
+### Current security runtime evidence
+
+The following suites executed on the Medium Tablet Android 15 AVD on 2026-08-20:
+
+| Gate | Result | Current evidence |
+|---|---|---|
+| `LicenseManagerRecoveryTest` | PASS — 7/7, 0 failed, 0 skipped | Authenticated trusted-time state; five-minute future-issued tolerance boundary; monotonic trusted time; signed downward re-anchor; interrupted recovery continuation using the exact installed verified payload; Duplicate after completed recovery; SequenceConflict; Stale; invalid signature/product/restaurant/terminal/device; expired recovery rejection; invalid authenticated local state; and preservation of installed envelope/trusted state on rejection. |
+| `SellingAuthorizationRepositoryIntegrationTest` | PASS — 3/3, 0 failed, 0 skipped | All seven repository mutations denied with unchanged persisted state under both EXPIRED and CLOCK_ROLLBACK_DETECTED; previously valid snapshot cannot authorize a later restricted mutation because `LicenseManager.requireSelling()` reevaluates current state; Cancel Order/discard and historical VOID remain allowed. |
+| Relevant Android regression | PASS — 12/12, 0 failed, 0 skipped | Sale lifecycle, completion concurrency, durable order/sale readback, report DAO, export DAO, and Android Keystore-backed device identity persistence. |
+
+The selling-denial matrix passed for `createSale`, `updateSaleLabel`, `addItem`, `updateLineQuantity`, `changeLinePricingMode`, `removeLine`, and `completeSale` in each restricted state. Clock-specific, expired, and generic security-state messages exist in both English and Spanish resources; fresh compilation and lint passed.
+
+Current clock recovery is fail-closed. Correcting Android time, restarting, or cold booting does not itself clear `CLOCK_ROLLBACK_DETECTED`. After correcting device time, the operator imports an administrator-issued, device-bound, higher-sequence signed license; validation then securely re-anchors authenticated trusted time. If license persistence completed but re-anchoring was interrupted, re-import of the exact same verified installed license may resume recovery when its sequence remains above the authenticated highest sequence and all validation still passes. Later rollback remains detectable through normal monotonic trusted-time operation.
+
+`LOCAL_SECURITY_STATE_INVALID` is separate from expiration and ordinary clock correction. It blocks selling, uses generic security-state guidance, and has no documented manual reset or bypass.
+
+### Fresh automated release-readiness verification
+
+| Component | Result |
+|---|---|
+| License Contract | PASS — clean build; 2/2 tests passed. |
+| License Admin | PASS — clean build; 9/9 tests passed. |
+| Sales Terminal | PASS — clean `assembleDebug`, all JVM tests, `lintDebug`, `compileDebugAndroidTestKotlin`, and R8-minified/resource-shrunk non-production `assembleRelease`. |
+| Product-source private-material guard | PASS — executed during Android builds. |
+| Release package controls | PASS — `/compatibility/**` exclusion remains configured; FileProvider JSON share infrastructure and immutable prepared-export reuse remain present. |
+
+Final APK filename/hash, signing-certificate hash, production authority fingerprint, build timestamp, and production configuration remain **PENDING** for the separate final production build/sign/verify/hash ceremony.

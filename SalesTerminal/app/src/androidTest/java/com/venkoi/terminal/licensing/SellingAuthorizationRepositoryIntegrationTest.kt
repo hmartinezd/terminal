@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.venkoi.terminal.core.Clock
 import com.venkoi.terminal.core.IdGenerator
+import com.venkoi.terminal.data.local.database.AppDatabase
 import com.venkoi.terminal.data.local.database.SaleDao
 import com.venkoi.terminal.data.local.repository.RoomSaleRepository
 import com.venkoi.terminal.domain.model.PricingMode
@@ -16,6 +17,7 @@ import com.venkoi.terminal.domain.repository.TerminalConfigurationRepository
 import com.venkoi.terminal.domain.repository.VoidResult
 import com.venkoi.terminal.domain.service.CompleteSale
 import com.venkoi.terminal.domain.service.MenuImportService
+import com.venkoi.terminal.domain.service.MenuImportStatus
 import com.venkoi.terminal.domain.service.VoidSale
 import com.venkoi.terminal.integration.menu.MenuPackageImportResult
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -46,6 +48,7 @@ import org.junit.runner.RunWith
 class SellingAuthorizationRepositoryIntegrationTest {
     @get:Rule val hiltRule = HiltAndroidRule(this)
     @Inject lateinit var setupRepository: SaleRepository
+    @Inject lateinit var database: AppDatabase
     @Inject lateinit var terminalRepository: TerminalConfigurationRepository
     @Inject lateinit var menuRepository: MenuRepository
     @Inject lateinit var saleDao: SaleDao
@@ -64,9 +67,9 @@ class SellingAuthorizationRepositoryIntegrationTest {
         hiltRule.inject()
         runBlocking {
             context.getSharedPreferences("installed_license_v1", Context.MODE_PRIVATE).edit().clear().commit()
-            saleDao.clearSaleLines(); saleDao.clearSales()
+            database.clearAllTables()
             val parsed = menuImport.parseAndValidate(MENU) as MenuPackageImportResult.Success
-            menuImport.provisionTerminal("T1", parsed)
+            assertEquals(MenuImportStatus.Success, menuImport.provisionTerminal("T1", parsed))
             configuredTerminalId = terminalRepository.getConfiguration()!!.terminalId.value
         }
     }
