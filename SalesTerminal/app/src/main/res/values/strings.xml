@@ -2,6 +2,8 @@
     <string name="app_name">Sales Terminal</string>
 
     <!-- Navigation -->
+    <string name="brand_venkoi">VENKOI</string>
+    <string name="brand_sales_terminal">Sales Terminal</string>
     <string name="nav_orders">Orders</string>
     <string name="nav_history">History</string>
     <string name="nav_reports">Reports</string>

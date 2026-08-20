@@ -14,8 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.venkoi.terminal.R
@@ -58,39 +60,83 @@ fun MainScreen() {
             ModalDrawerSheet(
                 drawerContainerColor = TerminalNavigation,
                 drawerContentColor = TerminalOnNavigation,
-                modifier = Modifier.width(280.dp)
+                modifier = Modifier.width(256.dp)
             ) {
-                Text(
-                    text = "VENKOI",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(start = 24.dp, top = 26.dp, end = 20.dp, bottom = 22.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.brand_venkoi),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = TerminalOnNavigation
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.brand_sales_terminal),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = TerminalOnNavigation.copy(alpha = 0.68f)
+                    )
+                }
                 screens.forEach { screen ->
                     val title = stringResource(screen.titleRes)
-                    NavigationDrawerItem(
-                        selected = currentScreen == screen,
-                        onClick = {
-                            destination = when (screen) {
-                                Screen.Orders -> MainDestination.ORDERS
-                                Screen.History -> MainDestination.HISTORY
-                                Screen.Reports -> MainDestination.REPORTS
-                                Screen.Settings -> MainDestination.SETTINGS
-                            }
-                            scope.launch { drawerState.close() }
-                        },
-                        icon = { Icon(screen.icon, contentDescription = title) },
-                        label = { Text(title) },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                            unselectedIconColor = TerminalOnNavigation,
-                            selectedTextColor = MaterialTheme.colorScheme.onPrimary,
-                        unselectedTextColor = TerminalOnNavigation,
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            unselectedContainerColor = TerminalNavigation
-                        ),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                    )
+                    val selected = currentScreen == screen
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 3.dp)
+                            .height(58.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                    ) {
+                        NavigationDrawerItem(
+                            selected = selected,
+                            onClick = {
+                                destination = when (screen) {
+                                    Screen.Orders -> MainDestination.ORDERS
+                                    Screen.History -> MainDestination.HISTORY
+                                    Screen.Reports -> MainDestination.REPORTS
+                                    Screen.Settings -> MainDestination.SETTINGS
+                                }
+                                scope.launch { drawerState.close() }
+                            },
+                            icon = {
+                                Icon(
+                                    screen.icon,
+                                    contentDescription = title,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedIconColor = TerminalOnNavigation,
+                                unselectedIconColor = TerminalOnNavigation.copy(alpha = 0.68f),
+                                selectedTextColor = TerminalOnNavigation,
+                                unselectedTextColor = TerminalOnNavigation.copy(alpha = 0.68f),
+                                selectedContainerColor = TerminalOnNavigation.copy(alpha = 0.12f),
+                                unselectedContainerColor = TerminalNavigation
+                            ),
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        if (selected) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .width(4.dp)
+                                    .height(32.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+                        }
+                    }
                 }
             }
         }
