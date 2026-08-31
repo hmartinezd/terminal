@@ -133,6 +133,12 @@ android {
             excludes += "/compatibility/**"
         }
     }
+
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDirs(files("$projectDir/schemas"))
+        }
+    }
 }
 
 ksp {
@@ -168,6 +174,7 @@ dependencies {
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    androidTestImplementation(libs.androidx.room.testing)
     ksp(libs.androidx.room.compiler)
 
     // Hilt

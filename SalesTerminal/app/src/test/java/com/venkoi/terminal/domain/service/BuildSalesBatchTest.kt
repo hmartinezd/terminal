@@ -10,8 +10,6 @@ import com.venkoi.terminal.domain.model.Sale
 import com.venkoi.terminal.domain.model.SaleLine
 import com.venkoi.terminal.domain.model.SaleStatus
 import com.venkoi.terminal.domain.model.SaleWithLines
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,17 +23,19 @@ class BuildSalesBatchTest {
     @Test fun `maps persisted void snapshot exactly and uses deterministic line order`() {
         val sale = snapshot(SaleStatus.VOIDED, 2)
         val batch = builder("restaurant", "terminal", "batch", Instant.parse("2026-08-16T02:45:00Z"), listOf(sale))
-        val dto = batch.sales.single()
-        assertEquals("VOIDED", dto.status.name)
-        assertEquals(2, dto.revision)
-        assertEquals("Patio", dto.tableLabel)
-        assertEquals("USD", dto.currencyCodeSnapshot)
-        assertEquals(3, dto.currencyScaleSnapshot)
-        assertEquals(listOf("a", "z"), dto.lines.map { it.lineId })
+        val dto = batch.transactions.single()
+        assertEquals("VOIDED", dto.status)
+        assertEquals("menu", batch.menuId)
+        assertEquals(3L, batch.publicationRevision)
+        assertEquals("USD", batch.currency)
+        assertEquals(listOf("a", "z"), dto.lines.map { it.saleLineId })
         assertEquals("0.333", dto.lines.first().quantity)
-        assertEquals(Money("1000000.125"), dto.lines.first().lineTotal)
-        val encoded = Json.encodeToString(batch)
-        assertTrue(encoded.contains("1000000.125"))
+        assertEquals("10.00", dto.lines.first().unitPrice)
+        assertEquals("3.33000", dto.lines.first().gross)
+        assertEquals("0.33000", dto.lines.first().discount)
+        assertEquals("3.000", dto.lines.first().net)
+        val encoded = com.venkoi.terminal.integration.sales.SalesExportJsonCodec.encode(batch)
+        assertTrue(encoded.contains("3.000"))
         assertTrue(!encoded.contains("E+"))
     }
 
@@ -44,32 +44,28 @@ class BuildSalesBatchTest {
         builder("restaurant", "terminal", "batch", Instant.EPOCH, listOf(snapshot(SaleStatus.COMPLETED, 2)))
     }
 
+    @Test(expected = IllegalArgumentException::class)
+    fun `rejects legacy sale without immutable menu provenance`() {
+        val legacy = snapshot(SaleStatus.COMPLETED, 1).copy(sale = snapshot(SaleStatus.COMPLETED, 1).sale.copy(menuId = null, publicationRevision = null))
+        builder("restaurant", "terminal", "batch", Instant.EPOCH, listOf(legacy))
+    }
+
     @Test fun `maps completed revision one persisted fields exactly`() {
         val source = snapshot(SaleStatus.COMPLETED, 1)
         val dto = builder(
             "restaurant", "terminal", "batch", Instant.parse("2026-08-16T03:00:00Z"), listOf(source)
-        ).sales.single()
+        ).transactions.single()
 
-        assertEquals("sale", dto.saleId)
-        assertEquals(1, dto.revision)
-        assertEquals("COMPLETED", dto.status.name)
-        assertEquals("Patio", dto.tableLabel)
-        assertEquals("USD", dto.currencyCodeSnapshot)
-        assertEquals(3, dto.currencyScaleSnapshot)
+        assertEquals("sale", dto.transactionId)
+        assertEquals("COMPLETED", dto.status)
         source.lines.sortedBy { it.lineId.value }.zip(dto.lines).forEach { (persisted, exported) ->
-            assertEquals(persisted.lineId.value, exported.lineId)
-            assertEquals(persisted.menuItemId, exported.menuItemId)
-            assertEquals(persisted.commercialRevision, exported.commercialRevision)
-            assertEquals(persisted.consumptionRevision, exported.consumptionRevision)
-            assertEquals(persisted.itemNameSnapshot, exported.itemNameSnapshot)
+            assertEquals(persisted.lineId.value, exported.saleLineId)
+            assertEquals(persisted.menuItemId, exported.sellableItemId)
+            assertEquals(persisted.commercialRevision.toLong(), exported.commercialRevision)
+            assertEquals(persisted.consumptionRevision.toLong(), exported.consumptionRevision)
+            assertEquals(persisted.itemNameSnapshot, exported.displayNameSnapshot)
             assertEquals(persisted.quantity.toPlainString(), exported.quantity)
-            assertEquals(persisted.regularUnitPriceSnapshot, exported.regularUnitPriceSnapshot)
-            assertEquals(persisted.pricingMode.name, exported.pricingMode.name)
-            assertEquals(persisted.cashDiscountApplied, exported.cashDiscountApplied)
-            assertEquals(persisted.cashDiscountPercent.toPlainString(), exported.cashDiscountPercentSnapshot)
-            assertEquals(persisted.cashDiscountAmount, exported.cashDiscountAmountSnapshot)
-            assertEquals(persisted.finalUnitPrice, exported.finalUnitPriceSnapshot)
-            assertEquals(persisted.lineTotal, exported.lineTotal)
+            assertEquals(persisted.regularUnitPriceSnapshot.amount.toPlainString(), exported.unitPrice)
         }
     }
 
@@ -93,9 +89,9 @@ class BuildSalesBatchTest {
         val first = builder("restaurant", "terminal", "batch-1", Instant.EPOCH, listOf(source))
         val second = builder("restaurant", "terminal", "batch-2", Instant.EPOCH.plusSeconds(1), listOf(source))
 
-        assertTrue(first.batchId != second.batchId)
-        assertTrue(first.exportedAtUtc != second.exportedAtUtc)
-        assertEquals(first.sales, second.sales)
+        assertTrue(first.exportId != second.exportId)
+        assertTrue(first.generatedAt != second.generatedAt)
+        assertEquals(first.transactions, second.transactions)
         assertEquals(SaleStatus.COMPLETED, source.sale.status)
         assertEquals(1, source.sale.revision)
     }
@@ -105,12 +101,18 @@ class BuildSalesBatchTest {
         val sale = Sale(saleId, TerminalId("terminal"), Instant.EPOCH, Instant.EPOCH, "Patio", status,
             revision, Instant.parse("2026-08-10T12:00:00Z"),
             if (status == SaleStatus.VOIDED) Instant.parse("2026-08-15T12:00:00Z") else null,
-            LocalDate.parse("2026-08-10"), "USD", 3)
-        fun line(id: String, quantity: String, total: String) = SaleLine(
+            LocalDate.parse("2026-08-10"), "USD", 3, "menu", 3)
+        fun line(id: String, quantity: String, total: String): SaleLine {
+            val quantityValue = BigDecimal(quantity)
+            val gross = BigDecimal("10.00").multiply(quantityValue)
+            val net = BigDecimal(total)
+            val discount = gross.subtract(net)
+            return SaleLine(
             LineId(id), saleId, "item-$id", 7, 9, "Historical item $id", BigDecimal(quantity), Money("10.00"),
             CashDiscountMode.APPLY_DEFAULT, BigDecimal("10.00"), PricingMode.CASH, true,
-            BigDecimal("10.00"), Money("1.00"), Money("9.00"), Money(total)
-        )
-        return SaleWithLines(sale, listOf(line("z", "1", "9.00"), line("a", "0.333", "1000000.125")))
+            BigDecimal("10.00"), Money(discount), Money("9.00"), Money(total)
+            )
+        }
+        return SaleWithLines(sale, listOf(line("z", "1", "9.00"), line("a", "0.333", "3.000")))
     }
 }

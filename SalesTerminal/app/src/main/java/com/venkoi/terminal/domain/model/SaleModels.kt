@@ -27,7 +27,10 @@ data class Sale(
     val voidedAtUtc: Instant? = null,
     val businessDate: LocalDate? = null,
     val currencyCodeSnapshot: String,
-    val currencyScaleSnapshot: Int
+    val currencyScaleSnapshot: Int,
+    /** Immutable menu provenance captured when this sale was opened. */
+    val menuId: String? = null,
+    val publicationRevision: Int? = null
 )
 
 data class SaleLine(

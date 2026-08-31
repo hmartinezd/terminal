@@ -4,6 +4,8 @@ import com.venkoi.terminal.core.Money
 import com.venkoi.terminal.integration.menu.*
 import com.venkoi.terminal.integration.sales.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
@@ -33,49 +35,35 @@ class ContractSerializationTest {
     }
 
     @Test
-    fun testSalesBatchV1RoundTrip() {
-        val salesBatch = SalesBatchV1(
-            restaurantId = "r1",
+    fun testSalesExportV1RoundTrip() {
+        val salesExport = SalesExportV1(
+            format = SALES_EXPORT_FORMAT,
+            formatVersion = SALES_EXPORT_FORMAT_VERSION,
+            exportId = "b1",
             terminalId = "t1",
-            batchId = "b1",
-            exportedAtUtc = "2026-08-15T12:00:00Z",
-            sales = listOf(
-                SaleDto(
-                    saleId = "s1",
-                    revision = 1,
-                    status = SaleStatus.COMPLETED,
-                    openedAtUtc = "2026-08-15T10:00:00Z",
-                    completedAtUtc = "2026-08-15T10:30:00Z",
-                    voidedAtUtc = null,
-                    businessDate = "2026-08-15",
-                    tableLabel = "Barra",
-                    currencyCodeSnapshot = "USD",
-                    currencyScaleSnapshot = 2,
+            restaurantId = "r1",
+            generatedAt = "2026-08-15T12:00:00Z",
+            businessDate = "2026-08-15",
+            menuId = "m1",
+            publicationRevision = 1,
+            currency = "USD",
+            transactions = listOf(
+                SalesExportTransactionV1(
+                    transactionId = "s1",
+                    openedAt = "2026-08-15T10:00:00Z",
+                    closedAt = "2026-08-15T10:30:00Z",
+                    status = "COMPLETED",
                     lines = listOf(
-                        SaleLineDto(
-                            lineId = "l1",
-                            menuItemId = "i1",
-                            commercialRevision = 1,
-                            consumptionRevision = 1,
-                            itemNameSnapshot = "Item1",
-                            quantity = "1",
-                            regularUnitPriceSnapshot = Money("10.00"),
-                            pricingMode = PricingMode.CASH,
-                            cashDiscountApplied = false,
-                            cashDiscountPercentSnapshot = "0",
-                            cashDiscountAmountSnapshot = Money.ZERO,
-                            finalUnitPriceSnapshot = Money("10.00"),
-                            lineTotal = Money("10.00")
-                        )
+                        SalesExportLineV1("l1", "i1", "Item1", "1", "10.00", "10.00", "0", "10.00", 1, 1)
                     )
                 )
             )
         )
 
-        val encoded = json.encodeToString(SalesBatchV1.serializer(), salesBatch)
-        val decoded = json.decodeFromString(SalesBatchV1.serializer(), encoded)
+        val encoded = SalesExportJsonCodec.encode(salesExport)
+        val decoded = json.decodeFromString<SalesExportV1>(encoded)
 
-        assertEquals(salesBatch, decoded)
+        assertEquals(salesExport, decoded)
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -122,24 +110,19 @@ class ContractSerializationTest {
     }
 
     @Test
-    fun testLoadSalesBatchFixture() {
-        val fixture = getFixtureFile("sales_batch_v1_valid.json")
-        val decoded = json.decodeFromString(SalesBatchV1.serializer(), fixture)
-        
-        assertEquals(1, decoded.schemaVersion)
+    fun testLoadSalesExportFixture() {
+        val fixture = getFixtureFile("sales-export-v1-golden.json")
+        val decoded = json.decodeFromString<SalesExportV1>(fixture)
+
+        assertEquals(SALES_EXPORT_FORMAT, decoded.format)
+        assertEquals(1, decoded.formatVersion)
         assertEquals("term-789", decoded.terminalId)
-        assertEquals("sale-001", decoded.sales[0].saleId)
-        assertEquals(1, decoded.sales[0].revision)
-        assertEquals("Mesa 4", decoded.sales[0].tableLabel)
-        assertEquals("USD", decoded.sales[0].currencyCodeSnapshot)
-        assertEquals(2, decoded.sales[0].currencyScaleSnapshot)
-        assertEquals(SaleStatus.COMPLETED, decoded.sales[0].status)
-        assertEquals("2026-08-15", decoded.sales[0].businessDate)
-        assertEquals(PricingMode.CASH, decoded.sales[0].lines[0].pricingMode)
-        assertEquals(20, decoded.sales[0].lines[0].commercialRevision)
-        assertEquals(5, decoded.sales[0].lines[0].consumptionRevision)
-        assertEquals(Money("1500.00"), decoded.sales[0].lines[0].regularUnitPriceSnapshot)
-        assertEquals(Money("2700.00"), decoded.sales[0].lines[0].lineTotal)
+        assertEquals("sale-1", decoded.transactions[0].transactionId)
+        assertEquals("COMPLETED", decoded.transactions[0].status)
+        assertEquals("burger", decoded.transactions[0].lines[0].sellableItemId)
+        assertEquals("13", decoded.transactions[0].lines[0].unitPrice)
+        assertEquals(4L, decoded.transactions[0].lines[0].commercialRevision)
+        assertEquals(7L, decoded.transactions[0].lines[0].consumptionRevision)
     }
 
     private fun getFixtureFile(name: String): String {

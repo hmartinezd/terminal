@@ -8,6 +8,7 @@ import com.venkoi.terminal.data.local.database.MenuDao
 import com.venkoi.terminal.data.local.database.ReportDao
 import com.venkoi.terminal.data.local.database.TerminalDao
 import com.venkoi.terminal.data.local.database.ExportDao
+import com.venkoi.terminal.data.local.database.MIGRATION_5_6
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,6 +30,7 @@ object DataModule {
             AppDatabase::class.java,
             "sales_terminal.db"
         )
+        builder.addMigrations(MIGRATION_5_6)
         // Development installs predate the production baseline and may reset. A distributed
         // release must fail instead of silently destroying restaurant data when a migration is absent.
         if (BuildConfig.DEBUG) builder.fallbackToDestructiveMigration(dropAllTables = true)

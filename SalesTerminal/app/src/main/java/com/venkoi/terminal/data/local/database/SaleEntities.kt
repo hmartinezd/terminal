@@ -27,7 +27,9 @@ data class SaleEntity(
     val voidedAtUtc: Instant?,
     val businessDate: LocalDate?,
     val currencyCodeSnapshot: String,
-    val currencyScaleSnapshot: Int
+    val currencyScaleSnapshot: Int,
+    val menuId: String? = null,
+    val publicationRevision: Int? = null
 ) {
     fun toDomain() = Sale(
         saleId = saleId,
@@ -41,7 +43,9 @@ data class SaleEntity(
         voidedAtUtc = voidedAtUtc,
         businessDate = businessDate,
         currencyCodeSnapshot = currencyCodeSnapshot,
-        currencyScaleSnapshot = currencyScaleSnapshot
+        currencyScaleSnapshot = currencyScaleSnapshot,
+        menuId = menuId,
+        publicationRevision = publicationRevision
     )
 
     companion object {
@@ -57,7 +61,9 @@ data class SaleEntity(
             voidedAtUtc = sale.voidedAtUtc,
             businessDate = sale.businessDate,
             currencyCodeSnapshot = sale.currencyCodeSnapshot,
-            currencyScaleSnapshot = sale.currencyScaleSnapshot
+            currencyScaleSnapshot = sale.currencyScaleSnapshot,
+            menuId = sale.menuId,
+            publicationRevision = sale.publicationRevision
         )
     }
 }

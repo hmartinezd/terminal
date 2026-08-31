@@ -42,6 +42,7 @@ import com.venkoi.terminal.domain.service.BuildSalesBatch
 import com.venkoi.terminal.domain.service.ExportCoordinationResult
 import com.venkoi.terminal.domain.service.ExportSalesCoordinator
 import com.venkoi.terminal.domain.service.ResolveCurrentReportBusinessDate
+import com.venkoi.terminal.integration.sales.SalesExportJsonCodec
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -204,10 +205,10 @@ class SettingsViewModel @Inject constructor(
                 )
                 val stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss").withZone(ZoneOffset.UTC).format(exportedAt)
                 pendingDocument = PreparedSalesExport(
-                    json = json.encodeToString(batch),
+                    json = SalesExportJsonCodec.encode(batch),
                     batchId = batchId,
                     exportedAtUtc = exportedAt,
-                    revisions = batch.sales.map { ExportedSaleRevision(com.venkoi.terminal.core.SaleId(it.saleId), it.revision) },
+                    revisions = batch.transactions.map { ExportedSaleRevision(com.venkoi.terminal.core.SaleId(it.transactionId), if (it.status == "VOIDED") 2 else 1) },
                     suggestedFileName = if (pending) "sales_pending_$stamp.json" else "sales_${date}_$stamp.json"
                 )
             } catch (_: Exception) {
