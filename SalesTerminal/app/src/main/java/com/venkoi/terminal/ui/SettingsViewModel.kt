@@ -39,6 +39,7 @@ import com.venkoi.terminal.domain.model.PreparedSalesExport
 import com.venkoi.terminal.domain.model.SaleExportSummary
 import com.venkoi.terminal.domain.repository.SalesExportRepository
 import com.venkoi.terminal.domain.service.BuildSalesExport
+import com.venkoi.terminal.domain.service.DayExportSession
 import com.venkoi.terminal.domain.service.ExportCoordinationResult
 import com.venkoi.terminal.domain.service.ExportSalesCoordinator
 import com.venkoi.terminal.domain.service.PartitionSalesExport
@@ -106,6 +107,12 @@ class SettingsViewModel @Inject constructor(
     var pendingDocument by mutableStateOf<PreparedSalesExport?>(null)
         private set
 
+    private var dayExportSession: DayExportSession? = null
+    private var preparedDayExportSession: DayExportSession? = null
+
+    var selectedDateLegacyUnsupportedCount by mutableStateOf(0)
+        private set
+
     var exportMessage by mutableStateOf<ExportMessage?>(null)
         private set
 
@@ -169,7 +176,14 @@ class SettingsViewModel @Inject constructor(
         _currentLanguageCode.value = languageCode
     }
 
-    fun setBusinessDate(date: LocalDate) { selectedBusinessDate = date }
+    fun setBusinessDate(date: LocalDate) {
+        if (selectedBusinessDate != date) {
+            selectedBusinessDate = date
+            dayExportSession = null
+            preparedDayExportSession = null
+            selectedDateLegacyUnsupportedCount = 0
+        }
+    }
 
     fun ensureDefaultBusinessDate() {
         if (selectedBusinessDate == null) restaurantConfig.value?.let {
@@ -193,20 +207,18 @@ class SettingsViewModel @Inject constructor(
                 val terminal = terminalConfig.value ?: error("Terminal is not configured")
                 val restaurant = restaurantConfig.value ?: error("Restaurant is not configured")
                 val date = selectedBusinessDate ?: resolveCurrentReportBusinessDate.resolve(restaurant).also { selectedBusinessDate = it }
-                val sales = if (pending) {
-                    salesExportRepository.getPendingChanges(terminal.terminalId)
+                val daySession = if (pending) null else getOrCreateDayExportSession(terminal.terminalId, date)
+                val group = if (pending) {
+                    partitionSalesExport(salesExportRepository.getPendingChanges(terminal.terminalId))
+                        .canonicalGroups.firstOrNull()
                 } else {
-                    val pendingForDay = salesExportRepository.getPendingChangesForDay(terminal.terminalId, date)
-                    if (pendingForDay.isNotEmpty()) pendingForDay
-                    else salesExportRepository.getSalesForDay(terminal.terminalId, date)
+                    daySession?.currentGroup
                 }
-                val partition = partitionSalesExport(sales)
-                val group = partition.canonicalGroups.firstOrNull()
                 if (group == null) {
                     val legacyExists = if (pending) {
                         exportSummary.value.legacyUnsupportedCount > 0
                     } else {
-                        salesExportRepository.getLegacySalesForDay(terminal.terminalId, date).isNotEmpty()
+                        selectedDateLegacyUnsupportedCount > 0
                     }
                     exportMessage = when {
                         legacyExists -> ExportMessage.LegacyUnsupportedOnly
@@ -230,6 +242,7 @@ class SettingsViewModel @Inject constructor(
                     },
                     suggestedFileName = if (pending) "sales_pending_$stamp.json" else "sales_${date}_$stamp.json"
                 )
+                preparedDayExportSession = daySession
             } catch (_: Exception) {
                 exportMessage = ExportMessage.Failed
             } finally {
@@ -238,10 +251,27 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private suspend fun getOrCreateDayExportSession(
+        terminalId: com.venkoi.terminal.core.TerminalId,
+        date: LocalDate
+    ): DayExportSession {
+        val existing = dayExportSession
+        if (existing != null && existing.businessDate == date && !existing.isComplete) return existing
+
+        val canonicalSales = salesExportRepository.getSalesForDay(terminalId, date)
+        val legacySales = salesExportRepository.getLegacySalesForDay(terminalId, date)
+        selectedDateLegacyUnsupportedCount = legacySales.size
+        return DayExportSession(date, partitionSalesExport(canonicalSales).canonicalGroups).also {
+            dayExportSession = it
+        }
+    }
+
     fun onExportDocumentResult(uri: Uri?) {
         if (isExporting) return
         val prepared = pendingDocument ?: return
+        val preparedDaySession = preparedDayExportSession
         pendingDocument = null
+        preparedDayExportSession = null
         isExporting = true
         viewModelScope.launch {
             try { when (exportSalesCoordinator.execute(
@@ -253,7 +283,10 @@ class SettingsViewModel @Inject constructor(
                 }
             )) {
                 ExportCoordinationResult.Cancelled -> Unit
-                ExportCoordinationResult.Success -> exportMessage = ExportMessage.Success(prepared.revisions.size)
+                ExportCoordinationResult.Success -> {
+                    advanceDayExportSession(preparedDaySession)
+                    exportMessage = ExportMessage.Success(prepared.revisions.size)
+                }
                 is ExportCoordinationResult.WriteFailed -> exportMessage = ExportMessage.Failed
                 is ExportCoordinationResult.BookkeepingFailed -> exportMessage = ExportMessage.BookkeepingFailed
                 is ExportCoordinationResult.HandoffFailed -> exportMessage = ExportMessage.Failed
@@ -266,13 +299,18 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun cancelPreparedExport() {
-        if (!isExporting) pendingDocument = null
+        if (!isExporting) {
+            pendingDocument = null
+            preparedDayExportSession = null
+        }
     }
 
     fun sharePreparedExport() {
         if (isExporting) return
         val prepared = pendingDocument ?: return
+        val preparedDaySession = preparedDayExportSession
         pendingDocument = null
+        preparedDayExportSession = null
         isExporting = true
         viewModelScope.launch {
             try {
@@ -283,7 +321,10 @@ class SettingsViewModel @Inject constructor(
                         salesExportRepository.markExported(exact.revisions, exact.exportedAtUtc, exact.exportId)
                     }
                 )) {
-                    ExportCoordinationResult.Success -> exportMessage = ExportMessage.ShareReady
+                    ExportCoordinationResult.Success -> {
+                        advanceDayExportSession(preparedDaySession)
+                        exportMessage = ExportMessage.ShareReady
+                    }
                     is ExportCoordinationResult.BookkeepingFailed -> exportMessage = ExportMessage.BookkeepingFailed
                     else -> exportMessage = ExportMessage.ShareFailed
                 }
@@ -293,6 +334,12 @@ class SettingsViewModel @Inject constructor(
                 isExporting = false
             }
         }
+    }
+
+    private fun advanceDayExportSession(session: DayExportSession?) {
+        if (session == null || dayExportSession !== session) return
+        session.advanceAfterSuccessfulHandoff()
+        if (session.isComplete) dayExportSession = null
     }
 
     fun consumeExportMessage() { exportMessage = null }

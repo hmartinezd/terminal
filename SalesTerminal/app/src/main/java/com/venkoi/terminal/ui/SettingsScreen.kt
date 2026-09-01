@@ -231,6 +231,13 @@ fun SettingsScreen(
                             )
                             TextButton(onClick = { showDatePicker = true }) { Text(stringResource(R.string.settings_change_date)) }
                         }
+                        if (viewModel.selectedDateLegacyUnsupportedCount > 0) {
+                            Text(
+                                stringResource(R.string.settings_legacy_sales_warning),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         OutlinedButton(
                             onClick = viewModel::prepareDayExport,
                             enabled = !viewModel.isExporting,

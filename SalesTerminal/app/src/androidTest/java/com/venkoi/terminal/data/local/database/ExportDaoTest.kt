@@ -74,6 +74,22 @@ class ExportDaoTest {
         assertEquals(0, database.exportDao().getExportState(SaleId("legacy"))?.lastExportedRevision ?: 0)
     }
 
+    @Test fun dayExportStillReturnsEveryCanonicalPublicationAfterAllWereExported() = runBlocking {
+        insert("p1", SaleStatus.COMPLETED, 1, menuId = "menu-1", publicationRevision = 1)
+        insert("p2", SaleStatus.COMPLETED, 1, menuId = "menu-2", publicationRevision = 2)
+        insert("p3", SaleStatus.COMPLETED, 1, menuId = "menu-3", publicationRevision = 3)
+        database.exportDao().markExported(
+            listOf(
+                ExportedSaleRevision(SaleId("p1"), 1),
+                ExportedSaleRevision(SaleId("p2"), 1),
+                ExportedSaleRevision(SaleId("p3"), 1)
+            ), firstExport, "historical-export"
+        )
+
+        assertEquals(emptyList<SaleWithLinesEntity>(), database.exportDao().getPendingChanges(terminal))
+        assertEquals(listOf("p1", "p2", "p3"), database.exportDao().getSalesForDay(terminal, day).map { it.sale.saleId.value })
+    }
+
     @Test fun dayExportFiltersTerminalDateAndLifecycleStatusAndIncludesLines() = runBlocking {
         insert("completed-a", SaleStatus.COMPLETED, 1)
         insert("voided-a", SaleStatus.VOIDED, 2)
@@ -130,7 +146,9 @@ class ExportDaoTest {
         revision: Int?,
         businessDate: LocalDate = day,
         owner: TerminalId = terminal,
-        provenance: Boolean = true
+        provenance: Boolean = true,
+        menuId: String = "menu-a",
+        publicationRevision: Int = 1
     ) {
         val completed = Instant.parse("2026-08-10T12:00:00Z")
         database.saleDao().insertSale(SaleEntity(
@@ -139,8 +157,8 @@ class ExportDaoTest {
             if (status == SaleStatus.VOIDED) completed.plusSeconds(10) else null,
             if (revision == null) null else businessDate, "USD", 2,
             if (provenance) "restaurant-a" else null,
-            if (provenance) "menu-a" else null,
-            if (provenance) 1 else null
+            if (provenance) menuId else null,
+            if (provenance) publicationRevision else null
         ))
         database.saleDao().insertSaleLines(listOf(SaleLineEntity(
             LineId("line-$id"), SaleId(id), "item", 1, 1, "Historical", BigDecimal.ONE,
