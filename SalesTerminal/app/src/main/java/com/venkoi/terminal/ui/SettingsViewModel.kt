@@ -37,6 +37,7 @@ import com.venkoi.terminal.data.file.ActivationRequestDeliveryCoordinator
 import com.venkoi.terminal.domain.model.ExportedSaleRevision
 import com.venkoi.terminal.domain.model.PreparedSalesExport
 import com.venkoi.terminal.domain.model.SaleExportSummary
+import com.venkoi.terminal.domain.model.SalesExportPartition
 import com.venkoi.terminal.domain.repository.SalesExportRepository
 import com.venkoi.terminal.domain.service.BuildSalesExport
 import com.venkoi.terminal.domain.service.DayExportSession
@@ -207,12 +208,15 @@ class SettingsViewModel @Inject constructor(
                 val terminal = terminalConfig.value ?: error("Terminal is not configured")
                 val restaurant = restaurantConfig.value ?: error("Restaurant is not configured")
                 val date = selectedBusinessDate ?: resolveCurrentReportBusinessDate.resolve(restaurant).also { selectedBusinessDate = it }
-                val daySession = if (pending) null else getOrCreateDayExportSession(terminal.terminalId, date)
+                val dayData = if (pending) null else reloadDayExportData(terminal.terminalId, date)
+                val daySession = dayData?.session
                 val group = if (pending) {
                     partitionSalesExport(salesExportRepository.getPendingChanges(terminal.terminalId))
                         .canonicalGroups.firstOrNull()
                 } else {
-                    daySession?.currentGroup
+                    daySession?.currentGroupKey?.let { key ->
+                        dayData?.partition?.canonicalGroups?.firstOrNull { it.key == key }
+                    }
                 }
                 if (group == null) {
                     val legacyExists = if (pending) {
@@ -251,19 +255,24 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getOrCreateDayExportSession(
+    private data class DayExportData(
+        val session: DayExportSession,
+        val partition: SalesExportPartition
+    )
+
+    private suspend fun reloadDayExportData(
         terminalId: com.venkoi.terminal.core.TerminalId,
         date: LocalDate
-    ): DayExportSession {
-        val existing = dayExportSession
-        if (existing != null && existing.businessDate == date && !existing.isComplete) return existing
-
+    ): DayExportData {
         val canonicalSales = salesExportRepository.getSalesForDay(terminalId, date)
         val legacySales = salesExportRepository.getLegacySalesForDay(terminalId, date)
         selectedDateLegacyUnsupportedCount = legacySales.size
-        return DayExportSession(date, partitionSalesExport(canonicalSales).canonicalGroups).also {
-            dayExportSession = it
-        }
+        val partition = partitionSalesExport(canonicalSales)
+        val existing = dayExportSession?.takeIf { it.businessDate == date && !it.isComplete }
+        val session = existing ?: DayExportSession(date, partition.canonicalGroups.map { it.key })
+        session.reconcile(partition.canonicalGroups.map { it.key })
+        dayExportSession = session
+        return DayExportData(session, partition)
     }
 
     fun onExportDocumentResult(uri: Uri?) {
@@ -338,7 +347,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun advanceDayExportSession(session: DayExportSession?) {
         if (session == null || dayExportSession !== session) return
-        session.advanceAfterSuccessfulHandoff()
+        session.markCurrentGroupSuccessfullyHandedOff()
         if (session.isComplete) dayExportSession = null
     }
 
