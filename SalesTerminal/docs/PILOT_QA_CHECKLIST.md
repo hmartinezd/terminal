@@ -56,10 +56,12 @@ Record device, app version, tester, date, locale, restaurant timezone/cutoff, an
 - [ ] Pending count matches unexported revisions; zero pending has a clear empty message.
 - [ ] Cancel destination selection: no revision is marked exported.
 - [ ] Simulate write failure: no revision is marked exported and retry is safe.
-- [ ] Successful Pending export creates valid SalesBatchV1 JSON and marks exactly written revisions.
+- [ ] Successful Pending export creates one canonical SalesExport V1 JSON document and marks exactly written revisions.
 - [ ] VOID an exported sale: pending count returns and revision 2 exports.
 - [ ] Simulate bookkeeping failure after file write: message says retry is safe; retry remains duplicate-safe.
 - [ ] Export a selected day, re-export it, and export an empty day.
+- [ ] Pending sales across multiple days/publications export one deterministic group at a time; missing-provenance legacy sales remain visible and are warned about without blocking canonical export.
+- [ ] Verify schema-5 fixture migration to Room schema 6 preserves sales, lines, and export bookkeeping; new sales retain immutable publication provenance.
 - [ ] Restart preserves pending/export timestamps and revision tracking.
 - [ ] Large pilot-scale batch writes deterministically without scientific notation, currency/locale mutation, or memory failure.
 

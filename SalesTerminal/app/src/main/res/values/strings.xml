@@ -115,6 +115,8 @@
     <string name="settings_business_date">Business Date</string>
     <string name="settings_choose_business_date">Choose business date</string>
     <string name="settings_export_nothing_pending">No new sales to export.</string>
+    <string name="settings_legacy_sales_warning">Some older sales cannot be exported in the current format because menu provenance was not recorded.</string>
+    <string name="settings_legacy_sales_only">There are no exportable new sales. Some older sales cannot be safely converted because menu provenance was not recorded.</string>
     <string name="settings_no_sales_for_date">No sales found for the selected date.</string>
     <string name="settings_export_failed">Sales export failed. Please try again.</string>
     <string name="settings_export_bookkeeping_failed">The file was created, but export tracking could not be updated. It is safe to export again.</string>

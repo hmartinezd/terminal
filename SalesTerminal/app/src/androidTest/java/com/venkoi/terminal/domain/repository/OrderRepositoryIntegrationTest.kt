@@ -176,6 +176,26 @@ class SaleRepositoryIntegrationTest {
     }
 
     @Test
+    fun saleCapturesImmutablePublicationProvenanceBeforeMenuRepublication() = runBlocking {
+        provision()
+        val saleId = saleRepository.createSale("Mesa 9")
+        val beforeRepublication = saleRepository.observeSale(saleId).first()!!
+
+        assertEquals("rest-1", beforeRepublication.restaurantIdSnapshot)
+        assertEquals("menu-1", beforeRepublication.menuIdSnapshot)
+        assertEquals(1, beforeRepublication.publicationRevisionSnapshot)
+
+        val menuV2 = menuV1.replace("\"publicationRevision\": 1", "\"publicationRevision\": 2")
+        val parseResult = importService.parseAndValidate(menuV2) as MenuPackageImportResult.Success
+        assertTrue(importService.importMenu(parseResult) is com.venkoi.terminal.domain.service.MenuImportStatus.Success)
+
+        val afterRepublication = saleRepository.observeSale(saleId).first()!!
+        assertEquals("rest-1", afterRepublication.restaurantIdSnapshot)
+        assertEquals("menu-1", afterRepublication.menuIdSnapshot)
+        assertEquals(1, afterRepublication.publicationRevisionSnapshot)
+    }
+
+    @Test
     fun testSaleLifecycleFlow() = runBlocking {
         provision()
         val saleId = saleRepository.createSale("Mesa 4")

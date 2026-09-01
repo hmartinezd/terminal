@@ -115,6 +115,8 @@
     <string name="settings_business_date">Fecha de negocio</string>
     <string name="settings_choose_business_date">Seleccionar fecha de negocio</string>
     <string name="settings_export_nothing_pending">No hay ventas nuevas para exportar.</string>
+    <string name="settings_legacy_sales_warning">Algunas ventas anteriores no se pueden exportar en el formato actual porque no se registró la procedencia del menú.</string>
+    <string name="settings_legacy_sales_only">No hay ventas nuevas exportables. Algunas ventas anteriores no se pueden convertir de forma segura porque no se registró la procedencia del menú.</string>
     <string name="settings_no_sales_for_date">No se encontraron ventas para la fecha seleccionada.</string>
     <string name="settings_export_failed">Error al exportar ventas. Inténtelo de nuevo.</string>
     <string name="settings_export_bookkeeping_failed">El archivo fue creado, pero no se pudo actualizar el seguimiento. Es seguro exportar de nuevo.</string>

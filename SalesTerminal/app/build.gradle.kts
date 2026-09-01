@@ -80,6 +80,12 @@ android {
     namespace = "com.venkoi.terminal"
     compileSdk = 37
 
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.venkoi.terminal"
         minSdk = 26
@@ -176,6 +182,7 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     androidTestImplementation(libs.hilt.android.testing)
+    androidTestImplementation(libs.androidx.room.testing)
     kspAndroidTest(libs.hilt.compiler)
 
     testImplementation(libs.junit)

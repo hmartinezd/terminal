@@ -41,6 +41,7 @@ import com.venkoi.terminal.domain.repository.SalesExportRepository
 import com.venkoi.terminal.domain.service.BuildSalesExport
 import com.venkoi.terminal.domain.service.ExportCoordinationResult
 import com.venkoi.terminal.domain.service.ExportSalesCoordinator
+import com.venkoi.terminal.domain.service.PartitionSalesExport
 import com.venkoi.terminal.domain.service.ResolveCurrentReportBusinessDate
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -60,6 +61,7 @@ class SettingsViewModel @Inject constructor(
     private val documentReader: DocumentReader,
     private val salesExportRepository: SalesExportRepository,
     private val buildSalesExport: BuildSalesExport,
+    private val partitionSalesExport: PartitionSalesExport,
     private val documentWriter: SalesBatchDocumentWriter,
     private val shareManager: SalesExportShareManager,
     private val activationDeliveryCoordinator: ActivationRequestDeliveryCoordinator,
@@ -191,23 +193,39 @@ class SettingsViewModel @Inject constructor(
                 val terminal = terminalConfig.value ?: error("Terminal is not configured")
                 val restaurant = restaurantConfig.value ?: error("Restaurant is not configured")
                 val date = selectedBusinessDate ?: resolveCurrentReportBusinessDate.resolve(restaurant).also { selectedBusinessDate = it }
-                val sales = if (pending) salesExportRepository.getPendingChanges(terminal.terminalId)
+                val sales = if (pending) {
+                    salesExportRepository.getPendingChanges(terminal.terminalId)
+                } else {
+                    val pendingForDay = salesExportRepository.getPendingChangesForDay(terminal.terminalId, date)
+                    if (pendingForDay.isNotEmpty()) pendingForDay
                     else salesExportRepository.getSalesForDay(terminal.terminalId, date)
-                if (sales.isEmpty()) {
-                    exportMessage = if (pending) ExportMessage.NothingPending else ExportMessage.NoSalesForDay
+                }
+                val partition = partitionSalesExport(sales)
+                val group = partition.canonicalGroups.firstOrNull()
+                if (group == null) {
+                    val legacyExists = if (pending) {
+                        exportSummary.value.legacyUnsupportedCount > 0
+                    } else {
+                        salesExportRepository.getLegacySalesForDay(terminal.terminalId, date).isNotEmpty()
+                    }
+                    exportMessage = when {
+                        legacyExists -> ExportMessage.LegacyUnsupportedOnly
+                        pending -> ExportMessage.NothingPending
+                        else -> ExportMessage.NoSalesForDay
+                    }
                     return@launch
                 }
                 val exportedAt = clock.now()
                 val exportId = idGenerator.nextId()
                 val export = buildSalesExport(
-                    terminal.restaurantId.value, terminal.terminalId.value, exportId, exportedAt, sales
+                    group.key.restaurantId, terminal.terminalId.value, exportId, exportedAt, group.sales
                 )
                 val stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss").withZone(ZoneOffset.UTC).format(exportedAt)
                 pendingDocument = PreparedSalesExport(
                     json = json.encodeToString(export),
                     exportId = exportId,
                     exportedAtUtc = exportedAt,
-                    revisions = sales.map {
+                    revisions = group.sales.map {
                         ExportedSaleRevision(it.sale.saleId, requireNotNull(it.sale.revision))
                     },
                     suggestedFileName = if (pending) "sales_pending_$stamp.json" else "sales_${date}_$stamp.json"
@@ -354,6 +372,7 @@ sealed interface ActivationMessage {
 
 sealed interface ExportMessage {
     data object NothingPending : ExportMessage
+    data object LegacyUnsupportedOnly : ExportMessage
     data object NoSalesForDay : ExportMessage
     data object Failed : ExportMessage
     data object BookkeepingFailed : ExportMessage

@@ -22,7 +22,11 @@ data class SaleExportStateEntity(
     val lastExportBatchId: String
 )
 
-data class ExportSummaryRow(val pendingCount: Int, val lastSuccessfulExportAtUtc: Instant?)
+data class ExportSummaryRow(
+    val pendingCount: Int,
+    val legacyUnsupportedCount: Int,
+    val lastSuccessfulExportAtUtc: Instant?
+)
 
 @Dao
 interface ExportDao {
@@ -32,7 +36,10 @@ interface ExportDao {
     @Transaction
     @Query("""
         SELECT * FROM sales WHERE terminalId = :terminalId
-        AND status IN ('COMPLETED', 'VOIDED') AND revision IS NOT NULL
+        AND status IN ('COMPLETED', 'VOIDED') AND revision > 0
+        AND TRIM(restaurantIdSnapshot) <> '' AND TRIM(menuIdSnapshot) <> ''
+        AND publicationRevisionSnapshot > 0
+        AND TRIM(currencyCodeSnapshot) <> ''
         AND (NOT EXISTS (SELECT 1 FROM sale_export_state e WHERE e.saleId = sales.saleId)
              OR revision > (SELECT lastExportedRevision FROM sale_export_state e WHERE e.saleId = sales.saleId))
         ORDER BY businessDate, completedAtUtc, saleId
@@ -41,16 +48,66 @@ interface ExportDao {
 
     @Transaction
     @Query("""
+        SELECT * FROM sales WHERE terminalId = :terminalId
+        AND status IN ('COMPLETED', 'VOIDED') AND revision > 0
+        AND businessDate = :businessDate
+        AND TRIM(restaurantIdSnapshot) <> '' AND TRIM(menuIdSnapshot) <> ''
+        AND publicationRevisionSnapshot > 0
+        AND TRIM(currencyCodeSnapshot) <> ''
+        AND (NOT EXISTS (SELECT 1 FROM sale_export_state e WHERE e.saleId = sales.saleId)
+             OR revision > (SELECT lastExportedRevision FROM sale_export_state e WHERE e.saleId = sales.saleId))
+        ORDER BY businessDate, completedAtUtc, saleId
+    """)
+    suspend fun getPendingChangesForDay(terminalId: TerminalId, businessDate: LocalDate): List<SaleWithLinesEntity>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM sales WHERE terminalId = :terminalId
+        AND status IN ('COMPLETED', 'VOIDED') AND revision > 0
+        AND (TRIM(COALESCE(restaurantIdSnapshot, '')) = ''
+             OR TRIM(COALESCE(menuIdSnapshot, '')) = '' OR COALESCE(publicationRevisionSnapshot, 0) <= 0)
+        AND (NOT EXISTS (SELECT 1 FROM sale_export_state e WHERE e.saleId = sales.saleId)
+             OR revision > (SELECT lastExportedRevision FROM sale_export_state e WHERE e.saleId = sales.saleId))
+        ORDER BY businessDate, completedAtUtc, saleId
+    """)
+    suspend fun getLegacyPendingChanges(terminalId: TerminalId): List<SaleWithLinesEntity>
+
+    @Transaction
+    @Query("""
         SELECT * FROM sales WHERE terminalId = :terminalId AND businessDate = :businessDate
-        AND status IN ('COMPLETED', 'VOIDED') ORDER BY businessDate, completedAtUtc, saleId
+        AND status IN ('COMPLETED', 'VOIDED') AND revision > 0
+        AND TRIM(restaurantIdSnapshot) <> '' AND TRIM(menuIdSnapshot) <> ''
+        AND publicationRevisionSnapshot > 0
+        AND TRIM(currencyCodeSnapshot) <> ''
+        ORDER BY businessDate, completedAtUtc, saleId
     """)
     suspend fun getSalesForDay(terminalId: TerminalId, businessDate: LocalDate): List<SaleWithLinesEntity>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM sales WHERE terminalId = :terminalId AND businessDate = :businessDate
+        AND status IN ('COMPLETED', 'VOIDED') AND revision > 0
+        AND (TRIM(COALESCE(restaurantIdSnapshot, '')) = ''
+             OR TRIM(COALESCE(menuIdSnapshot, '')) = '' OR COALESCE(publicationRevisionSnapshot, 0) <= 0)
+        ORDER BY businessDate, completedAtUtc, saleId
+    """)
+    suspend fun getLegacySalesForDay(terminalId: TerminalId, businessDate: LocalDate): List<SaleWithLinesEntity>
 
     @Query("""
         SELECT
           (SELECT COUNT(*) FROM sales s LEFT JOIN sale_export_state e ON e.saleId = s.saleId
            WHERE s.terminalId = :terminalId AND s.status IN ('COMPLETED','VOIDED')
-           AND s.revision IS NOT NULL AND (e.saleId IS NULL OR s.revision > e.lastExportedRevision)) AS pendingCount,
+           AND s.revision > 0
+           AND TRIM(s.restaurantIdSnapshot) <> '' AND TRIM(s.menuIdSnapshot) <> ''
+           AND s.publicationRevisionSnapshot > 0
+           AND TRIM(s.currencyCodeSnapshot) <> ''
+           AND (e.saleId IS NULL OR s.revision > e.lastExportedRevision)) AS pendingCount,
+          (SELECT COUNT(*) FROM sales s LEFT JOIN sale_export_state e ON e.saleId = s.saleId
+           WHERE s.terminalId = :terminalId AND s.status IN ('COMPLETED','VOIDED')
+           AND s.revision > 0
+           AND (TRIM(COALESCE(s.restaurantIdSnapshot, '')) = ''
+                OR TRIM(COALESCE(s.menuIdSnapshot, '')) = '' OR COALESCE(s.publicationRevisionSnapshot, 0) <= 0)
+           AND (e.saleId IS NULL OR s.revision > e.lastExportedRevision)) AS legacyUnsupportedCount,
           (SELECT MAX(e.lastExportedAtUtc) FROM sale_export_state e JOIN sales s ON s.saleId = e.saleId
            WHERE s.terminalId = :terminalId) AS lastSuccessfulExportAtUtc
     """)

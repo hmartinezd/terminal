@@ -60,6 +60,20 @@ class ExportDaoTest {
         assertEquals(emptyList<SaleWithLinesEntity>(), database.exportDao().getPendingChanges(terminal))
     }
 
+    @Test fun legacyMissingProvenanceIsSeparateAndNeverBecomesExportable() = runBlocking {
+        insert("legacy", SaleStatus.COMPLETED, 1, provenance = false)
+        insert("canonical", SaleStatus.COMPLETED, 1)
+
+        assertEquals(listOf("canonical"), database.exportDao().getPendingChanges(terminal).map { it.sale.saleId.value })
+        assertEquals(listOf("legacy"), database.exportDao().getLegacyPendingChanges(terminal).map { it.sale.saleId.value })
+        assertEquals(1, database.exportDao().observeSummary(terminal).first().pendingCount)
+        assertEquals(1, database.exportDao().observeSummary(terminal).first().legacyUnsupportedCount)
+
+        database.exportDao().markExported(listOf(ExportedSaleRevision(SaleId("canonical"), 1)), firstExport, "canonical-export")
+        assertEquals(listOf("legacy"), database.exportDao().getLegacyPendingChanges(terminal).map { it.sale.saleId.value })
+        assertEquals(0, database.exportDao().getExportState(SaleId("legacy"))?.lastExportedRevision ?: 0)
+    }
+
     @Test fun dayExportFiltersTerminalDateAndLifecycleStatusAndIncludesLines() = runBlocking {
         insert("completed-a", SaleStatus.COMPLETED, 1)
         insert("voided-a", SaleStatus.VOIDED, 2)
@@ -93,19 +107,40 @@ class ExportDaoTest {
         assertEquals(1, database.exportDao().getExportState(SaleId("sale"))?.lastExportedRevision)
     }
 
+    @Test fun exportedCompletedRevisionThenVoidedRevisionKeepsProvenanceAndExactBookkeeping() = runBlocking {
+        insert("sale", SaleStatus.COMPLETED, 1)
+        database.exportDao().markExported(listOf(ExportedSaleRevision(SaleId("sale"), 1)), firstExport, "completed")
+
+        database.saleDao().voidSaleGuarded(SaleId("sale"), firstExport.plusSeconds(10), firstExport.plusSeconds(10))
+        val pendingVoid = database.exportDao().getPendingChanges(terminal).single()
+        assertEquals(2, pendingVoid.sale.revision)
+        assertEquals("restaurant-a", pendingVoid.sale.restaurantIdSnapshot)
+        assertEquals("menu-a", pendingVoid.sale.menuIdSnapshot)
+        assertEquals(1, pendingVoid.sale.publicationRevisionSnapshot)
+        assertEquals(listOf("line-sale"), pendingVoid.lines.map { it.lineId.value })
+
+        database.exportDao().markExported(listOf(ExportedSaleRevision(SaleId("sale"), 2)), firstExport.plusSeconds(20), "voided")
+        assertEquals(2, database.exportDao().getExportState(SaleId("sale"))?.lastExportedRevision)
+        assertEquals(0, database.exportDao().observeSummary(terminal).first().pendingCount)
+    }
+
     private suspend fun insert(
         id: String,
         status: SaleStatus,
         revision: Int?,
         businessDate: LocalDate = day,
-        owner: TerminalId = terminal
+        owner: TerminalId = terminal,
+        provenance: Boolean = true
     ) {
         val completed = Instant.parse("2026-08-10T12:00:00Z")
         database.saleDao().insertSale(SaleEntity(
             SaleId(id), owner, completed.minusSeconds(60), completed, "Mesa 4", status, revision,
             if (revision == null) null else completed,
             if (status == SaleStatus.VOIDED) completed.plusSeconds(10) else null,
-            if (revision == null) null else businessDate, "USD", 2
+            if (revision == null) null else businessDate, "USD", 2,
+            if (provenance) "restaurant-a" else null,
+            if (provenance) "menu-a" else null,
+            if (provenance) 1 else null
         ))
         database.saleDao().insertSaleLines(listOf(SaleLineEntity(
             LineId("line-$id"), SaleId(id), "item", 1, 1, "Historical", BigDecimal.ONE,

@@ -62,6 +62,7 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val importSuccessMsg = stringResource(R.string.settings_import_success)
     val nothingPendingMsg = stringResource(R.string.settings_export_nothing_pending)
+    val legacyUnsupportedOnlyMsg = stringResource(R.string.settings_legacy_sales_only)
     val noSalesMsg = stringResource(R.string.settings_no_sales_for_date)
     val exportFailedMsg = stringResource(R.string.settings_export_failed)
     val bookkeepingFailedMsg = stringResource(R.string.settings_export_bookkeeping_failed)
@@ -103,6 +104,7 @@ fun SettingsScreen(
     LaunchedEffect(viewModel.exportMessage) {
         val message = when (val result = viewModel.exportMessage) {
             ExportMessage.NothingPending -> nothingPendingMsg
+            ExportMessage.LegacyUnsupportedOnly -> legacyUnsupportedOnlyMsg
             ExportMessage.NoSalesForDay -> noSalesMsg
             ExportMessage.Failed -> exportFailedMsg
             ExportMessage.BookkeepingFailed -> bookkeepingFailedMsg
@@ -194,6 +196,13 @@ fun SettingsScreen(
                             resources.getQuantityString(R.plurals.settings_unexported_count, exportSummary.pendingCount, exportSummary.pendingCount),
                             style = MaterialTheme.typography.bodyLarge
                         )
+                        if (exportSummary.legacyUnsupportedCount > 0) {
+                            Text(
+                                stringResource(R.string.settings_legacy_sales_warning),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Button(
                             onClick = viewModel::preparePendingExport,
                             enabled = !viewModel.isExporting,

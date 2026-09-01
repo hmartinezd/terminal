@@ -29,7 +29,7 @@ Perform this on the authorized administrator/release machines. Secret paths must
 1. Keep build N installed with terminal identity, restaurant/menu configuration, an active license, an OPEN order, History, and export bookkeeping.
 2. Build N+1 with the same application ID (`com.venkoi.terminal`), same Android signing key, and a higher `versionCode`; no feature change is required.
 3. Install it as an update without clearing application data. Confirm Android accepts it and every item above remains.
-4. Pilot version `1.0.0-pilot.1` / version code `1` / Room schema `5` is the **first distributed production baseline**. No distributed schema-4 production origin exists, so no migration 4 → 5 is required for this baseline. From the first distributed schema-5 build onward, every schema change requires an explicit, tested, non-destructive Room migration. Destructive release migration fallback remains disabled.
+4. Pilot version `1.0.0-pilot.1` / version code `1` / Room schema `5` is the **historical first distributed production baseline**. The current candidate is Room schema `6`, with an explicit non-destructive 5 → 6 migration that preserves schema-5 data. No distributed schema-4 production origin exists, so no migration 4 → 5 is required for that baseline. Destructive release migration fallback remains disabled.
 5. A normal signed application update preserves the installed license and device identity when application data and the Android Keystore identity remain intact. Never clear app data, uninstall the app, or replace the device as part of a routine update unless reprovisioning and relicensing are intended.
 
 ## Restricted operation and recovery guidance

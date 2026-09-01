@@ -14,13 +14,24 @@ import javax.inject.Inject
 
 class RoomSalesExportRepository @Inject constructor(private val dao: ExportDao) : SalesExportRepository {
     override fun observeSummary(terminalId: TerminalId): Flow<SaleExportSummary> =
-        dao.observeSummary(terminalId).map { SaleExportSummary(it.pendingCount, it.lastSuccessfulExportAtUtc) }
+        dao.observeSummary(terminalId).map {
+            SaleExportSummary(it.pendingCount, it.legacyUnsupportedCount, it.lastSuccessfulExportAtUtc)
+        }
 
     override suspend fun getPendingChanges(terminalId: TerminalId) =
         dao.getPendingChanges(terminalId).map { it.toDomain() }
 
+    override suspend fun getPendingChangesForDay(terminalId: TerminalId, businessDate: LocalDate) =
+        dao.getPendingChangesForDay(terminalId, businessDate).map { it.toDomain() }
+
+    override suspend fun getLegacyPendingChanges(terminalId: TerminalId) =
+        dao.getLegacyPendingChanges(terminalId).map { it.toDomain() }
+
     override suspend fun getSalesForDay(terminalId: TerminalId, businessDate: LocalDate) =
         dao.getSalesForDay(terminalId, businessDate).map { it.toDomain() }
+
+    override suspend fun getLegacySalesForDay(terminalId: TerminalId, businessDate: LocalDate) =
+        dao.getLegacySalesForDay(terminalId, businessDate).map { it.toDomain() }
 
     override suspend fun markExported(revisions: List<ExportedSaleRevision>, exportedAtUtc: Instant, exportId: String) =
         dao.markExported(revisions, exportedAtUtc, exportId)
