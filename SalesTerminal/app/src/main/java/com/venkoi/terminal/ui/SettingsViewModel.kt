@@ -38,7 +38,7 @@ import com.venkoi.terminal.domain.model.ExportedSaleRevision
 import com.venkoi.terminal.domain.model.PreparedSalesExport
 import com.venkoi.terminal.domain.model.SaleExportSummary
 import com.venkoi.terminal.domain.repository.SalesExportRepository
-import com.venkoi.terminal.domain.service.BuildSalesBatch
+import com.venkoi.terminal.domain.service.BuildSalesExport
 import com.venkoi.terminal.domain.service.ExportCoordinationResult
 import com.venkoi.terminal.domain.service.ExportSalesCoordinator
 import com.venkoi.terminal.domain.service.ResolveCurrentReportBusinessDate
@@ -59,7 +59,7 @@ class SettingsViewModel @Inject constructor(
     private val importService: MenuImportService,
     private val documentReader: DocumentReader,
     private val salesExportRepository: SalesExportRepository,
-    private val buildSalesBatch: BuildSalesBatch,
+    private val buildSalesExport: BuildSalesExport,
     private val documentWriter: SalesBatchDocumentWriter,
     private val shareManager: SalesExportShareManager,
     private val activationDeliveryCoordinator: ActivationRequestDeliveryCoordinator,
@@ -198,16 +198,18 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
                 val exportedAt = clock.now()
-                val batchId = idGenerator.nextId()
-                val batch = buildSalesBatch(
-                    terminal.restaurantId.value, terminal.terminalId.value, batchId, exportedAt, sales
+                val exportId = idGenerator.nextId()
+                val export = buildSalesExport(
+                    terminal.restaurantId.value, terminal.terminalId.value, exportId, exportedAt, sales
                 )
                 val stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss").withZone(ZoneOffset.UTC).format(exportedAt)
                 pendingDocument = PreparedSalesExport(
-                    json = json.encodeToString(batch),
-                    batchId = batchId,
+                    json = json.encodeToString(export),
+                    exportId = exportId,
                     exportedAtUtc = exportedAt,
-                    revisions = batch.sales.map { ExportedSaleRevision(com.venkoi.terminal.core.SaleId(it.saleId), it.revision) },
+                    revisions = sales.map {
+                        ExportedSaleRevision(it.sale.saleId, requireNotNull(it.sale.revision))
+                    },
                     suggestedFileName = if (pending) "sales_pending_$stamp.json" else "sales_${date}_$stamp.json"
                 )
             } catch (_: Exception) {
@@ -229,7 +231,7 @@ class SettingsViewModel @Inject constructor(
                 prepared = prepared,
                 write = { destination, json -> withContext(Dispatchers.IO) { documentWriter.write(destination, json) } },
                 markExactRevisions = { exact ->
-                    salesExportRepository.markExported(exact.revisions, exact.exportedAtUtc, exact.batchId)
+                    salesExportRepository.markExported(exact.revisions, exact.exportedAtUtc, exact.exportId)
                 }
             )) {
                 ExportCoordinationResult.Cancelled -> Unit
@@ -260,7 +262,7 @@ class SettingsViewModel @Inject constructor(
                     prepared = prepared,
                     handoff = { exact -> shareManager.share(exact.json, exact.suggestedFileName) },
                     markExactRevisions = { exact ->
-                        salesExportRepository.markExported(exact.revisions, exact.exportedAtUtc, exact.batchId)
+                        salesExportRepository.markExported(exact.revisions, exact.exportedAtUtc, exact.exportId)
                     }
                 )) {
                     ExportCoordinationResult.Success -> exportMessage = ExportMessage.ShareReady

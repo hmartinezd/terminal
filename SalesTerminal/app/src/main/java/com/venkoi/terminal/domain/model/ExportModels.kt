@@ -7,7 +7,7 @@ data class ExportedSaleRevision(val saleId: SaleId, val revision: Int)
 
 data class PreparedSalesExport(
     val json: String,
-    val batchId: String,
+    val exportId: String,
     val exportedAtUtc: Instant,
     val revisions: List<ExportedSaleRevision>,
     val suggestedFileName: String

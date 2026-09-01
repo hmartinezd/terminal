@@ -13,7 +13,7 @@ import java.time.Instant
 class ExportSalesCoordinatorTest {
     private val coordinator = ExportSalesCoordinator()
     private val prepared = PreparedSalesExport(
-        json = "{\"sales\":[]}", batchId = "batch", exportedAtUtc = Instant.EPOCH,
+        json = "{\"transactions\":[]}", exportId = "export", exportedAtUtc = Instant.EPOCH,
         revisions = listOf(ExportedSaleRevision(SaleId("sale"), 1)), suggestedFileName = "sales.json"
     )
 

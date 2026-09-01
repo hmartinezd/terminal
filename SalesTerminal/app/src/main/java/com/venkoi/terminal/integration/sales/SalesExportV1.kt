@@ -1,0 +1,57 @@
+package com.venkoi.terminal.integration.sales
+
+import kotlinx.serialization.Serializable
+
+const val SALES_EXPORT_FORMAT = "venkoi-serve-sales-export"
+const val SALES_EXPORT_FORMAT_VERSION = 1
+
+@Serializable
+enum class SalesExportStatus {
+    COMPLETED,
+    VOIDED
+}
+
+@Serializable
+data class SalesExportV1(
+    val format: String,
+    val formatVersion: Int,
+    val exportId: String,
+    val terminalId: String,
+    val restaurantId: String,
+    val generatedAt: String,
+    val businessDate: String,
+    val menuId: String,
+    val publicationRevision: Int,
+    val currency: String,
+    val transactions: List<SalesExportTransactionV1>
+) {
+    init {
+        require(format == SALES_EXPORT_FORMAT) { "Unsupported sales export format: $format" }
+        require(formatVersion == SALES_EXPORT_FORMAT_VERSION) {
+            "Unsupported SalesExport version: $formatVersion"
+        }
+    }
+}
+
+@Serializable
+data class SalesExportTransactionV1(
+    val transactionId: String,
+    val openedAt: String,
+    val closedAt: String,
+    val status: SalesExportStatus,
+    val lines: List<SalesExportLineV1>
+)
+
+@Serializable
+data class SalesExportLineV1(
+    val saleLineId: String,
+    val sellableItemId: String,
+    val displayNameSnapshot: String,
+    val quantity: String,
+    val unitPrice: String,
+    val gross: String,
+    val discount: String,
+    val net: String,
+    val commercialRevision: Int,
+    val consumptionRevision: Int
+)

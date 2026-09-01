@@ -12,5 +12,5 @@ interface SalesExportRepository {
     fun observeSummary(terminalId: TerminalId): Flow<SaleExportSummary>
     suspend fun getPendingChanges(terminalId: TerminalId): List<SaleWithLines>
     suspend fun getSalesForDay(terminalId: TerminalId, businessDate: LocalDate): List<SaleWithLines>
-    suspend fun markExported(revisions: List<ExportedSaleRevision>, exportedAtUtc: Instant, batchId: String)
+    suspend fun markExported(revisions: List<ExportedSaleRevision>, exportedAtUtc: Instant, exportId: String)
 }

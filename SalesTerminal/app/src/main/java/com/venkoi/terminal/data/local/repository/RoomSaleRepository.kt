@@ -58,6 +58,8 @@ class RoomSaleRepository @Inject constructor(
         
         val restaurant = menuRepository.getRestaurantConfiguration()
             ?: throw IllegalStateException("Restaurant not configured")
+        val menu = menuRepository.getPublishedMenu()
+            ?: throw IllegalStateException("Published menu not configured")
 
         val saleId = SaleId(idGenerator.nextId())
         val now = clock.now()
@@ -69,7 +71,10 @@ class RoomSaleRepository @Inject constructor(
             tableLabel = tableLabel,
             status = SaleStatus.OPEN,
             currencyCodeSnapshot = restaurant.currency.currencyCode,
-            currencyScaleSnapshot = CurrencyRoundingPolicy.scaleFor(restaurant.currency)
+            currencyScaleSnapshot = CurrencyRoundingPolicy.scaleFor(restaurant.currency),
+            restaurantIdSnapshot = restaurant.restaurantId,
+            menuIdSnapshot = menu.menuId,
+            publicationRevisionSnapshot = menu.publicationRevision
         )
         saleDao.insertSale(SaleEntity.fromDomain(sale))
         return saleId

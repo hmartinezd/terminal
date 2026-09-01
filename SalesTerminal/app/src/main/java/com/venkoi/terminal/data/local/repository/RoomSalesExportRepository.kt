@@ -22,8 +22,8 @@ class RoomSalesExportRepository @Inject constructor(private val dao: ExportDao) 
     override suspend fun getSalesForDay(terminalId: TerminalId, businessDate: LocalDate) =
         dao.getSalesForDay(terminalId, businessDate).map { it.toDomain() }
 
-    override suspend fun markExported(revisions: List<ExportedSaleRevision>, exportedAtUtc: Instant, batchId: String) =
-        dao.markExported(revisions, exportedAtUtc, batchId)
+    override suspend fun markExported(revisions: List<ExportedSaleRevision>, exportedAtUtc: Instant, exportId: String) =
+        dao.markExported(revisions, exportedAtUtc, exportId)
 
     private fun com.venkoi.terminal.data.local.database.SaleWithLinesEntity.toDomain() =
         SaleWithLines(sale.toDomain(), lines.sortedBy { it.lineId.value }.map { it.toDomain() })
