@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "restaurant": {
+    "restaurantId": "restaurant-1",
+    "restaurantName": "Venkoi Bistro",
+    "timezone": "America/New_York",
+    "currency": "USD",
+    "businessDayCutoff": "04:00"
+  },
+  "menu": {
+    "menuId": "menu-1",
+    "publicationRevision": 3,
+    "publishedAtUtc": "2026-08-16T17:30:00Z",
+    "defaultCashDiscountPercent": "3.00"
+  },
+  "categories": [
+    { "id": "appetizers", "name": "Appetizers", "displayOrder": 10 },
+    { "id": "entrees", "name": "Entrees", "displayOrder": 20 }
+  ],
+  "menuItems": [
+    { "id": "wings", "categoryId": "appetizers", "name": "Wings", "active": true, "displayOrder": 20, "regularPrice": "19.99", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 2, "consumptionRevision": 5 },
+    { "id": "burger", "categoryId": "entrees", "name": "Burger", "active": true, "displayOrder": 10, "regularPrice": "0.10", "cashDiscountMode": "NONE", "commercialRevision": 4, "consumptionRevision": 7 },
+    { "id": "steak", "categoryId": "entrees", "name": "Steak", "active": true, "displayOrder": 20, "regularPrice": "1234.56", "cashDiscountMode": "APPLY_DEFAULT", "commercialRevision": 6, "consumptionRevision": 8 }
+  ]
+}
+

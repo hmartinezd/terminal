@@ -36,6 +36,9 @@ interface MenuDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveTerminalConfiguration(terminal: TerminalEntity)
 
+    @Query("SELECT EXISTS(SELECT 1 FROM sales WHERE status = 'OPEN')")
+    suspend fun hasOpenSales(): Boolean
+
     @Transaction
     suspend fun installMenu(
         restaurant: RestaurantConfigEntity,
@@ -43,6 +46,12 @@ interface MenuDao {
         categories: List<CategoryEntity>,
         items: List<MenuItemEntity>
     ) {
+        // Check inside the replacement transaction: existing orders carry a menu
+        // snapshot while new lines are sourced from the currently installed catalog.
+        val current = getPublishedMenu()
+        check(current == null || current.menuId == menu.menuId || !hasOpenSales()) {
+            "Complete or discard open orders before switching to a different menu"
+        }
         saveRestaurantConfig(restaurant)
         savePublishedMenu(menu)
         clearCategories()

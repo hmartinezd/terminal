@@ -57,6 +57,7 @@ class SellingAuthorizationRepositoryIntegrationTest {
     @Inject lateinit var completeSale: CompleteSale
     @Inject lateinit var voidSale: VoidSale
     @Inject lateinit var menuImport: MenuImportService
+    @Inject lateinit var deviceIdentityProvider: DeviceIdentityProvider
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val json = Json { encodeDefaults = true }
@@ -142,13 +143,13 @@ class SellingAuthorizationRepositoryIntegrationTest {
     }
 
     private fun guarded(manager: LicenseManager) = RoomSaleRepository(
-        saleDao, terminalRepository, menuRepository, clock, idGenerator, completeSale, voidSale, manager)
+        saleDao, terminalRepository, menuRepository, clock, idGenerator, completeSale, voidSale, manager, database)
 
     private fun manager(time: MutableTime): LicenseManager {
         val persistence = MemoryPersistence()
         val trusted = TrustedTimeStore(persistence, FakeAuthenticator(), time, time)
         lastTrustedTime = trusted
-        return LicenseManager(context, terminalRepository, menuRepository, DeviceIdentityProvider(), trusted,
+        return LicenseManager(context, terminalRepository, menuRepository, deviceIdentityProvider, trusted,
             LicenseSignatureVerifier { authority.public }, object : RuntimeLicensePolicy {
                 override val developerAuthorization = false
                 override fun appIntegrityValid() = true
@@ -169,7 +170,7 @@ class SellingAuthorizationRepositoryIntegrationTest {
         grace: String = "2026-09-27T00:00:00Z"
     ): SignedLicenseV1 {
         val payload = LicensePayloadV1(productCode = LICENSE_PRODUCT_CODE, licenseId = "test", licenseSequence = 1,
-            restaurantId = "rest-1", terminalId = configuredTerminalId, deviceKeyId = DeviceIdentityProvider().get().deviceKeyId,
+            restaurantId = "rest-1", terminalId = configuredTerminalId, deviceKeyId = deviceIdentityProvider.get().deviceKeyId,
             planCode = "PILOT", issuedAtUtc = issued, expiresAtUtc = expires, graceUntilUtc = grace)
         val signature = Signature.getInstance("SHA256withECDSA").run {
             initSign(authority.private); update(CanonicalLicenseEncoder.encode(payload)); sign()

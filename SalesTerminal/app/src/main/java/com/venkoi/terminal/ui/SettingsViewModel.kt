@@ -233,7 +233,7 @@ class SettingsViewModel @Inject constructor(
                 }
                 val exportedAt = clock.now()
                 val exportId = idGenerator.nextId()
-                val export = buildSalesExport(
+                val export = buildSalesExport.buildV2(
                     group.key.restaurantId, terminal.terminalId.value, exportId, exportedAt, group.sales
                 )
                 val stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss").withZone(ZoneOffset.UTC).format(exportedAt)

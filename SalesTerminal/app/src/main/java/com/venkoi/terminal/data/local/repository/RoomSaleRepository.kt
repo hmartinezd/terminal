@@ -1,5 +1,7 @@
 package com.venkoi.terminal.data.local.repository
 
+import androidx.room.withTransaction
+import com.venkoi.terminal.data.local.database.AppDatabase
 import com.venkoi.terminal.core.Clock
 import com.venkoi.terminal.core.IdGenerator
 import com.venkoi.terminal.core.LineId
@@ -36,7 +38,8 @@ class RoomSaleRepository @Inject constructor(
     private val idGenerator: IdGenerator,
     private val completeSaleService: CompleteSale,
     private val voidSaleService: VoidSale,
-    private val licenseManager: LicenseManager
+    private val licenseManager: LicenseManager,
+    private val database: AppDatabase
 ) : SaleRepository {
 
     override fun observeOpenSales(): Flow<List<Sale>> =
@@ -53,31 +56,33 @@ class RoomSaleRepository @Inject constructor(
 
     override suspend fun createSale(tableLabel: String?): SaleId {
         licenseManager.requireSelling()
-        val config = terminalConfigRepository.getConfiguration()
-            ?: throw IllegalStateException("Terminal not configured")
-        
-        val restaurant = menuRepository.getRestaurantConfiguration()
-            ?: throw IllegalStateException("Restaurant not configured")
-        val menu = menuRepository.getPublishedMenu()
-            ?: throw IllegalStateException("Published menu not configured")
+        return database.withTransaction {
+            val config = terminalConfigRepository.getConfiguration()
+                ?: throw IllegalStateException("Terminal not configured")
 
-        val saleId = SaleId(idGenerator.nextId())
-        val now = clock.now()
-        val sale = Sale(
-            saleId = saleId,
-            terminalId = config.terminalId,
-            openedAtUtc = now,
-            updatedAtUtc = now,
-            tableLabel = tableLabel,
-            status = SaleStatus.OPEN,
-            currencyCodeSnapshot = restaurant.currency.currencyCode,
-            currencyScaleSnapshot = CurrencyRoundingPolicy.scaleFor(restaurant.currency),
-            restaurantIdSnapshot = restaurant.restaurantId,
-            menuIdSnapshot = menu.menuId,
-            publicationRevisionSnapshot = menu.publicationRevision
-        )
-        saleDao.insertSale(SaleEntity.fromDomain(sale))
-        return saleId
+            val restaurant = menuRepository.getRestaurantConfiguration()
+                ?: throw IllegalStateException("Restaurant not configured")
+            val menu = menuRepository.getPublishedMenu()
+                ?: throw IllegalStateException("Published menu not configured")
+
+            val saleId = SaleId(idGenerator.nextId())
+            val now = clock.now()
+            val sale = Sale(
+                saleId = saleId,
+                terminalId = config.terminalId,
+                openedAtUtc = now,
+                updatedAtUtc = now,
+                tableLabel = tableLabel,
+                status = SaleStatus.OPEN,
+                currencyCodeSnapshot = restaurant.currency.currencyCode,
+                currencyScaleSnapshot = CurrencyRoundingPolicy.scaleFor(restaurant.currency),
+                restaurantIdSnapshot = restaurant.restaurantId,
+                menuIdSnapshot = menu.menuId,
+                publicationRevisionSnapshot = menu.publicationRevision
+            )
+            saleDao.insertSale(SaleEntity.fromDomain(sale))
+            saleId
+        }
     }
 
     override suspend fun updateSaleLabel(saleId: SaleId, label: String?) {
@@ -94,7 +99,7 @@ class RoomSaleRepository @Inject constructor(
         if (!item.active) return
 
         val menu = menuRepository.getPublishedMenu() ?: return
-        
+
         val discountPolicyPercent = if (item.cashDiscountMode == CashDiscountMode.APPLY_DEFAULT) {
             menu.defaultCashDiscountPercent
         } else {
@@ -158,7 +163,7 @@ class RoomSaleRepository @Inject constructor(
 
         val lines = saleDao.getSaleLinesSync(saleId)
         val lineEntity = lines.find { it.lineId == lineId } ?: return
-        
+
         if (lineEntity.saleId != saleId) return
 
         if (newQuantity <= BigDecimal.ZERO) {
@@ -175,7 +180,7 @@ class RoomSaleRepository @Inject constructor(
             cashDiscountPolicyPercent = line.cashDiscountPolicyPercentSnapshot,
             currencyScale = saleEntity.currencyScaleSnapshot
         )
-        
+
         val updatedLine = line.copy(
             quantity = newQuantity,
             cashDiscountApplied = pricing.cashDiscountApplied,
@@ -184,7 +189,7 @@ class RoomSaleRepository @Inject constructor(
             finalUnitPrice = pricing.finalUnitPrice,
             lineTotal = pricing.lineTotal
         )
-        
+
         saleDao.updateLinesAndSale(
             saleId = saleId,
             lines = listOf(SaleLineEntity.fromDomain(updatedLine)),
@@ -199,7 +204,7 @@ class RoomSaleRepository @Inject constructor(
 
         val lines = saleDao.getSaleLinesSync(saleId)
         val lineEntity = lines.find { it.lineId == lineId } ?: return
-        
+
         if (lineEntity.saleId != saleId) return
 
         val line = lineEntity.toDomain()
@@ -212,7 +217,7 @@ class RoomSaleRepository @Inject constructor(
             cashDiscountPolicyPercent = line.cashDiscountPolicyPercentSnapshot,
             currencyScale = saleEntity.currencyScaleSnapshot
         )
-        
+
         val updatedLine = line.copy(
             pricingMode = pricingMode,
             cashDiscountApplied = pricing.cashDiscountApplied,

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "restaurant": {
+    "restaurantId": "f2300000-0000-4000-8000-000000000001",
+    "restaurantName": "Venkoi Kitchen",
+    "timezone": "America/New_York",
+    "currency": "USD",
+    "businessDayCutoff": "04:00"
+  },
+  "menu": {
+    "menuId": "f2300000-0000-4000-8000-000000000002",
+    "publicationRevision": 5,
+    "publishedAtUtc": "1970-01-01T00:00:03.000Z",
+    "defaultCashDiscountPercent": "5.25"
+  },
+  "categories": [
+    {
+      "id": "f2300000-0000-4000-8000-000000000003",
+      "name": "Hot  Drinks",
+      "displayOrder": 40
+    }
+  ],
+  "menuItems": [
+    {
+      "id": "f2300000-0000-4000-8000-000000000005",
+      "categoryId": "f2300000-0000-4000-8000-000000000003",
+      "name": "Burger  Special",
+      "active": true,
+      "displayOrder": 60,
+      "regularPrice": "12.50",
+      "cashDiscountMode": "APPLY_DEFAULT",
+      "commercialRevision": 4,
+      "consumptionRevision": 8
+    }
+  ]
+}

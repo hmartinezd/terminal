@@ -75,7 +75,11 @@ class MenuImportService @Inject constructor(
         val currentMenu = menuRepository.getPublishedMenu()
         val currentRestaurant = menuRepository.getRestaurantConfiguration()
 
-        if (currentMenu != null && currentRestaurant != null) {
+        // Publication revisions are scoped to (restaurantId, menuId), not the terminal.
+        // A different menu may legitimately start at revision 1.
+        if (currentMenu != null && currentRestaurant != null &&
+            currentMenu.menuId == validated.menu.menuId
+        ) {
             if (validated.menu.publicationRevision < currentMenu.publicationRevision) {
                 return MenuImportStatus.Failure("Attempted to import a stale menu (Revision ${validated.menu.publicationRevision} < ${currentMenu.publicationRevision})")
             }

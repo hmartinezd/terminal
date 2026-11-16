@@ -8,6 +8,10 @@ import com.venkoi.terminal.integration.sales.SalesExportLineV1
 import com.venkoi.terminal.integration.sales.SalesExportStatus
 import com.venkoi.terminal.integration.sales.SalesExportTransactionV1
 import com.venkoi.terminal.integration.sales.SalesExportV1
+import com.venkoi.terminal.integration.sales.SalesExportV2
+import com.venkoi.terminal.integration.sales.SalesExportTransactionV2
+import com.venkoi.terminal.integration.sales.SalesExportLineV2
+import com.venkoi.terminal.integration.sales.SALES_EXPORT_V2_FORMAT_VERSION
 import java.math.BigDecimal
 import java.time.Instant
 import javax.inject.Inject
@@ -65,6 +69,63 @@ class BuildSalesExport @Inject constructor() {
             publicationRevision = publicationRevision,
             currency = currency,
             transactions = transactions
+        )
+    }
+
+    /**
+     * Current export contract for upgraded consumers. V1 remains available for compatibility tests.
+     * Reuses all V1 provenance, lifecycle, money and ordering checks; adds only the source mode.
+     */
+    fun buildV2(
+        restaurantId: String,
+        terminalId: String,
+        exportId: String,
+        generatedAt: Instant,
+        sales: List<SaleWithLines>
+    ): SalesExportV2 {
+        require(sales.map { it.sale.saleId }.distinct().size == sales.size) {
+            "Duplicate transaction identity"
+        }
+        val modes = sales.flatMap { sale ->
+            sale.lines.map { line -> (sale.sale.saleId.value to line.lineId.value) to line.pricingMode.name }
+        }
+        require(modes.map { it.first.second }.distinct().size == modes.size) { "Duplicate sale line identity" }
+        val modeByLine = modes.toMap()
+        val v1 = invoke(restaurantId, terminalId, exportId, generatedAt, sales)
+        return SalesExportV2(
+            format = v1.format,
+            formatVersion = SALES_EXPORT_V2_FORMAT_VERSION,
+            exportId = v1.exportId,
+            terminalId = v1.terminalId,
+            restaurantId = v1.restaurantId,
+            generatedAt = v1.generatedAt,
+            businessDate = v1.businessDate,
+            menuId = v1.menuId,
+            publicationRevision = v1.publicationRevision,
+            currency = v1.currency,
+            transactions = v1.transactions.map { transaction ->
+                SalesExportTransactionV2(
+                    transactionId = transaction.transactionId,
+                    openedAt = transaction.openedAt,
+                    closedAt = transaction.closedAt,
+                    status = transaction.status,
+                    lines = transaction.lines.map { line ->
+                        SalesExportLineV2(
+                            saleLineId = line.saleLineId,
+                            sellableItemId = line.sellableItemId,
+                            displayNameSnapshot = line.displayNameSnapshot,
+                            quantity = line.quantity,
+                            unitPrice = line.unitPrice,
+                            gross = line.gross,
+                            discount = line.discount,
+                            net = line.net,
+                            commercialRevision = line.commercialRevision,
+                            consumptionRevision = line.consumptionRevision,
+                            pricingMode = modeByLine.getValue(transaction.transactionId to line.saleLineId)
+                        )
+                    }
+                )
+            }
         )
     }
 
