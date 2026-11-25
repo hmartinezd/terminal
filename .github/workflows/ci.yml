@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
 
@@ -25,8 +25,14 @@ jobs:
           java-version: "17"
           distribution: temurin
 
-      - name: Install Android compile SDK
-        run: sdkmanager "platforms;android-37.0"
+      - name: Locate Android compile SDK
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          if [[ ! -f "$sdk/platforms/android-37.0/android.jar" ]]; then
+            "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "platforms;android-37.0"
+          fi
+          test -f "$sdk/platforms/android-37.0/android.jar"
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
 
       - name: Verify the unified workspace
         run: >
