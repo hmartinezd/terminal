@@ -90,7 +90,7 @@ android {
         applicationId = "com.venkoi.terminal"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0.0-pilot.1"
 
         testInstrumentationRunner = "com.venkoi.terminal.HiltTestRunner"

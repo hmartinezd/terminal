@@ -17,6 +17,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.ZoneId
 import java.util.Locale
 
 class SalePrintContentBuilderTest {
@@ -90,6 +91,22 @@ class SalePrintContentBuilderTest {
         assertTrue(text.contains("Cafe"))
         (1..80).forEach { assertTrue(text.contains("Item $it  x1")) }
         assertTrue(text.contains("Grand Total: 80.00 USD"))
+    }
+
+    @Test fun `sale timestamps use restaurant timezone across calendar boundary`() {
+        val boundary = Instant.parse("2026-08-19T00:00:00Z")
+        val sale = sale(SaleStatus.VOIDED).copy(completedAtUtc = boundary, voidedAtUtc = boundary)
+        val lines = listOf(line(1, PricingMode.CASH, "Burger", "9.00"))
+        val document = SalePrintContentBuilder.build(
+            sale, lines, CalculateOrderTotals.calculate(lines), "Cafe", "Front",
+            ZoneId.of("America/New_York"), Locale.US, labels
+        )
+        val text = document.lines.joinToString("\n") { it.text }
+
+        assertTrue(text.contains("Completed At: Aug 18, 2026"))
+        assertTrue(text.contains("Voided At: Aug 18, 2026"))
+        assertFalse(text.contains("Completed At: 2026-08-19"))
+        assertFalse(text.contains("Voided At: 2026-08-19"))
     }
 
     private fun build(sale: Sale, lines: List<SaleLine>) = SalePrintContentBuilder.build(

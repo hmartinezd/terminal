@@ -2,54 +2,41 @@ name: Three-project verification
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - uses: actions/checkout@v4
 
-    - name: Grant execute permission for wrappers
-      run: chmod +x SalesTerminal/gradlew LicenseContract/gradlew LicenseAdmin/gradlew
+      - name: Set up Gradle daemon JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: temurin
+          cache: gradle
 
-    - name: Build, test, and publish License Contract locally
-      working-directory: LicenseContract
-      run: ./gradlew build publishToMavenLocal
+      - name: Set up JVM module toolchain
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
 
-    - name: Build and test License Admin
-      working-directory: LicenseAdmin
-      run: ./gradlew build
+      - name: Install Android compile SDK
+        run: sdkmanager "platforms;android-37.0"
 
-    - name: Build Sales Terminal debug
-      working-directory: SalesTerminal
-      run: ./gradlew assembleDebug
+      - name: Verify the unified workspace
+        run: >
+          ./gradlew :LicenseContract:build :LicenseAdmin:build
+          :SalesTerminal:assembleDebug :SalesTerminal:test :SalesTerminal:lint
+          :SalesTerminal:compileDebugAndroidTestKotlin
 
-    - name: Run unit tests
-      working-directory: SalesTerminal
-      run: ./gradlew test
-
-    - name: Run lint
-      working-directory: SalesTerminal
-      run: ./gradlew lint
-
-    - name: Compile instrumentation tests
-      working-directory: SalesTerminal
-      run: ./gradlew compileDebugAndroidTestKotlin
-
-    - name: Verify minified release build with non-production public configuration
-      env:
-        CI_TEST_LICENSE_PUBLIC_KEY: MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEiDKg/uve//7qF6eWYI6xOWaeClbgGRyXU+nPIGlhDG5bhTCcCBwwocu1DXlhE4u3pGDYC7m/Mv03YZoWhLxdUw==
-        CI_TEST_CERT_SHA256: 0000000000000000000000000000000000000000000000000000000000000000
-      working-directory: SalesTerminal
-      run: ./gradlew assembleRelease -PLICENSE_AUTHORITY_PUBLIC_KEY="$CI_TEST_LICENSE_PUBLIC_KEY" -PEXPECTED_RELEASE_CERT_SHA256="$CI_TEST_CERT_SHA256"
+      - name: Verify minified release build with non-production public configuration
+        env:
+          CI_TEST_LICENSE_PUBLIC_KEY: MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEiDKg/uve//7qF6eWYI6xOWaeClbgGRyXU+nPIGlhDG5bhTCcCBwwocu1DXlhE4u3pGDYC7m/Mv03YZoWhLxdUw==
+          CI_TEST_CERT_SHA256: 0000000000000000000000000000000000000000000000000000000000000000
+        run: |
+          ./gradlew :SalesTerminal:assembleRelease -PLICENSE_AUTHORITY_PUBLIC_KEY="$CI_TEST_LICENSE_PUBLIC_KEY" -PEXPECTED_RELEASE_CERT_SHA256="$CI_TEST_CERT_SHA256"

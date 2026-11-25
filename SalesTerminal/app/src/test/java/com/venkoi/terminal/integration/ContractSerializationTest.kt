@@ -4,6 +4,11 @@ import com.venkoi.terminal.core.Money
 import com.venkoi.terminal.integration.menu.*
 import com.venkoi.terminal.integration.sales.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
@@ -133,6 +138,24 @@ class ContractSerializationTest {
         assertEquals("2", decoded.transactions[0].lines[0].quantity)
         assertEquals(4, decoded.transactions[0].lines[0].commercialRevision)
         assertEquals(7, decoded.transactions[0].lines[0].consumptionRevision)
+    }
+
+    @Test
+    fun testMainBranchV1GoldenFixtureHasSameFieldsButDifferentFormat() {
+        val old = Json.parseToJsonElement(getFixtureFile("sales-export-v1-golden.json")).jsonObject
+        assertEquals("cuentame-sales-export", old.getValue("format").jsonPrimitive.content)
+        // This test compares historical fields without broadening the live Redesign/V2 format.
+        val document = Json.decodeFromJsonElement<SalesExportV1>(
+            JsonObject(old + ("format" to JsonPrimitive(SALES_EXPORT_FORMAT)))
+        )
+        assertEquals(SALES_EXPORT_FORMAT, document.format)
+        assertEquals(1, document.formatVersion)
+        assertEquals("export-1", document.exportId)
+        assertEquals("menu-1", document.menuId)
+        assertEquals(3, document.publicationRevision)
+        assertEquals(listOf(SalesExportStatus.COMPLETED, SalesExportStatus.VOIDED),
+            document.transactions.map { it.status })
+        assertEquals("25.22", document.transactions.first().lines.first().net)
     }
 
     private fun getFixtureFile(name: String): String {

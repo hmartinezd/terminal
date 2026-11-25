@@ -7,7 +7,8 @@ import com.venkoi.terminal.data.local.database.MenuDao
 import com.venkoi.terminal.data.local.database.ReportDao
 import com.venkoi.terminal.data.local.database.TerminalDao
 import com.venkoi.terminal.data.local.database.ExportDao
-import com.venkoi.terminal.data.local.database.MIGRATION_5_6
+import com.venkoi.terminal.data.local.database.MIGRATION_5_7
+import com.venkoi.terminal.data.local.database.MIGRATION_6_7
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,7 +31,7 @@ object DataModule {
             "sales_terminal.db"
         )
         // Never reset a client database during an export-format upgrade.
-        return builder.addMigrations(MIGRATION_5_6).build()
+        return builder.addMigrations(MIGRATION_5_7, MIGRATION_6_7).build()
     }
 
     @Provides

@@ -159,8 +159,8 @@ This addendum describes the candidate being prepared for the final production ar
 
 ### Current controlled-pilot baseline
 
-- Application identity: `com.venkoi.terminal`, version `1.0.0-pilot.1`, version code `1`.
-- Database: Room schema `6` is the current candidate. Schema `5` remains the historical first-distributed production baseline; the explicit 5 → 6 migration is non-destructive and release has no destructive fallback.
+- Application identity: `com.venkoi.terminal`, version `1.0.0-pilot.1`, version code `2` in the development candidate; confirm installed pilot metadata before distribution.
+- Database: Room schema `7` is the current candidate. Schema 5 and both known schema-6 variants upgrade non-destructively; no build type enables destructive fallback.
 - Orders: branded 256dp overlay application drawer, compact top bar, pinned New Order control beside an independently scrolling stable OPEN-order strip, approximately 400dp Current Order, compact line controls, header Cancel Order, and fixed totals/completion footer. License restrictions use one persistent application-level banner; Orders retains disabled controls and state-specific denied-action snackbar feedback without a duplicate banner.
 - History: approximately 400dp dense master pane, Business Date grouping, time-only transaction rows, Order/Closed/Amount/Status columns, persistent sale detail, dense ITEM/QTY/MODE/AMOUNT ledger, Sale Ref, Print/Save PDF, and historical VOID.
 - Reports: compact Business Date navigation with always-actionable Today/Hoy, Money/Products segmented selection, Net Sales/Cash/Transfer primary summary, compact audit metrics, and dense lazy Products table.
@@ -168,7 +168,7 @@ This addendum describes the candidate being prepared for the final production ar
 
 The architecture statements above were reconciled against current source. They do not manufacture new screenshot evidence. Earlier runtime evidence for compact Current Order and Save/Share remains recorded in its dated section; older NavigationRail, vertical Open Orders, card-layout, and scrolling-Settings observations describe only the historical build exercised at that time.
 
-The current candidate emits only canonical SalesExport V1 (`venkoi-serve-sales-export`, version `1`) and selects one immutable envelope group per document. Historical pre-provenance sales are preserved and remain readable but are unsupported for safe canonical export; new schema-6 sales capture immutable restaurant/menu/publication provenance. Final artifact metadata remains **PENDING**.
+The current candidate emits canonical SalesExport V2 (`venkoi-serve-sales-export`, version `2`, including per-line pricing mode) and selects one immutable envelope group per document. Historical pre-provenance sales are preserved and remain readable but are unsupported for safe canonical export; new sales capture immutable restaurant/menu/publication provenance. Final artifact metadata remains **PENDING**.
 
 ### Current security runtime evidence
 

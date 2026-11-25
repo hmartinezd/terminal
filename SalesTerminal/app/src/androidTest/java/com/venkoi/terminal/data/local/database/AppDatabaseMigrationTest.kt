@@ -25,8 +25,8 @@ class AppDatabaseMigrationTest {
 
     @Test
     @Throws(IOException::class)
-    fun migrate5To6PreservesAllRowsAndLeavesLegacyProvenanceNull() = runBlocking {
-        val databaseName = "migration-5-6-${System.nanoTime()}"
+    fun migrate5To7PreservesAllRowsAndLeavesLegacyProvenanceNull() = runBlocking {
+        val databaseName = "migration-5-7-${System.nanoTime()}"
         try {
             helper.createDatabase(databaseName, 5).apply {
                 execSQL("INSERT INTO terminal_configuration VALUES (0, ?, ?, ?, ?)", arrayOf("terminal-5", "restaurant-5", "Terminal", "2026-08-01T00:00:00Z"))
@@ -42,7 +42,7 @@ class AppDatabaseMigrationTest {
                 close()
             }
 
-            val migrated = helper.runMigrationsAndValidate(databaseName, 6, true, MIGRATION_5_6)
+            val migrated = helper.runMigrationsAndValidate(databaseName, 7, true, MIGRATION_5_7)
             migrated.query("SELECT COUNT(*) FROM terminal_configuration").use { assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0)) }
             migrated.query("SELECT COUNT(*) FROM restaurant_configuration").use { assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0)) }
             migrated.query("SELECT COUNT(*) FROM published_menu").use { assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0)) }
@@ -86,7 +86,7 @@ class AppDatabaseMigrationTest {
             migrated.close()
 
             val reopened = Room.databaseBuilder(context, AppDatabase::class.java, databaseName)
-                .addMigrations(MIGRATION_5_6)
+                .addMigrations(MIGRATION_5_7, MIGRATION_6_7)
                 .build()
             assertEquals("sale-completed-5", reopened.saleDao().getSaleSync(com.venkoi.terminal.core.SaleId("sale-completed-5"))?.saleId?.value)
             assertEquals(1, reopened.exportDao().getExportState(com.venkoi.terminal.core.SaleId("sale-completed-5"))?.lastExportedRevision)
@@ -112,8 +112,12 @@ class AppDatabaseMigrationTest {
 
     private fun androidx.sqlite.db.SupportSQLiteDatabase.insertLine(saleId: String, lineId: String) {
         execSQL(
-            "INSERT INTO sale_lines VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            arrayOf(lineId, saleId, "item-5", 4, 8, "Item", 0, "1", "10.00", "NONE", "0", "TRANSFER", 0, "0", "0", "10.00", "10.00")
+            """INSERT INTO sale_lines (lineId, saleId, menuItemId, commercialRevision, consumptionRevision,
+                itemNameSnapshot, quantity, regularUnitPriceSnapshot, cashDiscountModeSnapshot,
+                cashDiscountPolicyPercentSnapshot, pricingMode, cashDiscountApplied, cashDiscountPercent,
+                cashDiscountAmount, finalUnitPrice, lineTotal, displayOrder)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""".trimIndent(),
+            arrayOf(lineId, saleId, "item-5", 4, 8, "Item", "1", "10.00", "NONE", "0", "TRANSFER", 0, "0", "0", "10.00", "10.00", 0)
         )
     }
 }
